@@ -22,7 +22,7 @@ int main()
     auto& frame = add_frame(
         core,
         "id-1", // frame id
-        "/home/njaldea/repo/cpp/nil/sandbox/xit/gui/Markup.svelte"
+        "/home/njaldea/repo/cpp/nil-xit/sandbox/gui/Markup.svelte"
     );
 
     auto& str_bind = bind(
@@ -34,7 +34,7 @@ int main()
     );
 
     // this is to test cpp -> gui data flow
-    std::thread th(
+    const std::thread th(
         [&]()
         {
             std::string line;

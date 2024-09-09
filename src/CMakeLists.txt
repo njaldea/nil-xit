@@ -6,13 +6,30 @@ find_package(nil COMPONENTS service CONFIG REQUIRED)
 
 set(
     SOURCES
-        src/xit.cpp
         src/codec.hpp
+        src/structs/Core.hpp
+        src/structs/Frame.hpp
+        src/structs/Binding.hpp
+        src/methods/make_core.cpp
+        src/methods/add_frame.cpp
+        src/methods/bind.cpp
+        src/methods/get.cpp
+        src/methods/set.cpp
+        src/methods/post.cpp
+        src/methods/msg_set.cpp
+        src/methods/msg_set.hpp
 )
 
 set(
     HEADERS
         publish/nil/xit.hpp
+        publish/nil/xit/structs.hpp
+        publish/nil/xit/methods/add_frame.hpp
+        publish/nil/xit/methods/bind.hpp
+        publish/nil/xit/methods/get.hpp
+        publish/nil/xit/methods/set.hpp
+        publish/nil/xit/methods/post.hpp
+        publish/nil/xit/methods/make_core.hpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
