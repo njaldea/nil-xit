@@ -2,8 +2,8 @@
 
 #include "../codec.hpp"
 #include "../proto/message.pb.h"
-#include "../structs/Core.hpp"
-#include "msg_set.hpp"
+#include "../structs.hpp"
+#include "impl_set.hpp"
 
 #include <nil/service/concat.hpp>
 #include <nil/service/consume.hpp>
@@ -15,26 +15,6 @@ namespace nil::xit
 {
     namespace impl
     {
-        template <typename T>
-        void binding_set(Binding<T>& binding, T value)
-        {
-            if (binding.value != value)
-            {
-                binding.value = std::move(value);
-                binding.on_change(binding.value);
-            }
-        }
-
-        void binding_set(Binding<std::int64_t>& binding, const nil::xit::proto::Binding& msg)
-        {
-            binding_set(binding, msg.value_i64());
-        }
-
-        void binding_set(Binding<std::string>& binding, const nil::xit::proto::Binding& msg)
-        {
-            binding_set(binding, msg.value_str());
-        }
-
         void handle(
             Core& core,
             const nil::service::ID& id,
@@ -102,20 +82,16 @@ namespace nil::xit
                 auto binding_it = it->second.bindings.find(msg.binding().tag());
                 if (binding_it != it->second.bindings.end())
                 {
-                    if (msg.binding().has_value_i64())
-                    {
-                        std::visit(
-                            [&msg](auto& b) { binding_set(b, msg.binding()); },
-                            binding_it->second
-                        );
-                    }
-                    else if (msg.binding().has_value_str())
-                    {
-                        std::visit(
-                            [&msg](auto& b) { binding_set(b, msg.binding()); },
-                            binding_it->second
-                        );
-                    }
+                    std::visit(
+                        [&msg](auto& b)
+                        {
+                            if (binding_set(b.value, msg.binding()) && b.on_change)
+                            {
+                                b.on_change(b.value);
+                            }
+                        },
+                        binding_it->second
+                    );
                 }
             }
             else

@@ -7,17 +7,15 @@ find_package(nil COMPONENTS service CONFIG REQUIRED)
 set(
     SOURCES
         src/codec.hpp
-        src/structs/Core.hpp
-        src/structs/Frame.hpp
-        src/structs/Binding.hpp
+        src/structs.hpp
         src/methods/make_core.cpp
         src/methods/add_frame.cpp
         src/methods/bind.cpp
         src/methods/get.cpp
         src/methods/set.cpp
         src/methods/post.cpp
-        src/methods/msg_set.cpp
-        src/methods/msg_set.hpp
+        src/methods/impl_set.cpp
+        src/methods/impl_set.hpp
 )
 
 set(

@@ -1,6 +1,6 @@
 #include <nil/xit/methods/add_frame.hpp>
 
-#include "../structs/Core.hpp"
+#include "../structs.hpp"
 
 namespace nil::xit
 {

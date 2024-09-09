@@ -1,10 +1,9 @@
 #include <nil/xit/methods/post.hpp>
 
-#include "../structs/Core.hpp"
-#include "msg_set.hpp"
-
 #include "../codec.hpp"
 #include "../proto/message.pb.h"
+#include "../structs.hpp"
+#include "impl_set.hpp"
 
 #include <nil/service/concat.hpp>
 

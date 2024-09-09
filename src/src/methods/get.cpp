@@ -1,6 +1,6 @@
 #include <nil/xit/methods/get.hpp>
 
-#include "../structs/Binding.hpp"
+#include "../structs.hpp"
 
 namespace nil::xit
 {
