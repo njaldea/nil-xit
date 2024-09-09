@@ -5,7 +5,7 @@
 #include <nil/service/consume.hpp>
 #include <nil/service/map.hpp>
 
-#include <xit/messages/message.pb.h>
+#include "proto/message.pb.h"
 
 #include "codec.hpp"
 
