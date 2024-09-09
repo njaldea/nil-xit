@@ -1,0 +1,16 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg-configuration.schema.json",
+    "default-registry": {
+        "kind": "git",
+        "repository": "https://github.com/Microsoft/vcpkg",
+        "baseline": "da21e45c9ae689f63aa27f3a4ee0e64fe6b16494"
+    },
+    "registries": [
+        {
+            "kind": "git",
+            "repository": "https://github.com/njaldea/nil-vcpkg-ports",
+            "baseline": "ecc48e9ea6a99422b72699a5a8a25c55f2a8a0f5",
+            "packages": ["nil", "nil-gate", "nil-clix", "nil-service"]
+        }
+    ]
+}

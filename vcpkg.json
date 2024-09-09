@@ -1,0 +1,33 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "dependencies": [
+        {
+            "name": "nil",
+            "features": ["service"]
+        },
+        {
+            "name": "protobuf",
+            "version>=": "3.21.12"
+        }
+    ],
+    "features": {
+        "test": {
+            "description": "Enable tests",
+            "dependencies": [
+                {
+                    "name": "gtest",
+                    "version>=": "1.13.0"
+                }
+            ]
+        },
+        "sandbox": {
+            "description": "sandbox",
+            "dependencies": [
+                {
+                    "name": "nil",
+                    "features": ["clix"]
+                }
+            ]
+        }
+    }
+}
