@@ -1,3 +1,5 @@
+project(${PROJECT_NAME}-proto)
+
 find_package(Protobuf CONFIG REQUIRED)
 
 protobuf_generate_cpp(
@@ -8,17 +10,12 @@ protobuf_generate_cpp(
     OUTPUT_DIRECTORY_H ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_library(${PROJECT_NAME}_proto ${PROTO_HEADER} ${PROTO_SRC})
-target_link_libraries(${PROJECT_NAME}_proto PUBLIC protobuf::libprotobuf-lite)
-set_target_properties(${PROJECT_NAME}_proto PROPERTIES CXX_CLANG_TIDY "")
+add_library(${PROJECT_NAME} ${PROTO_HEADER} ${PROTO_SRC})
+target_link_libraries(${PROJECT_NAME} PUBLIC protobuf::libprotobuf-lite)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY "")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(${PROJECT_NAME}_proto PRIVATE -Wno-sign-conversion)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-sign-conversion)
 endif()
 
-install(TARGETS ${PROJECT_NAME}_proto EXPORT ${CMAKE_PROJECT_NAME}-proto-targets)
-install(
-    EXPORT ${CMAKE_PROJECT_NAME}-proto-targets
-    NAMESPACE nil::
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/${CMAKE_PROJECT_NAME}
-)
+nil_install_targets(${PROJECT_NAME})

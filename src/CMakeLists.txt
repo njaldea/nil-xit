@@ -31,7 +31,7 @@ set(
 )
 
 add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_proto)
+target_link_libraries(${PROJECT_NAME} PRIVATE xit-proto)
 target_link_libraries(${PROJECT_NAME} PUBLIC nil::service)
 
 target_include_directories(
@@ -48,4 +48,5 @@ target_include_directories(
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-install_for_package(${PROJECT_NAME})
+nil_install_headers()
+nil_install_targets(${PROJECT_NAME})
