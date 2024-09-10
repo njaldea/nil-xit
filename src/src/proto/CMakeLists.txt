@@ -16,9 +16,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clan
     target_compile_options(${PROJECT_NAME}_proto PRIVATE -Wno-sign-conversion)
 endif()
 
-install(TARGETS ${PROJECT_NAME}_proto EXPORT ${CMAKE_PROJECT_NAME}-${PROJECT_NAME}_proto-targets)
+install(TARGETS ${PROJECT_NAME}_proto EXPORT ${CMAKE_PROJECT_NAME}-proto-targets)
 install(
-    EXPORT ${CMAKE_PROJECT_NAME}-${PROJECT_NAME}_proto-targets
+    EXPORT ${CMAKE_PROJECT_NAME}-proto-targets
     NAMESPACE ${CMAKE_PROJECT_NAME}::
     DESTINATION ${CMAKE_INSTALL_DATADIR}/${CMAKE_PROJECT_NAME}
 )
