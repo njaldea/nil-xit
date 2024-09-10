@@ -9,10 +9,10 @@
 
     // can import anything in npmjs (served through unpkg.com)
 
-    // bindingid, default value (in case binding is not registered)
+    // (binding id, default value) (in case binding is not registered)
     const int_binding = binding('binding_0_0', "1101");
     const str_binding = binding('binding_0_1', "world");
 </script>
 
 <Text bind:value={$str_binding} placeholder="placeholder" label={"text label here"} ></Text>
-<Range min={0} max={10} step={1} bind:value={$int_binding} label="label here"></Range>
+<Range bind:value={$int_binding} min={0} max={10} step={1} label="label here"></Range>

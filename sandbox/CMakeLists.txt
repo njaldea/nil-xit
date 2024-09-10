@@ -5,8 +5,5 @@ if(NOT ENABLE_SANDBOX)
     return()
 endif()
 
-# find_package(nil-clix CONFIG REQUIRED)
-
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE xit)
-# target_link_libraries(${PROJECT_NAME} PRIVATE nil::clix)

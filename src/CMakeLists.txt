@@ -2,7 +2,7 @@ project(xit)
 
 add_subdirectory(src/proto)
 
-find_package(nil COMPONENTS service CONFIG REQUIRED)
+find_package(nil-service CONFIG REQUIRED)
 
 set(
     SOURCES
