@@ -2,8 +2,8 @@
 
 include(CMakeFindDependencyMacro)
 
-if("@ENABLE_FEATURE_PULSE@")
-    include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@-pulse-targets.cmake)
+if("@ENABLE_FEATURE_XIT@")
+    include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@-xit-targets.cmake)
 endif()
 
 check_required_components(nil)
