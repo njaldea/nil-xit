@@ -27,7 +27,10 @@ namespace nil::xit
         std::string id;
         std::filesystem::path path;
 
-        using Binding_t = std::variant<Binding<std::int64_t>, Binding<std::string>>;
+        using Binding_t = std::variant<
+            Binding<std::int64_t>,
+            Binding<std::string>,
+            Binding<std::vector<std::uint8_t>>>;
         std::unordered_map<std::string, Binding_t> bindings;
     };
 

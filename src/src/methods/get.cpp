@@ -13,4 +13,9 @@ namespace nil::xit
     {
         return binding.value;
     }
+
+    std::vector<std::uint8_t> get(const Binding<std::vector<std::uint8_t>>& binding)
+    {
+        return binding.value;
+    }
 }

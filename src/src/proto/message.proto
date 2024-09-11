@@ -31,6 +31,7 @@ message Binding
     oneof value {
         int64 value_i64 = 2;
         string value_str = 3;
+        bytes value_buffer = 4;
     }
 }
 

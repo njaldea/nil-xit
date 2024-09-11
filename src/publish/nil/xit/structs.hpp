@@ -23,4 +23,11 @@ namespace nil::xit
     };
 
     C make_core(nil::service::IService& service);
+
+    template <typename T>
+    struct buffered_traits
+    {
+        static T deserialize(const void* data, std::uint64_t size);
+        static std::vector<std::uint8_t> serialize(const T& value);
+    };
 }

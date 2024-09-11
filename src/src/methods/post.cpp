@@ -12,7 +12,7 @@ namespace nil::xit
     namespace impl
     {
         template <typename T>
-        void post(Binding<T>& binding, T v)
+        void post(const Binding<T>& binding, T v)
         {
             nil::xit::proto::BindingUpdate msg;
             msg.set_id(binding.frame->id);
@@ -27,12 +27,17 @@ namespace nil::xit
         }
     }
 
-    void post(Binding<std::int64_t>& b, std::int64_t v)
+    void post(const Binding<std::int64_t>& b, std::int64_t v)
     {
         impl::post(b, v);
     }
 
-    void post(Binding<std::string>& b, std::string v)
+    void post(const Binding<std::string>& b, std::string v)
+    {
+        impl::post(b, std::move(v));
+    }
+
+    void post(const Binding<std::vector<std::uint8_t>>& b, std::vector<std::uint8_t> v)
     {
         impl::post(b, std::move(v));
     }

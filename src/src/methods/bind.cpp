@@ -1,4 +1,4 @@
-#include <nil/xit/methods/get.hpp>
+#include <nil/xit/methods/bind.hpp>
 
 #include "../structs.hpp"
 
@@ -30,6 +30,16 @@ namespace nil::xit
         std::string tag,
         std::string value,
         std::function<void(const std::string&)> on_change
+    )
+    {
+        return impl::bind(frame, std::move(tag), std::move(value), std::move(on_change));
+    }
+
+    Binding<std::vector<std::uint8_t>>& bind(
+        Frame& frame,
+        std::string tag,
+        std::vector<std::uint8_t> value,
+        std::function<void(const std::vector<std::uint8_t>&)> on_change
     )
     {
         return impl::bind(frame, std::move(tag), std::move(value), std::move(on_change));
