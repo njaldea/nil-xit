@@ -1,5 +1,3 @@
-#include <nil/xit/methods/make_core.hpp>
-
 #include "../codec.hpp"
 #include "../proto/message.pb.h"
 #include "../structs.hpp"
@@ -150,11 +148,11 @@ namespace nil::xit
         }
     }
 
-    std::unique_ptr<Core, void (*)(Core*)> make_core(nil::service::IService& service)
+    C make_core(nil::service::IService& service)
     {
         constexpr auto deleter = [](Core* obj) { std::default_delete<Core>()(obj); };
         auto holder = std::make_unique<Core>(&service);
         impl::install_on_message(*holder);
-        return {holder.release(), deleter};
+        return {{holder.release(), deleter}};
     }
 }

@@ -3,7 +3,6 @@
 #include "xit/structs.hpp" // IWYU pragma: export
 
 #include "xit/methods/add_frame.hpp" // IWYU pragma: export
-#include "xit/methods/make_core.hpp" // IWYU pragma: export
 
 #include "xit/methods/bind.hpp" // IWYU pragma: export
 

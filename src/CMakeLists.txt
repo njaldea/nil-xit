@@ -27,7 +27,6 @@ set(
         publish/nil/xit/methods/get.hpp
         publish/nil/xit/methods/set.hpp
         publish/nil/xit/methods/post.hpp
-        publish/nil/xit/methods/make_core.hpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})

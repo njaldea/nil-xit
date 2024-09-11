@@ -22,7 +22,7 @@ int main()
     auto& frame = add_frame(
         core,
         "id-1", // frame id
-        "/home/njaldea/repo/cpp/nil-xit/sandbox/gui/Markup.svelte"
+        std::filesystem::path(__FILE__).parent_path() / "gui/Markup.svelte"
     );
 
     auto& str_bind = bind(
@@ -41,10 +41,14 @@ int main()
             std::cout << "input here: ";
             while (std::getline(std::cin, line))
             {
-                // will not set local value
-                // will wait until gui sends an update
-                // (?)
+                // will not update the local data inside str_bind
                 post(str_bind, line);
+
+                // if local data needs to be overwritten, use `set` instead
+                // this will update the local data without waiting for an update
+                // from the UI.
+
+                // set(str_bind, line);
                 std::cout << "input here: ";
             }
         }
