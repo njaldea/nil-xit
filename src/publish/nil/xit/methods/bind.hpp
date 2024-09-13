@@ -2,7 +2,6 @@
 
 #include "../structs.hpp"
 
-#include <any>
 #include <functional>
 #include <string>
 
@@ -30,11 +29,15 @@ namespace nil::xit
     );
 
     template <typename T>
+        requires requires(T value) {
+            { buffer_type<T>::serialize(value) } -> std::same_as<std::vector<std::uint8_t>>;
+            { buffer_type<T>::deserialize(nullptr, 0) } -> std::same_as<T>;
+        }
     Binding<T>& bind(
         Frame& frame,
         std::string tag,
         T value,
-        std::function<void(const T&)> on_change = {}
+        std::function<void(const std::type_identity_t<T>&)> on_change = {}
     )
     {
         std::function<void(const std::vector<std::uint8_t>&)> callback

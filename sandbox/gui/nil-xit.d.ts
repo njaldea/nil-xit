@@ -12,10 +12,12 @@ export type CoDec = {
     encode: (o: object) => Uint8Array;
     decode: (a: Uint8Array) => object;
 };
+
 export type Loader = {
     one: (f: string) => Action<HTMLDivElement>;
     all: (f: string[]) => Action<HTMLDivElement>;
 };
+
 export type Xit = {
     binding: {
         string: (t: string, v: string) => Writable<string>;

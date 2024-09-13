@@ -29,13 +29,7 @@ namespace nil::xit
 
 void add_group(nil::xit::Core& core)
 {
-    auto& frame = add_frame(
-        core,
-        "group",
-        std::filesystem::path(__FILE__).parent_path() / "gui/GroupUp.svelte"
-    );
-
-    bind<JSON>(frame, "links", JSON{.buffer = R"({ "links": ["id-1", "json_editor"] })"});
+    add_frame(core, "group", std::filesystem::path(__FILE__).parent_path() / "gui/GroupUp.svelte");
 }
 
 void add_json_editor(nil::xit::Core& core)
@@ -45,12 +39,7 @@ void add_json_editor(nil::xit::Core& core)
         "json_editor", // frame id
         std::filesystem::path(__FILE__).parent_path() / "gui/JsonEditor.svelte"
     );
-    bind<JSON>(
-        frame,
-        "json_binding",
-        JSON{.buffer = R"({ "hello": "hello this is buffer" })"},
-        [](const JSON& value) { std::cout << "value changed: " << value.buffer << std::endl; }
-    );
+    bind(frame, "json_binding", JSON{.buffer = R"({ "hello": "hello this is buffer" })"});
 }
 
 auto& add_base(nil::xit::Core& core)

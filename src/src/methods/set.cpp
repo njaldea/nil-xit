@@ -27,4 +27,9 @@ namespace nil::xit
     {
         impl::set(binding, std::move(value));
     }
+
+    void set(Binding<std::vector<std::uint8_t>>& binding, std::vector<std::uint8_t> value)
+    {
+        impl::set(binding, std::move(value));
+    }
 }

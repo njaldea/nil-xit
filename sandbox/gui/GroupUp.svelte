@@ -1,23 +1,21 @@
 <script>
     import { getContext } from "svelte";
-    import { json_string } from "@nil-/xit";
 
     /** @type import('./nil-xit').Xit */
-    const { binding, loader } = getContext("nil.xit");
+    const { loader } = getContext("nil.xit");
 
-    /** @type import('./nil-xit').Writable<{ links: string[] }> */
-    const links = binding.json("links", { links: [] }, json_string);
+    const frames = ["id-1", "json_editor"];
 </script>
 
 <div class="wrapper">
-    {#if $links.links.length > 0}
-        {@const frames = loader.all($links.links)}
-        <div use:frames></div>
-    {/if}
-    <!-- {#each $links.links as link}
-        {@const frame = loader.one(link)}
-        <div use:frame/>
-    {/each} -->
+    <!-- {#if frames.length > 0}
+        {@const f = loader.all(frames)}
+        <div use:f></div>
+    {/if} -->
+    {#each frames as frame}
+        {@const f = loader.one(frame)}
+        <div use:f/>
+    {/each}
 </div>
 
 <style>
