@@ -65,13 +65,22 @@ auto& add_base(nil::xit::Core& core)
             post(binding, "new stuff here");
         }
     );
-    listen<JSON>(
+    listen(
         frame,
         "listener-2",
         [](const JSON& j)
         {
             std::cout << "listener-2 is notified" << std::endl;
             std::cout << j.buffer << std::endl;
+        }
+    );
+    listen(
+        frame,
+        "listener-3",
+        [](bool j)
+        {
+            std::cout << "listener-3 is notified" << std::endl;
+            std::cout << j << std::endl;
         }
     );
 

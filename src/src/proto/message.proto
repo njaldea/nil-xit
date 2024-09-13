@@ -32,9 +32,11 @@ message Binding
 {
     string tag = 1;
     oneof value {
-        int64 value_number = 2;
-        string value_string = 3;
-        bytes value_buffer = 4;
+        bool value_boolean = 2;
+        int64 value_number = 3;
+        double value_double = 4;
+        string value_string = 5;
+        bytes value_buffer = 6;
     }
 }
 
@@ -77,9 +79,11 @@ message ListenerNotify
     string id = 1;
     string tag = 2;
     oneof arg {
-        int64 arg_number = 3;
-        string arg_string = 4;
-        bytes arg_buffer = 5;
+        bool arg_boolean = 3;
+        int64 arg_number = 4;
+        double arg_double = 5;
+        string arg_string = 6;
+        bytes arg_buffer = 7;
     };
 }
 

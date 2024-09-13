@@ -18,6 +18,16 @@ namespace nil::xit
         }
     }
 
+    void set(Binding<bool>& binding, bool value)
+    {
+        impl::set(binding, value);
+    }
+
+    void set(Binding<double>& binding, double value)
+    {
+        impl::set(binding, value);
+    }
+
     void set(Binding<std::int64_t>& binding, std::int64_t value)
     {
         impl::set(binding, value);

@@ -4,6 +4,16 @@
 
 namespace nil::xit
 {
+    bool get(const Binding<bool>& binding)
+    {
+        return binding.value;
+    }
+
+    double get(const Binding<double>& binding)
+    {
+        return binding.value;
+    }
+
     std::int64_t get(const Binding<std::int64_t>& binding)
     {
         return binding.value;

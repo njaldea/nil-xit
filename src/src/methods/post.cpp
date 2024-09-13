@@ -27,18 +27,28 @@ namespace nil::xit
         }
     }
 
-    void post(const Binding<std::int64_t>& b, std::int64_t v)
+    void post(const Binding<bool>& binding, bool value)
     {
-        impl::post(b, v);
+        impl::post(binding, value);
     }
 
-    void post(const Binding<std::string>& b, std::string v)
+    void post(const Binding<double>& binding, double value)
     {
-        impl::post(b, std::move(v));
+        impl::post(binding, value);
     }
 
-    void post(const Binding<std::vector<std::uint8_t>>& b, std::vector<std::uint8_t> v)
+    void post(const Binding<std::int64_t>& binding, std::int64_t value)
     {
-        impl::post(b, std::move(v));
+        impl::post(binding, value);
+    }
+
+    void post(const Binding<std::string>& binding, std::string value)
+    {
+        impl::post(binding, std::move(value));
+    }
+
+    void post(const Binding<std::vector<std::uint8_t>>& binding, std::vector<std::uint8_t> value)
+    {
+        impl::post(binding, std::move(value));
     }
 }

@@ -15,8 +15,16 @@
 
     const handler = listeners.none("listener-1");
     const handler2 = listeners.json("listener-2", json_string.encode);
+    const handler3 = listeners.boolean("listener-3");
+    let flag = true;
+
+    const click = () => {
+        handler();
+        handler2({ value_str: $str_binding, value_int: $int_binding });
+        handler3(flag = !flag);
+    };
 </script>
 
-<button onclick={e => { handler(); handler2({ value_str: $str_binding, value_int: $int_binding }); } }>hello world</button>
+<button onclick={click}>hello world</button>
 <Text bind:value={$str_binding} placeholder="placeholder" label={"text label here"} ></Text>
 <Range bind:value={$int_binding} min={0} max={10} step={1} label="label here"></Range>

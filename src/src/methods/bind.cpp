@@ -15,6 +15,26 @@ namespace nil::xit
         }
     }
 
+    Binding<bool>& bind(
+        Frame& frame,
+        std::string tag,
+        bool value,
+        std::function<void(bool)> on_change
+    )
+    {
+        return impl::bind(frame, std::move(tag), value, std::move(on_change));
+    }
+
+    Binding<double>& bind(
+        Frame& frame,
+        std::string tag,
+        double value,
+        std::function<void(double)> on_change
+    )
+    {
+        return impl::bind(frame, std::move(tag), value, std::move(on_change));
+    }
+
     Binding<std::int64_t>& bind(
         Frame& frame,
         std::string tag,

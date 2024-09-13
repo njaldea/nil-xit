@@ -41,14 +41,18 @@ namespace nil::xit
         std::filesystem::path path;
 
         using Binding_t = std::variant<
+            Binding<bool>,
             Binding<std::int64_t>,
+            Binding<double>,
             Binding<std::string>,
             Binding<std::vector<std::uint8_t>>>;
         std::unordered_map<std::string, Binding_t> bindings;
 
         using Listener_t = std::variant<
             Listener<void>,
+            Listener<bool>,
             Listener<std::int64_t>,
+            Listener<double>,
             Listener<std::string>,
             Listener<std::span<const std::uint8_t>>>;
         std::unordered_map<std::string, Listener_t> listeners;

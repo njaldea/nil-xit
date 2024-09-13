@@ -5,11 +5,23 @@
 #include <functional>
 #include <string>
 
-namespace nil::xit
+namespace nil::xit::impl
 {
     void listen(Frame& frame, std::string tag, std::function<void()> callback)
     {
         auto listener = Listener<void>(std::move(callback));
+        frame.listeners.emplace(std::move(tag), std::move(listener));
+    }
+
+    void listen(Frame& frame, std::string tag, std::function<void(bool)> callback)
+    {
+        auto listener = Listener<bool>(std::move(callback));
+        frame.listeners.emplace(std::move(tag), std::move(listener));
+    }
+
+    void listen(Frame& frame, std::string tag, std::function<void(double)> callback)
+    {
+        auto listener = Listener<double>(std::move(callback));
         frame.listeners.emplace(std::move(tag), std::move(listener));
     }
 
