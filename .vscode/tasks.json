@@ -13,7 +13,7 @@
             "type": "command",
             "command": "simpleBrowser.show",
             "args": [
-                "https://xit-ui.vercel.app/localhost:1101/id-1"
+                "https://xit-ui.vercel.app/view/localhost:1101/id-1"
             ]
         }
     ]

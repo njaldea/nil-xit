@@ -16,7 +16,7 @@ namespace nil::xit
     {
         post( // NOLINTNEXTLINE
             reinterpret_cast<const Binding<std::vector<std::uint8_t>>&>(binding),
-            buffered_traits<T>::serialize(std::move(value))
+            buffer_type<T>::serialize(std::move(value))
         );
     }
 }

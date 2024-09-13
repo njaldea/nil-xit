@@ -1,9 +1,12 @@
 <script>
-    import { binding } from "@nil-/xit";
-
+    import { getContext } from "svelte";
     import { JSONEditor } from 'vanilla-jsoneditor/standalone.js'
+    import { json_string } from "@nil-/xit";
 
-    const buf_binding = binding('json_binding', {});
+    /** @type import('./nil-xit').Xit */
+    const { binding } = getContext("nil.xit");
+
+    const buf_binding = binding.json('json_binding', {}, json_string);
 
     const json_editor = (d) => {
         const editor = new JSONEditor({
@@ -34,4 +37,4 @@
     };
 </script>
 
-<div use:json_editor/>
+<div style="display: contents" use:json_editor/>

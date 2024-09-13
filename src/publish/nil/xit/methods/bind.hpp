@@ -42,13 +42,13 @@ namespace nil::xit
         {
             if (on_change)
             {
-                on_change(buffered_traits<T>::deserialize(v.data(), v.size()));
+                on_change(buffer_type<T>::deserialize(v.data(), v.size()));
             }
         };
-        auto& obj = bind(
+        auto& obj = bind( //
             frame,
             std::move(tag),
-            buffered_traits<T>::serialize(value),
+            buffer_type<T>::serialize(value),
             std::move(callback)
         );
         return reinterpret_cast<Binding<T>&>(obj); // NOLINT
