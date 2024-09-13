@@ -16,13 +16,17 @@ export type Loader = {
 };
 export type Xit = {
     binding: {
-        string: (t: string, v: string) => Writable<string>;
+        boolean: (t: string, v: boolean) => Writable<boolean>;
+        double: (t: string, v: number) => Writable<number>;
         number: (t: string, v: number) => Writable<number>;
+        string: (t: string, v: string) => Writable<string>;
         buffer: (t: string, v: Uint8Array) => Writable<Uint8Array>;
         json: (t: string, v: object, codec: CoDec) => Writable<object>;
     };
     listeners: {
         none: (t: string) => () => void;
+        boolean: (t: string) => (v: boolean) => void;
+        double: (t: string) => (v: number) => void;
         number: (t: string) => (v: number) => void;
         string: (t: string) => (v: string) => void;
         buffer: (t: string) => (v: Uint8Array) => void;
