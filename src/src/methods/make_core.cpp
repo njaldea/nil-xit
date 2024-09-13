@@ -101,6 +101,57 @@ namespace nil::xit
         void handle(
             Core& core,
             const nil::service::ID& id,
+            const nil::xit::proto::ListenerRequest& request
+        )
+        {
+            const auto it = core.frames.find(request.id());
+            if (it != core.frames.end())
+            {
+                nil::xit::proto::ListenerResponse response;
+                response.set_id(it->first);
+                const auto& frame = it->second;
+                for (const auto& [tag, listener] : frame.listeners)
+                {
+                    auto* msg_listener = response.add_listeners();
+                    msg_listener->set_tag(tag);
+                    std::visit([=](const auto& l) { msg_set(*msg_listener, l); }, listener);
+                }
+
+                const auto header = nil::xit::proto::MessageType_ListenerResponse;
+                auto payload = nil::service::concat(header, response);
+                core.service->send(id, std::move(payload));
+            }
+            else
+            {
+                // error response
+            }
+        }
+
+        void handle(
+            Core& core,
+            const nil::service::ID& /* id */,
+            const nil::xit::proto::ListenerNotify& msg
+        )
+        {
+            const auto it = core.frames.find(msg.id());
+            if (it != core.frames.end())
+            {
+                auto& listeners = it->second.listeners;
+                auto lit = listeners.find(msg.tag());
+                if (lit != listeners.end())
+                {
+                    std::visit([&](const auto& listener) { invoke(listener, msg); }, lit->second);
+                }
+            }
+            else
+            {
+                // error response
+            }
+        }
+
+        void handle(
+            Core& core,
+            const nil::service::ID& id,
             const nil::xit::proto::FileRequest& request
         )
         {
@@ -136,12 +187,20 @@ namespace nil::xit
                         make_handler(&nil::service::consume<nil::xit::proto::BindingRequest>)
                     ),
                     nil::service::mapping(
+                        nil::xit::proto::MessageType_ListenerRequest,
+                        make_handler(&nil::service::consume<nil::xit::proto::ListenerRequest>)
+                    ),
+                    nil::service::mapping(
                         nil::xit::proto::MessageType_FileRequest,
                         make_handler(&nil::service::consume<nil::xit::proto::FileRequest>)
                     ),
                     nil::service::mapping(
                         nil::xit::proto::MessageType_BindingUpdate,
                         make_handler(&nil::service::consume<nil::xit::proto::BindingUpdate>)
+                    ),
+                    nil::service::mapping(
+                        nil::xit::proto::MessageType_ListenerNotify,
+                        make_handler(&nil::service::consume<nil::xit::proto::ListenerNotify>)
                     )
                 );
             core.service->on_message(std::move(handlers));

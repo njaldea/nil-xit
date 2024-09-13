@@ -14,6 +14,7 @@ set(
         src/methods/get.cpp
         src/methods/set.cpp
         src/methods/post.cpp
+        src/methods/listen.cpp
         src/methods/impl_set.cpp
         src/methods/impl_set.hpp
 )
@@ -27,6 +28,7 @@ set(
         publish/nil/xit/methods/get.hpp
         publish/nil/xit/methods/set.hpp
         publish/nil/xit/methods/post.hpp
+        publish/nil/xit/methods/listen.hpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})

@@ -19,12 +19,12 @@ namespace nil::xit::impl
 
     bool binding_set(std::int64_t& value, const nil::xit::proto::Binding& msg)
     {
-        return impl::binding_set(value, msg.value_i64());
+        return impl::binding_set(value, msg.value_number());
     }
 
     bool binding_set(std::string& value, const nil::xit::proto::Binding& msg)
     {
-        return impl::binding_set(value, msg.value_str());
+        return impl::binding_set(value, msg.value_string());
     }
 
     bool binding_set(std::vector<std::uint8_t>& value, const nil::xit::proto::Binding& msg)
@@ -37,16 +37,70 @@ namespace nil::xit::impl
 
     void msg_set(nil::xit::proto::Binding& msg, std::int64_t value)
     {
-        msg.set_value_i64(value);
+        msg.set_value_number(value);
     }
 
     void msg_set(nil::xit::proto::Binding& msg, const std::string& value)
     {
-        msg.set_value_str(value);
+        msg.set_value_string(value);
     }
 
     void msg_set(nil::xit::proto::Binding& msg, const std::vector<std::uint8_t>& value)
     {
         msg.set_value_buffer(value.data(), value.size());
+    }
+
+    void invoke(const Listener<void>& listener, const nil::xit::proto::ListenerNotify& msg)
+    {
+        (void)msg;
+        listener.on_change();
+    }
+
+    void invoke(const Listener<std::int64_t>& listener, const nil::xit::proto::ListenerNotify& msg)
+    {
+        listener.on_change(msg.arg_number());
+    }
+
+    void invoke(const Listener<std::string>& listener, const nil::xit::proto::ListenerNotify& msg)
+    {
+        listener.on_change(msg.arg_string());
+    }
+
+    void invoke(
+        const Listener<std::span<const std::uint8_t>>& listener,
+        const nil::xit::proto::ListenerNotify& msg
+    )
+    {
+        // NOLINTNEXTLINE
+        auto& buffer = msg.arg_buffer();
+        // NOLINTNEXTLINE
+        listener.on_change({reinterpret_cast<const std::uint8_t*>(buffer.data()), buffer.size()});
+    }
+
+    void msg_set(nil::xit::proto::Listener& msg, const Listener<void>& listener)
+    {
+        (void)msg;
+        (void)listener;
+    }
+
+    void msg_set(nil::xit::proto::Listener& msg, const Listener<std::int64_t>& listener)
+    {
+        (void)listener;
+        msg.set_type("arg_number");
+    }
+
+    void msg_set(nil::xit::proto::Listener& msg, const Listener<std::string>& listener)
+    {
+        (void)listener;
+        msg.set_type("arg_string");
+    }
+
+    void msg_set(
+        nil::xit::proto::Listener& msg,
+        const Listener<std::span<const std::uint8_t>>& listener
+    )
+    {
+        (void)listener;
+        msg.set_type("arg_buffer");
     }
 }

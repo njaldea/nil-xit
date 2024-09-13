@@ -49,14 +49,33 @@ auto& add_base(nil::xit::Core& core)
         "id-1", // frame id
         std::filesystem::path(__FILE__).parent_path() / "gui/Markup.svelte"
     );
-
-    return bind(
+    auto& binding = bind(
         frame,
         "binding_0_1",
         "hello world",
         // this is to test gui -> cpp data flow
         [](const std::string& value) { std::cout << "value changed: " << value << std::endl; }
     );
+    listen(
+        frame,
+        "listener-1",
+        [&binding]()
+        {
+            std::cout << "listener-1 is notified, forcing binding_0_1 value" << std::endl;
+            post(binding, "new stuff here");
+        }
+    );
+    listen<JSON>(
+        frame,
+        "listener-2",
+        [](const JSON& j)
+        {
+            std::cout << "listener-2 is notified" << std::endl;
+            std::cout << j.buffer << std::endl;
+        }
+    );
+
+    return binding;
 }
 
 int main()
