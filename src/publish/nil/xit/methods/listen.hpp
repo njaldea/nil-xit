@@ -5,6 +5,7 @@
 #include <functional>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace nil::xit
 {
@@ -45,11 +46,7 @@ namespace nil::xit
         void listen(Frame& frame, std::string tag, std::function<void(bool)> callback);
         void listen(Frame& frame, std::string tag, std::function<void(double)> callback);
         void listen(Frame& frame, std::string tag, std::function<void(std::int64_t)> callback);
-        void listen(
-            Frame& frame,
-            std::string tag,
-            std::function<void(const std::string&)> callback
-        );
+        void listen(Frame& frame, std::string tag, std::function<void(std::string_view)> callback);
         void listen(
             Frame& frame,
             std::string tag,
@@ -68,18 +65,7 @@ namespace nil::xit
     void listen(Frame& frame, std::string tag, CB callback)
     {
         using type = typename impl::first_arg<CB>::type;
-        if constexpr (std::is_same_v<type, std::string>)
-        {
-            impl::listen(
-                frame,
-                std::move(tag),
-                std::function<void(const type&)>(std::move(callback))
-            );
-        }
-        else
-        {
-            impl::listen(frame, std::move(tag), std::function<void(type)>(std::move(callback)));
-        }
+        impl::listen(frame, std::move(tag), std::function<void(type)>(std::move(callback)));
     }
 
     template <typename CB>

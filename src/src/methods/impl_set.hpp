@@ -22,7 +22,7 @@ namespace nil::xit::impl
     void msg_set(nil::xit::proto::Listener& msg, const Listener<bool>& listener);
     void msg_set(nil::xit::proto::Listener& msg, const Listener<double>& listener);
     void msg_set(nil::xit::proto::Listener& msg, const Listener<std::int64_t>& listener);
-    void msg_set(nil::xit::proto::Listener& msg, const Listener<std::string>& listener);
+    void msg_set(nil::xit::proto::Listener& msg, const Listener<std::string_view>& listener);
     void msg_set(
         nil::xit::proto::Listener& msg,
         const Listener<std::span<const std::uint8_t>>& listener
@@ -32,7 +32,10 @@ namespace nil::xit::impl
     void invoke(const Listener<bool>& listener, const nil::xit::proto::ListenerNotify& msg);
     void invoke(const Listener<double>& listener, const nil::xit::proto::ListenerNotify& msg);
     void invoke(const Listener<std::int64_t>& listener, const nil::xit::proto::ListenerNotify& msg);
-    void invoke(const Listener<std::string>& listener, const nil::xit::proto::ListenerNotify& msg);
+    void invoke(
+        const Listener<std::string_view>& listener,
+        const nil::xit::proto::ListenerNotify& msg
+    );
     void invoke(
         const Listener<std::span<const std::uint8_t>>& listener,
         const nil::xit::proto::ListenerNotify& msg

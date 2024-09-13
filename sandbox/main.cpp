@@ -83,6 +83,15 @@ auto& add_base(nil::xit::Core& core)
             std::cout << j << std::endl;
         }
     );
+    listen(
+        frame,
+        "listener-4",
+        [](std::string_view j)
+        {
+            std::cout << "listener-4 is notified" << std::endl;
+            std::cout << j << std::endl;
+        }
+    );
 
     return binding;
 }

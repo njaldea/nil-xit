@@ -31,9 +31,9 @@ namespace nil::xit::impl
         frame.listeners.emplace(std::move(tag), std::move(listener));
     }
 
-    void listen(Frame& frame, std::string tag, std::function<void(const std::string&)> callback)
+    void listen(Frame& frame, std::string tag, std::function<void(std::string_view)> callback)
     {
-        auto listener = Listener<std::string>(std::move(callback));
+        auto listener = Listener<std::string_view>(std::move(callback));
         frame.listeners.emplace(std::move(tag), std::move(listener));
     }
 

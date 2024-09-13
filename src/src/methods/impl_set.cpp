@@ -3,7 +3,6 @@
 
 namespace nil::xit::impl
 {
-
     void msg_set(nil::xit::proto::Binding& msg, bool value)
     {
         msg.set_value_boolean(value);
@@ -95,7 +94,7 @@ namespace nil::xit::impl
         msg.set_type("arg_number");
     }
 
-    void msg_set(nil::xit::proto::Listener& msg, const Listener<std::string>& listener)
+    void msg_set(nil::xit::proto::Listener& msg, const Listener<std::string_view>& listener)
     {
         (void)listener;
         msg.set_type("arg_string");
@@ -131,7 +130,10 @@ namespace nil::xit::impl
         listener.on_change(msg.arg_number());
     }
 
-    void invoke(const Listener<std::string>& listener, const nil::xit::proto::ListenerNotify& msg)
+    void invoke(
+        const Listener<std::string_view>& listener,
+        const nil::xit::proto::ListenerNotify& msg
+    )
     {
         listener.on_change(msg.arg_string());
     }

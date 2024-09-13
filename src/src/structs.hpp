@@ -53,7 +53,7 @@ namespace nil::xit
             Listener<bool>,
             Listener<std::int64_t>,
             Listener<double>,
-            Listener<std::string>,
+            Listener<std::string_view>,
             Listener<std::span<const std::uint8_t>>>;
         std::unordered_map<std::string, Listener_t> listeners;
     };
