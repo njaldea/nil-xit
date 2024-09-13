@@ -16,9 +16,8 @@ namespace nil::xit
     template <typename T>
     T get(const Binding<T>& binding)
     {
-        auto buffer = get( // NOLINTNEXTLINE
-            reinterpret_cast<const Binding<std::vector<std::uint8_t>>&>(binding)
-        );
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto buffer = get(reinterpret_cast<const Binding<std::vector<std::uint8_t>>&>(binding));
         return deserialize<T>(buffer.data(), buffer.size());
     }
 }

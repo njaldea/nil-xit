@@ -54,7 +54,7 @@ auto& add_base(nil::xit::Core& core)
         "binding_0_1",
         "hello world",
         // this is to test gui -> cpp data flow
-        [](const std::string& value) { std::cout << "value changed: " << value << std::endl; }
+        [](std::string_view value) { std::cout << "value changed: " << value << std::endl; }
     );
     listen(
         frame,
@@ -80,15 +80,6 @@ auto& add_base(nil::xit::Core& core)
         [](bool j)
         {
             std::cout << "listener-3 is notified" << std::endl;
-            std::cout << j << std::endl;
-        }
-    );
-    listen(
-        frame,
-        "listener-4",
-        [](std::string_view j)
-        {
-            std::cout << "listener-4 is notified" << std::endl;
             std::cout << j << std::endl;
         }
     );

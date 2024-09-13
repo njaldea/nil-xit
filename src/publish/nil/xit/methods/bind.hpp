@@ -3,7 +3,10 @@
 #include "../structs.hpp"
 
 #include <functional>
+#include <span>
 #include <string>
+#include <type_traits>
+#include <vector>
 
 namespace nil::xit
 {
@@ -32,14 +35,14 @@ namespace nil::xit
         Frame& frame,
         std::string tag,
         std::string value,
-        std::function<void(const std::string&)> on_change = {}
+        std::function<void(std::string_view)> on_change = {}
     );
 
     Binding<std::vector<std::uint8_t>>& bind(
         Frame& frame,
         std::string tag,
         std::vector<std::uint8_t> value,
-        std::function<void(const std::vector<std::uint8_t>&)> on_change = {}
+        std::function<void(std::span<const std::uint8_t>)> on_change = {}
     );
 
     template <typename T>
@@ -47,27 +50,33 @@ namespace nil::xit
             { buffer_type<T>::serialize(value) } -> std::same_as<std::vector<std::uint8_t>>;
             { buffer_type<T>::deserialize(nullptr, 0) } -> std::same_as<T>;
         }
-    Binding<T>& bind(
-        Frame& frame,
-        std::string tag,
-        T value,
-        std::function<void(const std::type_identity_t<T>&)> on_change = {}
-    )
+    Binding<T>& bind(Frame& frame, std::string tag, T value)
     {
-        std::function<void(const std::vector<std::uint8_t>&)> callback
-            = [on_change = std::move(on_change)](const std::vector<std::uint8_t>& v)
-        {
-            if (on_change)
-            {
-                on_change(buffer_type<T>::deserialize(v.data(), v.size()));
-            }
-        };
-        auto& obj = bind( //
+        auto& obj = bind(frame, std::move(tag), buffer_type<T>::serialize(value));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        return reinterpret_cast<Binding<T>&>(obj);
+    }
+
+    template <typename T, typename U>
+        requires requires(T value, U arg) {
+            { buffer_type<T>::serialize(value) } -> std::same_as<std::vector<std::uint8_t>>;
+            { buffer_type<T>::deserialize(nullptr, 0) } -> std::same_as<T>;
+        } && std::is_invocable_v<U, T>
+    Binding<T>& bind(Frame& frame, std::string tag, T value, U on_change)
+    {
+        auto& obj = bind(
             frame,
             std::move(tag),
             buffer_type<T>::serialize(value),
-            std::move(callback)
+            [on_change = std::move(on_change)](std::span<const std::uint8_t> v)
+            {
+                if (on_change)
+                {
+                    on_change(buffer_type<T>::deserialize(v.data(), v.size()));
+                }
+            }
         );
-        return reinterpret_cast<Binding<T>&>(obj); // NOLINT
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        return reinterpret_cast<Binding<T>&>(obj);
     }
 }

@@ -49,7 +49,7 @@ namespace nil::xit
         Frame& frame,
         std::string tag,
         std::string value,
-        std::function<void(const std::string&)> on_change
+        std::function<void(std::string_view)> on_change
     )
     {
         return impl::bind(frame, std::move(tag), std::move(value), std::move(on_change));
@@ -59,7 +59,7 @@ namespace nil::xit
         Frame& frame,
         std::string tag,
         std::vector<std::uint8_t> value,
-        std::function<void(const std::vector<std::uint8_t>&)> on_change
+        std::function<void(std::span<const std::uint8_t>)> on_change
     )
     {
         return impl::bind(frame, std::move(tag), std::move(value), std::move(on_change));

@@ -14,14 +14,14 @@ namespace nil::xit
         template <typename T>
         void post(const Binding<T>& binding, T v)
         {
-            nil::xit::proto::BindingUpdate msg;
+            proto::BindingUpdate msg;
             msg.set_id(binding.frame->id);
 
             auto* msg_binding = msg.mutable_binding();
             msg_binding->set_tag(binding.tag);
             msg_set(*msg_binding, std::move(v));
 
-            const auto header = nil::xit::proto::MessageType_BindingUpdate;
+            const auto header = proto::MessageType_BindingUpdate;
             auto payload = nil::service::concat(header, msg);
             binding.frame->core->service->publish(std::move(payload));
         }

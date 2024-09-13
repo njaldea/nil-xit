@@ -13,20 +13,16 @@ namespace nil::xit
 {
     namespace impl
     {
-        void handle(
-            Core& core,
-            const nil::service::ID& id,
-            const nil::xit::proto::MarkupRequest& request
-        )
+        void handle(Core& core, const nil::service::ID& id, const proto::MarkupRequest& request)
         {
             const auto it = core.frames.find(request.id());
             if (it != core.frames.end())
             {
-                nil::xit::proto::MarkupResponse response;
+                proto::MarkupResponse response;
                 response.set_id(it->first);
                 response.set_file(it->second.path);
 
-                const auto header = nil::xit::proto::MessageType_MarkupResponse;
+                const auto header = proto::MessageType_MarkupResponse;
                 auto payload = nil::service::concat(header, response);
                 core.service->send(id, std::move(payload));
             }
@@ -36,16 +32,12 @@ namespace nil::xit
             }
         }
 
-        void handle(
-            Core& core,
-            const nil::service::ID& id,
-            const nil::xit::proto::BindingRequest& request
-        )
+        void handle(Core& core, const nil::service::ID& id, const proto::BindingRequest& request)
         {
             const auto it = core.frames.find(request.id());
             if (it != core.frames.end())
             {
-                nil::xit::proto::BindingResponse response;
+                proto::BindingResponse response;
                 response.set_id(it->first);
                 const auto& frame = it->second;
                 for (const auto& [tag, binding] : frame.bindings)
@@ -58,7 +50,7 @@ namespace nil::xit
                     );
                 }
 
-                const auto header = nil::xit::proto::MessageType_BindingResponse;
+                const auto header = proto::MessageType_BindingResponse;
                 auto payload = nil::service::concat(header, response);
                 core.service->send(id, std::move(payload));
             }
@@ -68,11 +60,7 @@ namespace nil::xit
             }
         }
 
-        void handle(
-            Core& core,
-            const nil::service::ID& /* id */,
-            const nil::xit::proto::BindingUpdate& msg
-        )
+        void handle(Core& core, const nil::service::ID& /* id */, const proto::BindingUpdate& msg)
         {
             auto it = core.frames.find(msg.id());
             if (it != core.frames.end())
@@ -98,16 +86,12 @@ namespace nil::xit
             }
         }
 
-        void handle(
-            Core& core,
-            const nil::service::ID& id,
-            const nil::xit::proto::ListenerRequest& request
-        )
+        void handle(Core& core, const nil::service::ID& id, const proto::ListenerRequest& request)
         {
             const auto it = core.frames.find(request.id());
             if (it != core.frames.end())
             {
-                nil::xit::proto::ListenerResponse response;
+                proto::ListenerResponse response;
                 response.set_id(it->first);
                 const auto& frame = it->second;
                 for (const auto& [tag, listener] : frame.listeners)
@@ -117,7 +101,7 @@ namespace nil::xit
                     std::visit([=](const auto& l) { msg_set(*msg_listener, l); }, listener);
                 }
 
-                const auto header = nil::xit::proto::MessageType_ListenerResponse;
+                const auto header = proto::MessageType_ListenerResponse;
                 auto payload = nil::service::concat(header, response);
                 core.service->send(id, std::move(payload));
             }
@@ -127,11 +111,7 @@ namespace nil::xit
             }
         }
 
-        void handle(
-            Core& core,
-            const nil::service::ID& /* id */,
-            const nil::xit::proto::ListenerNotify& msg
-        )
+        void handle(Core& core, const nil::service::ID& /* id */, const proto::ListenerNotify& msg)
         {
             const auto it = core.frames.find(msg.id());
             if (it != core.frames.end())
@@ -149,13 +129,9 @@ namespace nil::xit
             }
         }
 
-        void handle(
-            Core& core,
-            const nil::service::ID& id,
-            const nil::xit::proto::FileRequest& request
-        )
+        void handle(Core& core, const nil::service::ID& id, const proto::FileRequest& request)
         {
-            nil::xit::proto::FileResponse response;
+            proto::FileResponse response;
             response.set_target(request.target());
 
             std::fstream file(request.target());
@@ -164,7 +140,7 @@ namespace nil::xit
                 std::istreambuf_iterator<char>()
             ));
 
-            const auto header = nil::xit::proto::MessageType_FileResponse;
+            const auto header = proto::MessageType_FileResponse;
             auto payload = nil::service::concat(header, response);
             core.service->send(id, std::move(payload));
         }
@@ -179,28 +155,28 @@ namespace nil::xit
             auto handlers            //
                 = nil::service::map( //
                     nil::service::mapping(
-                        nil::xit::proto::MessageType_MarkupRequest,
-                        make_handler(&nil::service::consume<nil::xit::proto::MarkupRequest>)
+                        proto::MessageType_MarkupRequest,
+                        make_handler(&nil::service::consume<proto::MarkupRequest>)
                     ),
                     nil::service::mapping(
-                        nil::xit::proto::MessageType_BindingRequest,
-                        make_handler(&nil::service::consume<nil::xit::proto::BindingRequest>)
+                        proto::MessageType_BindingRequest,
+                        make_handler(&nil::service::consume<proto::BindingRequest>)
                     ),
                     nil::service::mapping(
-                        nil::xit::proto::MessageType_ListenerRequest,
-                        make_handler(&nil::service::consume<nil::xit::proto::ListenerRequest>)
+                        proto::MessageType_ListenerRequest,
+                        make_handler(&nil::service::consume<proto::ListenerRequest>)
                     ),
                     nil::service::mapping(
-                        nil::xit::proto::MessageType_FileRequest,
-                        make_handler(&nil::service::consume<nil::xit::proto::FileRequest>)
+                        proto::MessageType_FileRequest,
+                        make_handler(&nil::service::consume<proto::FileRequest>)
                     ),
                     nil::service::mapping(
-                        nil::xit::proto::MessageType_BindingUpdate,
-                        make_handler(&nil::service::consume<nil::xit::proto::BindingUpdate>)
+                        proto::MessageType_BindingUpdate,
+                        make_handler(&nil::service::consume<proto::BindingUpdate>)
                     ),
                     nil::service::mapping(
-                        nil::xit::proto::MessageType_ListenerNotify,
-                        make_handler(&nil::service::consume<nil::xit::proto::ListenerNotify>)
+                        proto::MessageType_ListenerNotify,
+                        make_handler(&nil::service::consume<proto::ListenerNotify>)
                     )
                 );
             core.service->on_message(std::move(handlers));

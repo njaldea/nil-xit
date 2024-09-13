@@ -22,6 +22,24 @@ namespace nil::xit
         std::function<void(const T&)> on_change;
     };
 
+    template <>
+    struct Binding<std::string>
+    {
+        Frame* frame;
+        std::string tag;
+        std::string value;
+        std::function<void(std::string_view)> on_change;
+    };
+
+    template <>
+    struct Binding<std::vector<std::uint8_t>>
+    {
+        Frame* frame;
+        std::string tag;
+        std::vector<std::uint8_t> value;
+        std::function<void(std::span<const std::uint8_t>)> on_change;
+    };
+
     template <typename T>
     struct Listener
     {
