@@ -1,5 +1,4 @@
 <script>
-    // can import local files
     import Range from "./components/Range.svelte";
     import Text from "./components/Text.svelte";
 
@@ -9,7 +8,6 @@
     /** @type import('./nil-xit').Xit */
     const { binding, listeners } = getContext("nil.xit");
 
-    // (binding id, default value) (in case binding is not registered)
     const int_binding = binding.number('binding_0_0', 1101);
     const str_binding = binding.string('binding_0_1', "world");
 

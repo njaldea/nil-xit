@@ -33,13 +33,16 @@ namespace nil::xit
         };
 
         template <typename T>
+        using first_arg_t = typename first_arg<T>::type;
+
+        template <typename T>
         concept no_arg = std::invocable<T>;
 
         template <typename T>
         concept has_deserialize = requires(T arg) {
             {
-                buffer_type<typename impl::first_arg<T>::type>::deserialize(nullptr, 0)
-            } -> std::same_as<typename impl::first_arg<T>::type>;
+                buffer_type<first_arg_t<T>>::deserialize(nullptr, 0)
+            } -> std::same_as<first_arg_t<T>>;
         };
 
         void listen(Frame& frame, std::string tag, std::function<void()> callback);
@@ -64,7 +67,7 @@ namespace nil::xit
         requires(!impl::no_arg<CB>) && (!impl::has_deserialize<CB>)
     void listen(Frame& frame, std::string tag, CB callback)
     {
-        using type = typename impl::first_arg<CB>::type;
+        using type = impl::first_arg_t<CB>;
         impl::listen(frame, std::move(tag), std::function<void(type)>(std::move(callback)));
     }
 
@@ -72,7 +75,7 @@ namespace nil::xit
         requires(!impl::no_arg<CB>) && impl::has_deserialize<CB>
     void listen(Frame& frame, std::string tag, CB callback)
     {
-        using type = typename impl::first_arg<CB>::type;
+        using type = impl::first_arg_t<CB>;
         listen(
             frame,
             std::move(tag),

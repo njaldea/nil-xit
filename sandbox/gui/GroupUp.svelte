@@ -4,7 +4,7 @@
     /** @type import('./nil-xit').Xit */
     const { loader } = getContext("nil.xit");
 
-    const frames = ["id-1", "json_editor"];
+    const frames = ["base", "json_editor"];
 </script>
 
 <div class="wrapper">

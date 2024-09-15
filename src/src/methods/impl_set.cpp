@@ -64,10 +64,13 @@ namespace nil::xit::impl
 
     bool binding_set(std::vector<std::uint8_t>& value, const proto::Binding& msg)
     {
-        return impl::binding_set(
-            value,
-            std::vector<std::uint8_t>(msg.value_buffer().begin(), msg.value_buffer().end())
-        );
+        if (value.size() == msg.value_buffer().size()
+            && 0 == std::memcmp(value.data(), msg.value_buffer().data(), value.size()))
+        {
+            value = {msg.value_buffer().begin(), msg.value_buffer().end()};
+            return true;
+        }
+        return false;
     }
 
     void msg_set(proto::Listener& msg, const Listener<void>& listener)

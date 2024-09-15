@@ -5,27 +5,31 @@ option optimize_for = LITE_RUNTIME;
 package nil.xit.proto;
 
 enum MessageType {
-    MessageType_MarkupRequest = 0;
-    MessageType_MarkupResponse = 1;
-    MessageType_BindingRequest = 2;
-    MessageType_BindingResponse = 3;
-    MessageType_BindingUpdate = 4;
-    MessageType_ListenerRequest = 5;
-    MessageType_ListenerResponse = 6;
-    MessageType_ListenerNotify = 7;
-    MessageType_FileRequest = 8;
-    MessageType_FileResponse = 9;
+    MessageType_FrameRequest = 0;
+    MessageType_FrameResponse = 1;
+    MessageType_FrameCache = 2;
+    MessageType_BindingRequest = 3;
+    MessageType_BindingResponse = 4;
+    MessageType_BindingUpdate = 5;
+    MessageType_ListenerRequest = 6;
+    MessageType_ListenerResponse = 7;
+    MessageType_ListenerNotify = 8;
+    MessageType_FileRequest = 9;
+    MessageType_FileResponse = 10;
 }
 
-message MarkupRequest
+message FrameRequest
 {
     string id = 1;
 }
 
-message MarkupResponse
+message FrameResponse
 {
     string id = 1;
-    string file = 2;
+    oneof value {
+        string file = 2;
+        string content = 3;
+    }
 }
 
 message Binding
@@ -94,5 +98,17 @@ message FileRequest
 
 message FileResponse {
     string target = 1;
-    string content = 3;
+    string content = 2;
+    bytes metadata = 3;
+}
+
+message FileInfo {
+    string target = 1;
+    bytes metadata = 2;
+}
+
+message FrameCache {
+    string id = 1;
+    string content = 2;
+    repeated FileInfo files = 3;
 }
