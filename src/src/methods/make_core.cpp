@@ -14,7 +14,7 @@ namespace
 {
     std::string metadata(std::int64_t i)
     {
-        union Metadata
+        const union
         {
             std::int64_t i;
             char c[sizeof(std::int64_t)]; // NOLINT
@@ -35,10 +35,8 @@ namespace nil::xit::impl
             if (std::filesystem::exists(tmp / request.id()))
             {
                 proto::FrameCache cache;
-
                 std::ifstream f(tmp / request.id(), std::ios::binary | std::ios::in);
                 cache.ParseFromIstream(&f);
-
                 bool cached = true;
                 for (const auto& ff : cache.files())
                 {
@@ -198,7 +196,7 @@ namespace nil::xit::impl
         proto::FileResponse response;
         response.set_target(request.target());
 
-        std::fstream file(request.target());
+        std::ifstream file(request.target(), std::ios::binary | std::ios::in);
         response.set_content(std::string( //
             std::istreambuf_iterator<char>(file),
             std::istreambuf_iterator<char>()
