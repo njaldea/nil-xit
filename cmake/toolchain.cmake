@@ -40,5 +40,4 @@ endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_link_options(-fuse-ld=lld-18)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
