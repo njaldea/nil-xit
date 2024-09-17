@@ -70,7 +70,7 @@ namespace nil::xit::impl
 
             proto::FrameResponse response;
             response.set_id(it->first);
-            response.set_file(it->second.path);
+            response.set_file(it->second.path.string());
 
             const auto header = proto::MessageType_FrameResponse;
             auto payload = nil::service::concat(header, response);

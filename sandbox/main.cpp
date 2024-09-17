@@ -17,7 +17,7 @@ namespace nil::xit
     {
         static JSON deserialize(const void* data, std::uint64_t size)
         {
-            return {.buffer = {static_cast<const char*>(data), size}};
+            return JSON{std::string(static_cast<const char*>(data), size)};
         }
 
         static std::vector<std::uint8_t> serialize(const JSON& value)
