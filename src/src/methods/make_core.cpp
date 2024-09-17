@@ -12,15 +12,17 @@
 
 namespace
 {
-    std::string metadata(std::int64_t i)
+    std::string metadata(auto i)
     {
+        using i_t = decltype(i);
+
         const union
         {
-            std::int64_t i;
-            char c[sizeof(std::int64_t)]; // NOLINT
+            i_t i;
+            char c[sizeof(i_t)]; // NOLINT
         } m = {.i = i};
 
-        return std::string(&m.c[0], sizeof(std::int64_t)); // NOLINT
+        return std::string(&m.c[0], sizeof(i_t)); // NOLINT
     }
 }
 
@@ -31,12 +33,14 @@ namespace nil::xit::impl
         const auto it = core.frames.find(request.id());
         if (it != core.frames.end())
         {
-            const auto tmp = std::filesystem::temp_directory_path() / "nil/xit";
-            if (std::filesystem::exists(tmp / request.id()))
+            const auto cached_file = core.cache_location / request.id();
+            if (std::filesystem::exists(cached_file))
             {
                 proto::FrameCache cache;
-                std::ifstream f(tmp / request.id(), std::ios::binary | std::ios::in);
-                cache.ParseFromIstream(&f);
+                {
+                    std::ifstream f(cached_file, std::ios::binary | std::ios::in);
+                    cache.ParseFromIstream(&f);
+                }
                 bool cached = true;
                 for (const auto& ff : cache.files())
                 {
@@ -115,9 +119,7 @@ namespace nil::xit::impl
         const auto it = core.frames.find(msg.id());
         if (it != core.frames.end())
         {
-            const auto tmp = std::filesystem::temp_directory_path() / "nil/xit";
-            std::filesystem::create_directories(tmp);
-            std::ofstream f(tmp / msg.id(), std::ios::binary | std::ios::out);
+            std::ofstream f(core.cache_location / msg.id(), std::ios::binary | std::ios::out);
             msg.SerializeToOstream(&f);
         }
     }
@@ -210,7 +212,7 @@ namespace nil::xit::impl
         core.service->send(id, std::move(payload));
     }
 
-    void install_on_message(Core& core)
+    void install(Core& core)
     {
         auto make_handler = [ptr = &core](auto consume)
         {
@@ -249,6 +251,13 @@ namespace nil::xit::impl
                 )
             );
         core.service->on_message(std::move(handlers));
+        core.service->on_ready(
+            [&]()
+            {
+                core.cache_location = std::filesystem::temp_directory_path() / "nil/xit";
+                std::filesystem::create_directories(core.cache_location);
+            }
+        );
     }
 }
 
@@ -258,7 +267,7 @@ namespace nil::xit
     {
         constexpr auto deleter = [](Core* obj) { std::default_delete<Core>()(obj); };
         auto holder = std::make_unique<Core>(&service);
-        impl::install_on_message(*holder);
+        impl::install(*holder);
         return {{holder.release(), deleter}};
     }
 }

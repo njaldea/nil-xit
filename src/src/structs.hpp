@@ -80,5 +80,6 @@ namespace nil::xit
     {
         nil::service::IService* service;
         std::unordered_map<std::string, Frame> frames;
+        std::filesystem::path cache_location;
     };
 }
