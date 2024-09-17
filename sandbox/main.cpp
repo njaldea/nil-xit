@@ -76,17 +76,6 @@ int main()
     std::thread th;
     nil::service::ws::Server server({.port = 1101, .buffer = 1024ul * 1024ul * 100ul});
     // https://xit-ui.vercel.app/view/{server or ip:port}/{frame id}
-    server.on_ready(                                                                      //
-        [](const auto& id)                                                                //
-        {                                                                                 //
-            std::cout << "ready ws      : " << id.text << '\n';                           //
-            std::cout << " ui is at     : \n";                                            //
-            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/group\n";     //
-            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/base\n";      //
-            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/json_editor"; //
-            std::cout << std::endl;                                                       //
-        }
-    );
 
     auto core = nil::xit::make_core(server);
 
@@ -120,6 +109,12 @@ int main()
             }
         );
     }
+
+    std::cout << " ui is at     : \n";                                            //
+    std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/group\n";     //
+    std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/base\n";      //
+    std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/json_editor"; //
+    std::cout << std::endl;
 
     server.run();
     th.join();
