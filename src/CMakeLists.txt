@@ -8,7 +8,7 @@ set(
     SOURCES
         src/codec.hpp
         src/structs.hpp
-        src/methods/make_core.cpp
+        src/methods/create_core.cpp
         src/methods/add_frame.cpp
         src/methods/bind.cpp
         src/methods/get.cpp

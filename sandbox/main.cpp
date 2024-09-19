@@ -1,4 +1,4 @@
-#include <nil/service/ws/Server.hpp>
+#include <nil/service/ws/server/create.hpp>
 
 #include <nil/xit.hpp>
 
@@ -74,10 +74,23 @@ auto& add_base(nil::xit::Core& core)
 int main()
 {
     std::thread th;
-    nil::service::ws::Server server({.port = 1101, .buffer = 1024ul * 1024ul * 100ul});
+    auto server
+        = nil::service::ws::server::create({.port = 1101, .buffer = 1024ul * 1024ul * 100ul});
     // https://xit-ui.vercel.app/view/{server or ip:port}/{frame id}
+    on_ready(
+        server,
+        [](const auto& id)
+        {
+            std::cout << "ws ready: " << id.text << '\n';                                 //
+            std::cout << " ui is at     : \n";                                            //
+            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/group\n";     //
+            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/base\n";      //
+            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/json_editor"; //
+            std::cout << std::endl;
+        }
+    );
 
-    auto core = nil::xit::make_core(server);
+    auto core = nil::xit::create_core(server);
 
     {
         add_frame(
@@ -110,13 +123,7 @@ int main()
         );
     }
 
-    std::cout << " ui is at     : \n";                                            //
-    std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/group\n";     //
-    std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/base\n";      //
-    std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/json_editor"; //
-    std::cout << std::endl;
-
-    server.run();
+    start(server);
     th.join();
     return 0;
 }

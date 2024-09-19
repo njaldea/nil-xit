@@ -5,7 +5,7 @@
 #include "../structs.hpp"
 #include "impl_set.hpp"
 
-#include <nil/service/concat.hpp>
+#include <nil/service.hpp>
 
 namespace nil::xit
 {
@@ -23,7 +23,7 @@ namespace nil::xit
 
             const auto header = proto::MessageType_BindingUpdate;
             auto payload = nil::service::concat(header, msg);
-            binding.frame->core->service->publish(std::move(payload));
+            publish(binding.frame->core->service, std::move(payload));
         }
     }
 

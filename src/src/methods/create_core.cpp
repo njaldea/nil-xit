@@ -3,9 +3,7 @@
 #include "../structs.hpp"
 #include "impl_set.hpp"
 
-#include <nil/service/concat.hpp>
-#include <nil/service/consume.hpp>
-#include <nil/service/map.hpp>
+#include <nil/service.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -67,7 +65,7 @@ namespace nil::xit::impl
 
                     const auto header = proto::MessageType_FrameResponse;
                     auto payload = nil::service::concat(header, response);
-                    core.service->send(id, std::move(payload));
+                    send(core.service, id, std::move(payload));
                     return;
                 }
             }
@@ -78,7 +76,7 @@ namespace nil::xit::impl
 
             const auto header = proto::MessageType_FrameResponse;
             auto payload = nil::service::concat(header, response);
-            core.service->send(id, std::move(payload));
+            send(core.service, id, std::move(payload));
         }
         else
         {
@@ -106,7 +104,7 @@ namespace nil::xit::impl
 
             const auto header = proto::MessageType_BindingResponse;
             auto payload = nil::service::concat(header, response);
-            core.service->send(id, std::move(payload));
+            send(core.service, id, std::move(payload));
         }
         else
         {
@@ -167,7 +165,7 @@ namespace nil::xit::impl
 
             const auto header = proto::MessageType_ListenerResponse;
             auto payload = nil::service::concat(header, response);
-            core.service->send(id, std::move(payload));
+            send(core.service, id, std::move(payload));
         }
         else
         {
@@ -209,65 +207,65 @@ namespace nil::xit::impl
         ));
         auto header = proto::MessageType_FileResponse;
         auto payload = nil::service::concat(header, response);
-        core.service->send(id, std::move(payload));
+        send(core.service, id, std::move(payload));
     }
 
-    void install(Core& core)
+    auto make_handlers(Core& core)
     {
         auto make_handler = [ptr = &core](auto consume)
         {
             return [ptr, consume](const auto& id, const void* data, std::uint64_t size)
             { handle(*ptr, id, consume(data, size)); };
         };
-        auto handlers            //
-            = nil::service::map( //
-                nil::service::mapping(
-                    proto::MessageType_FrameRequest,
-                    make_handler(&nil::service::consume<proto::FrameRequest>)
-                ),
-                nil::service::mapping(
-                    proto::MessageType_FrameCache,
-                    make_handler(&nil::service::consume<proto::FrameCache>)
-                ),
-                nil::service::mapping(
-                    proto::MessageType_BindingRequest,
-                    make_handler(&nil::service::consume<proto::BindingRequest>)
-                ),
-                nil::service::mapping(
-                    proto::MessageType_ListenerRequest,
-                    make_handler(&nil::service::consume<proto::ListenerRequest>)
-                ),
-                nil::service::mapping(
-                    proto::MessageType_FileRequest,
-                    make_handler(&nil::service::consume<proto::FileRequest>)
-                ),
-                nil::service::mapping(
-                    proto::MessageType_BindingUpdate,
-                    make_handler(&nil::service::consume<proto::BindingUpdate>)
-                ),
-                nil::service::mapping(
-                    proto::MessageType_ListenerNotify,
-                    make_handler(&nil::service::consume<proto::ListenerNotify>)
-                )
-            );
-        core.service->on_message(std::move(handlers));
-        core.service->on_ready(
-            [&]()
-            {
-                core.cache_location = std::filesystem::temp_directory_path() / "nil/xit";
-                std::filesystem::create_directories(core.cache_location);
-            }
+        return nil::service::map( //
+            nil::service::mapping(
+                proto::MessageType_FrameRequest,
+                make_handler(&nil::service::consume<proto::FrameRequest>)
+            ),
+            nil::service::mapping(
+                proto::MessageType_FrameCache,
+                make_handler(&nil::service::consume<proto::FrameCache>)
+            ),
+            nil::service::mapping(
+                proto::MessageType_BindingRequest,
+                make_handler(&nil::service::consume<proto::BindingRequest>)
+            ),
+            nil::service::mapping(
+                proto::MessageType_ListenerRequest,
+                make_handler(&nil::service::consume<proto::ListenerRequest>)
+            ),
+            nil::service::mapping(
+                proto::MessageType_FileRequest,
+                make_handler(&nil::service::consume<proto::FileRequest>)
+            ),
+            nil::service::mapping(
+                proto::MessageType_BindingUpdate,
+                make_handler(&nil::service::consume<proto::BindingUpdate>)
+            ),
+            nil::service::mapping(
+                proto::MessageType_ListenerNotify,
+                make_handler(&nil::service::consume<proto::ListenerNotify>)
+            )
         );
     }
 }
 
 namespace nil::xit
 {
-    C make_core(nil::service::IService& service)
+    C create_core(nil::service::S service)
     {
         constexpr auto deleter = [](Core* obj) { std::default_delete<Core>()(obj); };
-        auto holder = std::make_unique<Core>(&service);
-        impl::install(*holder);
+        auto holder = std::make_unique<Core>(service);
+        on_message(service, impl::make_handlers(*holder));
+        on_ready(
+            service,
+            [ptr = holder.get()]() { std::filesystem::create_directories(ptr->cache_location); }
+        );
         return {{holder.release(), deleter}};
+    }
+
+    void set_cache_directory(Core& core, const std::filesystem::path& tmp_path)
+    {
+        core.cache_location = tmp_path / "nil/xit";
     }
 }

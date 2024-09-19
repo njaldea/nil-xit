@@ -2,7 +2,7 @@
 
 #include <nil/xit/structs.hpp>
 
-#include <nil/service/IService.hpp>
+#include <nil/service/structs.hpp>
 
 #include <filesystem>
 #include <functional>
@@ -78,7 +78,7 @@ namespace nil::xit
 
     struct Core
     {
-        nil::service::IService* service;
+        nil::service::MessagingService& service; // NOLINT
         std::unordered_map<std::string, Frame> frames;
         std::filesystem::path cache_location;
     };

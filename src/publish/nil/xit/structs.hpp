@@ -1,7 +1,8 @@
 #pragma once
 
-#include <nil/service/IService.hpp>
+#include <nil/service/structs.hpp>
 
+#include <filesystem>
 #include <memory>
 
 namespace nil::xit
@@ -22,7 +23,7 @@ namespace nil::xit
         }
     };
 
-    C make_core(nil::service::IService& service);
+    C create_core(nil::service::S service);
 
     template <typename T>
     struct buffer_type
@@ -30,4 +31,6 @@ namespace nil::xit
         static T deserialize(const void* data, std::uint64_t size) = delete;
         static std::vector<std::uint8_t> serialize(const T& value) = delete;
     };
+
+    void set_cache_directory(Core& core, const std::filesystem::path& tmp_path);
 }
