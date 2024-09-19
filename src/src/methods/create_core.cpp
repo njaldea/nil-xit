@@ -255,7 +255,7 @@ namespace nil::xit
     C create_core(nil::service::S service)
     {
         constexpr auto deleter = [](Core* obj) { std::default_delete<Core>()(obj); };
-        auto holder = std::make_unique<Core>(service);
+        auto holder = std::make_unique<Core>(service, std::filesystem::temp_directory_path());
         on_message(service, impl::make_handlers(*holder));
         on_ready(
             service,

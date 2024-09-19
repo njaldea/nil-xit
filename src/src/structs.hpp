@@ -79,7 +79,7 @@ namespace nil::xit
     struct Core
     {
         nil::service::MessagingService& service; // NOLINT
-        std::unordered_map<std::string, Frame> frames;
         std::filesystem::path cache_location;
+        std::unordered_map<std::string, Frame> frames;
     };
 }
