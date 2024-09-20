@@ -1,4 +1,5 @@
 <script>
+    /** @type {{ label: string, placeholder: string, value: string }}  */
     let { label, placeholder, value } = $props();
 </script>
 

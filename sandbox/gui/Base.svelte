@@ -5,7 +5,7 @@
     import { json_string } from "@nil-/xit";
     import { getContext } from "svelte";
 
-    /** @type import('./nil-xit').Xit */
+    /** @type import('@nil-/xit').Xit */
     const { binding, listeners } = getContext("nil.xit");
 
     const int_binding = binding.number('binding_0_0', 1101);

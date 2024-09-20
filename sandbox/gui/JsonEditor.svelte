@@ -3,7 +3,7 @@
     import { JSONEditor } from 'vanilla-jsoneditor/standalone.js'
     import { json_string } from "@nil-/xit";
 
-    /** @type import('./nil-xit').Xit */
+    /** @type import('@nil-/xit').Xit */
     const { binding } = getContext("nil.xit");
 
     const buf_binding = binding.json('json_binding', {}, json_string);
@@ -37,4 +37,4 @@
     };
 </script>
 
-<div style="display: contents" use:json_editor/>
+<div style="display: contents" use:json_editor></div>

@@ -1,7 +1,7 @@
 <script>
     import { getContext } from "svelte";
 
-    /** @type import('./nil-xit').Xit */
+    /** @type import('@nil-/xit').Xit */
     const { loader } = getContext("nil.xit");
 
     const frames = ["base", "json_editor"];
@@ -14,7 +14,7 @@
     {/if} -->
     {#each frames as frame}
         {@const f = loader.one(frame)}
-        <div use:f/>
+        <div use:f></div>
     {/each}
 </div>
 
