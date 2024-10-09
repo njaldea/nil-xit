@@ -4,7 +4,7 @@
     /** @type import('@nil-/xit').Xit */
     const { loader } = getContext("nil.xit");
 
-    /** @type import('@nil-/xit').FrameInfo */
+    /** @type import('@nil-/xit').FrameInfo[] */
     const frames = [
         {frame: "base"},
         {frame: "json_editor"},
