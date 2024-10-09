@@ -1,8 +1,9 @@
 #include <nil/xit/tagged/post.hpp>
 
+#include "structs.hpp"
+
 #include "../codec.hpp"
 #include "../proto/message.pb.h"
-#include "../structs.hpp"
 #include "../utils.hpp"
 
 #include <nil/service.hpp>

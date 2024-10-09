@@ -2,17 +2,14 @@
 
 #include <nil/xit/unique/structs.hpp>
 
+#include "../structs.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <span>
 #include <string>
 #include <variant>
-
-namespace nil::xit
-{
-    struct Core;
-}
 
 namespace nil::xit::unique
 {

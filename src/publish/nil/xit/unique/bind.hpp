@@ -72,13 +72,15 @@ namespace nil::xit::unique
             frame,
             std::move(tag),
             buffer_type<T>::serialize(value),
-            [on_change = std::move(on_change)](std::span<const std::uint8_t> v)
-            {
-                if (on_change)
+            std::function<void(std::span<const std::uint8_t>)>(
+                [on_change = std::move(on_change)](std::span<const std::uint8_t> v)
                 {
-                    on_change(buffer_type<T>::deserialize(v.data(), v.size()));
+                    if (on_change)
+                    {
+                        on_change(buffer_type<T>::deserialize(v.data(), v.size()));
+                    }
                 }
-            }
+            )
         );
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<Binding<T>&>(obj);

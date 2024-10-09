@@ -1,6 +1,6 @@
 #include <nil/xit/tagged/listen.hpp>
 
-#include "../structs.hpp"
+#include "structs.hpp"
 
 #include <functional>
 #include <string>

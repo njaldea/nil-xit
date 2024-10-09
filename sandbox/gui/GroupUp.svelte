@@ -4,18 +4,24 @@
     /** @type import('@nil-/xit').Xit */
     const { loader } = getContext("nil.xit");
 
-    const frames = ["base", "json_editor"];
+    /** @type import('@nil-/xit').FrameInfo */
+    const frames = [
+        {frame: "base"},
+        {frame: "json_editor"},
+        {frame: "tagged", tag: "1101"},
+        {frame: "tagged", tag: "1102"}
+    ];
 </script>
 
 <div class="wrapper">
-    <!-- {#if frames.length > 0}
+    {#if frames.length > 0}
         {@const f = loader.all(frames)}
         <div use:f></div>
-    {/if} -->
-    {#each frames as frame}
-        {@const f = loader.one(frame)}
+    {/if}
+    <!-- {#each frames as ff}
+        {@const f = loader.one(ff.frame, ff.tag)}
         <div use:f></div>
-    {/each}
+    {/each} -->
 </div>
 
 <style>

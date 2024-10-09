@@ -101,8 +101,22 @@ int main()
         bind(
             frame,
             "tagged_bind",
-            [](std::string_view) -> std::int64_t { return 100; },
-            [](std::string_view, std::int64_t v) { std::cout << v << std::endl; }
+            [](std::string_view tag) -> std::int64_t
+            {
+                std::cout << "tagged_bind getter: " << tag << std::endl;
+                return 100;
+            },
+            [](std::string_view tag, std::int64_t v)
+            {
+                std::cout << "tagged_bind setter: " << tag << std::endl;
+                std::cout << v << std::endl;
+            }
+        );
+        listen(
+            frame,
+            "tagged_listen",
+            [](std::string_view tag, std::string_view value)
+            { std::cout << tag << ":" << value << std::endl; }
         );
     }
     {
@@ -118,7 +132,12 @@ int main()
             "json_editor", // frame id
             std::filesystem::path(__FILE__).parent_path() / "gui/JsonEditor.svelte"
         );
-        bind(frame, "json_binding", JSON{.buffer = R"({ "hello": "hello this is buffer" })"});
+        bind(
+            frame,
+            "json_binding",
+            JSON{.buffer = R"({ "hello": "hello this is buffer" })"},
+            [](const JSON& v) { std::cout << v.buffer << std::endl; }
+        );
     }
     {
         auto& str_bind = add_base(core);

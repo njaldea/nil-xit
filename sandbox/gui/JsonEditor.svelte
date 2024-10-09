@@ -14,7 +14,6 @@
             props: {
                 content: { json: $buf_binding },
                 onChange: (updatedContent, previousContent, { contentErrors, patchResult }) => {
-                    console.log(updatedContent);
                     if (updatedContent.json)
                     {
                         $buf_binding = updatedContent.json   

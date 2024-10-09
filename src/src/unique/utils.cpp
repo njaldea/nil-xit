@@ -1,4 +1,5 @@
 #include "utils.hpp"
+
 #include "../utils.hpp"
 
 #include <type_traits>
@@ -92,13 +93,13 @@ namespace nil::xit::unique::impl
     {
         (void)tag;
         auto& value = binding.value;
-        if (value.size() == msg.value_buffer().size()
-            && 0 == std::memcmp(value.data(), msg.value_buffer().data(), value.size()))
+        if (value.size() != msg.value_buffer().size()
+            || 0 != std::memcmp(value.data(), msg.value_buffer().data(), value.size()))
         {
             value = {msg.value_buffer().begin(), msg.value_buffer().end()};
             if (binding.on_change)
             {
-                binding.on_change(binding.value);
+                binding.on_change(value);
             }
         }
     }
