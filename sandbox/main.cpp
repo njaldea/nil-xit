@@ -93,6 +93,23 @@ int main()
     auto core = nil::xit::create_core(server);
 
     {
+        auto& frame = add_tagged_frame(
+            core,
+            "tagged",
+            std::filesystem::path(__FILE__).parent_path() / "gui/Tagged.svelte"
+        );
+        nil::xit::bind(
+            frame,
+            "tagged_bind",
+            std::function<std::int64_t(std::string_view)>( //
+                [](std::string_view) { return 100; }
+            ),
+            std::function<void(std::string_view, std::int64_t)>( //
+                [](std::string_view, std::int64_t v) { std::cout << v << std::endl; }
+            )
+        );
+    }
+    {
         add_frame(
             core,
             "group",

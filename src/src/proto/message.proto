@@ -34,7 +34,7 @@ message FrameResponse
 
 message Binding
 {
-    string tag = 1;
+    string id = 1;
     oneof value {
         bool value_boolean = 2;
         int64 value_number = 3;
@@ -47,18 +47,21 @@ message Binding
 message BindingRequest
 {
     string id = 1;
+    optional string tag = 2;
 }
 
 message BindingResponse
 {
     string id = 1;
-    repeated Binding bindings = 2;
+    optional string tag = 2;
+    repeated Binding bindings = 3;
 }
 
 message BindingUpdate
 {
     string id = 1;
-    Binding binding = 2;
+    optional string tag = 2;
+    Binding binding = 3;
 }
 
 message ListenerRequest
@@ -68,26 +71,28 @@ message ListenerRequest
 
 message Listener
 {
-    string tag = 1;
+    string id = 1;
     optional string type = 2;
 }
 
 message ListenerResponse
 {
     string id = 1;
-    repeated Listener listeners = 2;
+    optional string tag = 2;
+    repeated Listener listeners = 3;
 }
 
 message ListenerNotify
 {
-    string id = 1;
-    string tag = 2;
+    string frame_id = 1;
+    optional string tag = 2;
+    string listener_id = 3;
     oneof arg {
-        bool arg_boolean = 3;
-        int64 arg_number = 4;
-        double arg_double = 5;
-        string arg_string = 6;
-        bytes arg_buffer = 7;
+        bool arg_boolean = 4;
+        int64 arg_number = 5;
+        double arg_double = 6;
+        string arg_string = 7;
+        bytes arg_buffer = 8;
     };
 }
 

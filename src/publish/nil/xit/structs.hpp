@@ -9,8 +9,11 @@ namespace nil::xit
 {
     template <typename T>
     struct Binding;
+    template <typename T>
+    struct TaggedBinding;
 
     struct Frame;
+    struct TaggedFrame;
     struct Core;
 
     struct C

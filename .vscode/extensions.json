@@ -4,6 +4,7 @@
     "ms-vscode.cmake-tools",
     "xaver.clang-format",
     "llvm-vs-code-extensions.vscode-clangd",
-    "vadimcn.vscode-lldb"
+    "vadimcn.vscode-lldb",
+    "svelte.svelte-vscode"
   ]
 }

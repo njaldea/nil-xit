@@ -72,16 +72,17 @@ namespace nil::xit::impl
 
             proto::FrameResponse response;
             response.set_id(it->first);
-            response.set_file(it->second.path.string());
+            std::visit(
+                [&response](const auto& f) { response.set_file(f.path.string()); },
+                it->second
+            );
 
             const auto header = proto::MessageType_FrameResponse;
             auto payload = nil::service::concat(header, response);
             send(core.service, id, std::move(payload));
+            return;
         }
-        else
-        {
-            // error response
-        }
+        // error response
     }
 
     void handle(Core& core, const nil::service::ID& id, const proto::BindingRequest& request)
@@ -91,25 +92,34 @@ namespace nil::xit::impl
         {
             proto::BindingResponse response;
             response.set_id(it->first);
-            const auto& frame = it->second;
-            for (const auto& [tag, binding] : frame.bindings)
+            const char* tag = request.has_tag() ? request.tag().data() : nullptr;
+            if (tag != nullptr)
             {
-                auto* msg_binding = response.add_bindings();
-                msg_binding->set_tag(tag);
-                std::visit(
-                    [msg_binding](const auto& v) { impl::msg_set(*msg_binding, v.value); },
-                    binding
-                );
+                response.set_tag(tag);
             }
+            std::visit(
+                [&response, tag](const auto& frame)
+                {
+                    for (const auto& [binding_id, binding] : frame.bindings)
+                    {
+                        auto* msg_binding = response.add_bindings();
+                        msg_binding->set_id(binding_id);
+                        std::visit(
+                            [msg_binding, tag](const auto& v)
+                            { impl::msg_set(tag, *msg_binding, v); },
+                            binding
+                        );
+                    }
+                },
+                it->second
+            );
 
             const auto header = proto::MessageType_BindingResponse;
             auto payload = nil::service::concat(header, response);
             send(core.service, id, std::move(payload));
+            return;
         }
-        else
-        {
-            // error response
-        }
+        // error response
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const proto::FrameCache& msg)
@@ -127,25 +137,24 @@ namespace nil::xit::impl
         auto it = core.frames.find(msg.id());
         if (it != core.frames.end())
         {
-            auto binding_it = it->second.bindings.find(msg.binding().tag());
-            if (binding_it != it->second.bindings.end())
-            {
-                std::visit(
-                    [&msg](auto& b)
+            std::visit(
+                [&msg](auto& frame)
+                {
+                    const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
+                    auto binding_it = frame.bindings.find(msg.binding().id());
+                    if (binding_it != frame.bindings.end())
                     {
-                        if (binding_set(b.value, msg.binding()) && b.on_change)
-                        {
-                            b.on_change(b.value);
-                        }
-                    },
-                    binding_it->second
-                );
-            }
+                        std::visit(
+                            [&msg, tag](auto& b) { binding_set(tag, b, msg.binding()); },
+                            binding_it->second
+                        );
+                    }
+                },
+                it->second
+            );
+            return;
         }
-        else
-        {
-            // error response
-        }
+        // error response
     }
 
     void handle(Core& core, const nil::service::ID& id, const proto::ListenerRequest& request)
@@ -155,39 +164,49 @@ namespace nil::xit::impl
         {
             proto::ListenerResponse response;
             response.set_id(it->first);
-            const auto& frame = it->second;
-            for (const auto& [tag, listener] : frame.listeners)
-            {
-                auto* msg_listener = response.add_listeners();
-                msg_listener->set_tag(tag);
-                std::visit([=](const auto& l) { msg_set(*msg_listener, l); }, listener);
-            }
+            std::visit(
+                [&response](const auto& frame)
+                {
+                    for (const auto& [listener_id, listener] : frame.listeners)
+                    {
+                        auto* msg_listener = response.add_listeners();
+                        msg_listener->set_id(listener_id);
+                        std::visit([=](const auto& l) { msg_set(*msg_listener, l); }, listener);
+                    }
+                },
+                it->second
+            );
 
             const auto header = proto::MessageType_ListenerResponse;
             auto payload = nil::service::concat(header, response);
             send(core.service, id, std::move(payload));
+            return;
         }
-        else
-        {
-            // error response
-        }
+        // error response
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const proto::ListenerNotify& msg)
     {
-        const auto it = core.frames.find(msg.id());
+        const auto it = core.frames.find(msg.frame_id());
         if (it != core.frames.end())
         {
-            auto& listeners = it->second.listeners;
-            auto lit = listeners.find(msg.tag());
-            if (lit != listeners.end())
-            {
-                std::visit([&](const auto& listener) { invoke(listener, msg); }, lit->second);
-            }
-        }
-        else
-        {
-            // error response
+            std::visit(
+                [&msg](const auto& frame)
+                {
+                    const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
+                    auto& listeners = frame.listeners;
+                    auto lit = listeners.find(msg.listener_id());
+                    if (lit != listeners.end())
+                    {
+                        std::visit(
+                            [&](const auto& listener) { invoke(tag, listener, msg); },
+                            lit->second
+                        );
+                    }
+                },
+                it->second
+            );
+            return;
         }
     }
 

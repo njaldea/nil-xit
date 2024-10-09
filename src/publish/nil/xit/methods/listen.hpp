@@ -45,40 +45,71 @@ namespace nil::xit
             } -> std::same_as<first_arg_t<T>>;
         };
 
-        void listen(Frame& frame, std::string tag, std::function<void()> callback);
-        void listen(Frame& frame, std::string tag, std::function<void(bool)> callback);
-        void listen(Frame& frame, std::string tag, std::function<void(double)> callback);
-        void listen(Frame& frame, std::string tag, std::function<void(std::int64_t)> callback);
-        void listen(Frame& frame, std::string tag, std::function<void(std::string_view)> callback);
+        void listen(Frame& frame, std::string id, std::function<void()> callback);
+        void listen(Frame& frame, std::string id, std::function<void(bool)> callback);
+        void listen(Frame& frame, std::string id, std::function<void(double)> callback);
+        void listen(Frame& frame, std::string id, std::function<void(std::int64_t)> callback);
+        void listen(Frame& frame, std::string id, std::function<void(std::string_view)> callback);
         void listen(
             Frame& frame,
-            std::string tag,
+            std::string id,
             std::function<void(std::span<const std::uint8_t>)> callback
+        );
+
+        void listen(
+            TaggedFrame& frame,
+            std::string id,
+            std::function<void(std::string_view)> callback
+        );
+        void listen(
+            TaggedFrame& frame,
+            std::string id,
+            std::function<void(std::string_view, bool)> callback
+        );
+        void listen(
+            TaggedFrame& frame,
+            std::string id,
+            std::function<void(std::string_view, double)> callback
+        );
+        void listen(
+            TaggedFrame& frame,
+            std::string id,
+            std::function<void(std::string_view, std::int64_t)> callback
+        );
+        void listen(
+            TaggedFrame& frame,
+            std::string id,
+            std::function<void(std::string_view, std::string_view)> callback
+        );
+        void listen(
+            TaggedFrame& frame,
+            std::string id,
+            std::function<void(std::string_view, std::span<const std::uint8_t>)> callback
         );
     }
 
     template <impl::no_arg CB>
-    void listen(Frame& frame, std::string tag, CB callback)
+    void listen(Frame& frame, std::string id, CB callback)
     {
-        impl::listen(frame, std::move(tag), std::function<void()>(std::move(callback)));
+        impl::listen(frame, std::move(id), std::function<void()>(std::move(callback)));
     }
 
     template <typename CB>
         requires(!impl::no_arg<CB>) && (!impl::has_deserialize<CB>)
-    void listen(Frame& frame, std::string tag, CB callback)
+    void listen(Frame& frame, std::string id, CB callback)
     {
         using type = impl::first_arg_t<CB>;
-        impl::listen(frame, std::move(tag), std::function<void(type)>(std::move(callback)));
+        impl::listen(frame, std::move(id), std::function<void(type)>(std::move(callback)));
     }
 
     template <typename CB>
         requires(!impl::no_arg<CB>) && impl::has_deserialize<CB>
-    void listen(Frame& frame, std::string tag, CB callback)
+    void listen(Frame& frame, std::string id, CB callback)
     {
         using type = impl::first_arg_t<CB>;
         listen(
             frame,
-            std::move(tag),
+            std::move(id),
             [callback = std::move(callback)](std::span<const std::uint8_t> data)
             { callback(buffer_type<type>::deserialize(data.data(), data.size())); }
         );
