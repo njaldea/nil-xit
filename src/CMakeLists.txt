@@ -8,27 +8,37 @@ set(
     SOURCES
         src/codec.hpp
         src/structs.hpp
-        src/methods/create_core.cpp
-        src/methods/add_frame.cpp
-        src/methods/bind.cpp
-        src/methods/get.cpp
-        src/methods/set.cpp
-        src/methods/post.cpp
-        src/methods/listen.cpp
-        src/methods/impl_set.cpp
-        src/methods/impl_set.hpp
+        src/utils.hpp
+        src/utils.cpp
+        src/create_core.cpp
+        src/add_frame.cpp
+
+        src/unique/structs.hpp
+        src/unique/bind.cpp
+        src/unique/listen.cpp
+        src/unique/post.cpp
+        src/unique/utils.cpp
+        src/unique/utils.hpp
+
+        src/tagged/structs.hpp
+        src/tagged/bind.cpp
+        src/tagged/listen.cpp
+        src/tagged/post.cpp
+        src/tagged/utils.cpp
+        src/tagged/utils.hpp
 )
 
 set(
     HEADERS
         publish/nil/xit.hpp
         publish/nil/xit/structs.hpp
-        publish/nil/xit/methods/add_frame.hpp
-        publish/nil/xit/methods/bind.hpp
-        publish/nil/xit/methods/get.hpp
-        publish/nil/xit/methods/set.hpp
-        publish/nil/xit/methods/post.hpp
-        publish/nil/xit/methods/listen.hpp
+        publish/nil/xit/add_frame.hpp
+        publish/nil/xit/unique/bind.hpp
+        publish/nil/xit/unique/listen.hpp
+        publish/nil/xit/unique/post.hpp
+        publish/nil/xit/tagged/bind.hpp
+        publish/nil/xit/tagged/listen.hpp
+        publish/nil/xit/tagged/post.hpp
 )
 
 add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})

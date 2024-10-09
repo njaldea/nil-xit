@@ -1,7 +1,10 @@
-#include "../codec.hpp"
-#include "../proto/message.pb.h"
-#include "../structs.hpp"
-#include "impl_set.hpp"
+#include "codec.hpp"
+#include "proto/message.pb.h"
+#include "structs.hpp"
+
+#include "tagged/utils.hpp"
+#include "unique/utils.hpp"
+#include "utils.hpp"
 
 #include <nil/service.hpp>
 
@@ -22,6 +25,77 @@ namespace
 
         return std::string(&m.c[0], sizeof(i_t)); // NOLINT
     }
+
+    struct MsgSetBindingMapper
+    {
+        template <typename T>
+        void operator()(const nil::xit::unique::Binding<T>& binding) const
+        {
+            nil::xit::unique::impl::msg_set(binding, *msg, tag);
+        }
+
+        template <typename T>
+        void operator()(const nil::xit::tagged::Binding<T>& binding) const
+        {
+            nil::xit::tagged::impl::msg_set(binding, *msg, tag);
+        }
+
+        nil::xit::proto::Binding* msg;
+        const char* tag;
+    };
+
+    struct MsgSetListenerMapper
+    {
+        template <typename T>
+        void operator()(const nil::xit::unique::Listener<T>& listener) const
+        {
+            nil::xit::unique::impl::msg_set(listener, *msg);
+        }
+
+        template <typename T>
+        void operator()(const nil::xit::tagged::Listener<T>& listener) const
+        {
+            nil::xit::tagged::impl::msg_set(listener, *msg);
+        }
+
+        nil::xit::proto::Listener* msg;
+    };
+
+    struct InvokeListenerMapper
+    {
+        template <typename T>
+        void operator()(const nil::xit::unique::Listener<T>& listener) const
+        {
+            nil::xit::unique::impl::invoke(listener, *msg, tag);
+        }
+
+        template <typename T>
+        void operator()(const nil::xit::tagged::Listener<T>& listener) const
+        {
+            nil::xit::tagged::impl::invoke(listener, *msg, tag);
+        }
+
+        const nil::xit::proto::ListenerNotify* msg;
+        const char* tag;
+    };
+
+    struct BindingSetMapper
+    {
+        template <typename T>
+        void operator()(nil::xit::unique::Binding<T>& binding) const
+        {
+            nil::xit::unique::impl::binding_set(binding, *msg, tag);
+        }
+
+        template <typename T>
+        void operator()(nil::xit::tagged::Binding<T>& binding) const
+        {
+            nil::xit::tagged::impl::binding_set(binding, *msg, tag);
+        }
+
+        const nil::xit::proto::Binding* msg;
+        const char* tag;
+    };
 }
 
 namespace nil::xit::impl
@@ -104,11 +178,7 @@ namespace nil::xit::impl
                     {
                         auto* msg_binding = response.add_bindings();
                         msg_binding->set_id(binding_id);
-                        std::visit(
-                            [msg_binding, tag](const auto& v)
-                            { impl::msg_set(tag, *msg_binding, v); },
-                            binding
-                        );
+                        std::visit(MsgSetBindingMapper(msg_binding, tag), binding);
                     }
                 },
                 it->second
@@ -144,10 +214,7 @@ namespace nil::xit::impl
                     auto binding_it = frame.bindings.find(msg.binding().id());
                     if (binding_it != frame.bindings.end())
                     {
-                        std::visit(
-                            [&msg, tag](auto& b) { binding_set(tag, b, msg.binding()); },
-                            binding_it->second
-                        );
+                        std::visit(BindingSetMapper(&msg.binding(), tag), binding_it->second);
                     }
                 },
                 it->second
@@ -171,7 +238,7 @@ namespace nil::xit::impl
                     {
                         auto* msg_listener = response.add_listeners();
                         msg_listener->set_id(listener_id);
-                        std::visit([=](const auto& l) { msg_set(*msg_listener, l); }, listener);
+                        std::visit(MsgSetListenerMapper(msg_listener), listener);
                     }
                 },
                 it->second
@@ -198,10 +265,7 @@ namespace nil::xit::impl
                     auto lit = listeners.find(msg.listener_id());
                     if (lit != listeners.end())
                     {
-                        std::visit(
-                            [&](const auto& listener) { invoke(tag, listener, msg); },
-                            lit->second
-                        );
+                        std::visit(InvokeListenerMapper(&msg, tag), lit->second);
                     }
                 },
                 it->second

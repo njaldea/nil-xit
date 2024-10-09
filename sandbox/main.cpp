@@ -29,7 +29,7 @@ namespace nil::xit
 
 auto& add_base(nil::xit::Core& core)
 {
-    auto& frame = add_frame(
+    nil::xit::unique::Frame& frame = add_unique_frame(
         core,
         "base",
         std::filesystem::path(__FILE__).parent_path() / "gui/Base.svelte"
@@ -98,26 +98,22 @@ int main()
             "tagged",
             std::filesystem::path(__FILE__).parent_path() / "gui/Tagged.svelte"
         );
-        nil::xit::bind(
+        bind(
             frame,
             "tagged_bind",
-            std::function<std::int64_t(std::string_view)>( //
-                [](std::string_view) { return 100; }
-            ),
-            std::function<void(std::string_view, std::int64_t)>( //
-                [](std::string_view, std::int64_t v) { std::cout << v << std::endl; }
-            )
+            [](std::string_view) -> std::int64_t { return 100; },
+            [](std::string_view, std::int64_t v) { std::cout << v << std::endl; }
         );
     }
     {
-        add_frame(
+        add_unique_frame(
             core,
             "group",
             std::filesystem::path(__FILE__).parent_path() / "gui/GroupUp.svelte"
         );
     }
     {
-        auto& frame = add_frame(
+        auto& frame = add_unique_frame(
             core,
             "json_editor", // frame id
             std::filesystem::path(__FILE__).parent_path() / "gui/JsonEditor.svelte"

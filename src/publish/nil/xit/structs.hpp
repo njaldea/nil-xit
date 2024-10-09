@@ -7,13 +7,6 @@
 
 namespace nil::xit
 {
-    template <typename T>
-    struct Binding;
-    template <typename T>
-    struct TaggedBinding;
-
-    struct Frame;
-    struct TaggedFrame;
     struct Core;
 
     struct C
@@ -27,13 +20,6 @@ namespace nil::xit
     };
 
     C create_core(nil::service::S service);
-
-    template <typename T>
-    struct buffer_type
-    {
-        static T deserialize(const void* data, std::uint64_t size) = delete;
-        static std::vector<std::uint8_t> serialize(const T& value) = delete;
-    };
 
     void set_cache_directory(Core& core, const std::filesystem::path& tmp_path);
 }
