@@ -16,7 +16,7 @@ namespace nil::xit
 {
     struct Core
     {
-        nil::service::MessagingService& service; // NOLINT
+        nil::service::MessagingService* service;
         std::filesystem::path cache_location;
         std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>> frames;
     };

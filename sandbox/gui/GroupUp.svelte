@@ -1,8 +1,7 @@
 <script>
-    import { getContext } from "svelte";
+    import { xit } from "@nil-/xit";
 
-    /** @type import('@nil-/xit').Xit */
-    const { loader } = getContext("nil.xit");
+    const { loader } = xit();
 
     /** @type import('@nil-/xit').FrameInfo[] */
     const frames = [

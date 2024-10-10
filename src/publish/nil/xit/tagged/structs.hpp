@@ -3,6 +3,6 @@
 namespace nil::xit::tagged
 {
     template <typename T>
-    struct Binding;
+    struct Value;
     struct Frame;
 }

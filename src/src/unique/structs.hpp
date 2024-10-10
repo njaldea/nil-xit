@@ -14,7 +14,7 @@
 namespace nil::xit::unique
 {
     template <typename T>
-    struct Binding // NOLINT
+    struct Value // NOLINT
     {
         Frame* frame;
         std::string id;
@@ -23,7 +23,7 @@ namespace nil::xit::unique
     };
 
     template <>
-    struct Binding<std::string>
+    struct Value<std::string>
     {
         Frame* frame;
         std::string id;
@@ -32,7 +32,7 @@ namespace nil::xit::unique
     };
 
     template <>
-    struct Binding<std::vector<std::uint8_t>>
+    struct Value<std::vector<std::uint8_t>>
     {
         Frame* frame;
         std::string id;
@@ -41,13 +41,13 @@ namespace nil::xit::unique
     };
 
     template <typename T>
-    struct Listener
+    struct Signal
     {
         std::function<void(const T&)> on_change;
     };
 
     template <>
-    struct Listener<void>
+    struct Signal<void>
     {
         std::function<void()> on_change;
     };
@@ -58,21 +58,21 @@ namespace nil::xit::unique
         std::string id;
         std::filesystem::path path;
 
-        using Binding_t = std::variant<
-            Binding<bool>,
-            Binding<std::int64_t>,
-            Binding<double>,
-            Binding<std::string>,
-            Binding<std::vector<std::uint8_t>>>;
-        std::unordered_map<std::string, Binding_t> bindings;
+        using Value_t = std::variant<
+            Value<bool>,
+            Value<std::int64_t>,
+            Value<double>,
+            Value<std::string>,
+            Value<std::vector<std::uint8_t>>>;
+        std::unordered_map<std::string, Value_t> values;
 
-        using Listener_t = std::variant<
-            Listener<void>,
-            Listener<bool>,
-            Listener<std::int64_t>,
-            Listener<double>,
-            Listener<std::string_view>,
-            Listener<std::span<const std::uint8_t>>>;
-        std::unordered_map<std::string, Listener_t> listeners;
+        using Signal_t = std::variant<
+            Signal<void>,
+            Signal<bool>,
+            Signal<std::int64_t>,
+            Signal<double>,
+            Signal<std::string_view>,
+            Signal<std::span<const std::uint8_t>>>;
+        std::unordered_map<std::string, Signal_t> signals;
     };
 }

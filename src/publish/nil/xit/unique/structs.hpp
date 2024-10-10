@@ -3,6 +3,6 @@
 namespace nil::xit::unique
 {
     template <typename T>
-    struct Binding;
+    struct Value;
     struct Frame;
 }

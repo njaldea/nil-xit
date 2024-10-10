@@ -9,24 +9,24 @@
 
 namespace nil::xit::tagged
 {
-    void post(std::string_view, const Binding<bool>& binding, bool value);
-    void post(std::string_view, const Binding<double>& binding, double value);
-    void post(std::string_view, const Binding<std::int64_t>& binding, std::int64_t value);
-    void post(std::string_view, const Binding<std::string>& binding, std::string value);
+    void post(std::string_view, const Value<bool>& value, bool new_value);
+    void post(std::string_view, const Value<double>& value, double new_value);
+    void post(std::string_view, const Value<std::int64_t>& value, std::int64_t new_value);
+    void post(std::string_view, const Value<std::string>& value, std::string new_value);
     void post(
         std::string_view,
-        const Binding<std::vector<std::uint8_t>>& binding,
-        std::vector<std::uint8_t> value
+        const Value<std::vector<std::uint8_t>>& value,
+        std::vector<std::uint8_t> new_value
     );
 
     template <typename T>
-    void post(std::string_view tag, const Binding<T>& binding, T value)
+    void post(std::string_view tag, const Value<T>& value, const T& new_value)
     {
         post(
             tag,
             // NOLINTNEXTLINE
-            reinterpret_cast<const Binding<std::vector<std::uint8_t>>&>(binding),
-            buffer_type<T>::serialize(std::move(value))
+            reinterpret_cast<const Value<std::vector<std::uint8_t>>&>(value),
+            buffer_type<T>::serialize(new_value)
         );
     }
 }

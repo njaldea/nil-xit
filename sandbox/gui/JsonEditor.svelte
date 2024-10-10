@@ -1,28 +1,26 @@
 <script>
-    import { getContext } from "svelte";
-    import { JSONEditor } from 'vanilla-jsoneditor/standalone.js'
-    import { json_string } from "@nil-/xit";
+    import { createJSONEditor } from 'vanilla-jsoneditor/standalone.js'
+    import { xit, json_string } from "@nil-/xit";
 
-    /** @type import('@nil-/xit').Xit */
-    const { binding } = getContext("nil.xit");
+    const { values } = xit();
 
-    const buf_binding = binding.json('json_binding', {}, json_string);
+    const buf_value = values.json('json_value', {}, json_string);
 
     const json_editor = (d) => {
-        const editor = new JSONEditor({
+        const editor = createJSONEditor({
             target: d,
             props: {
-                content: { json: $buf_binding },
+                content: { json: $buf_value },
                 onChange: (updatedContent, previousContent, { contentErrors, patchResult }) => {
                     if (updatedContent.json)
                     {
-                        $buf_binding = updatedContent.json   
+                        $buf_value = updatedContent.json   
                     }
                     else if (updatedContent.text)
                     {
                         try
                         {
-                            $buf_binding = JSON.parse(updatedContent.text)
+                            $buf_value = JSON.parse(updatedContent.text)
                         }
                         catch (e)
                         {

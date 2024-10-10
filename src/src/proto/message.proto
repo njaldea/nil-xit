@@ -8,12 +8,12 @@ enum MessageType {
     MessageType_FrameRequest = 0;
     MessageType_FrameResponse = 1;
     MessageType_FrameCache = 2;
-    MessageType_BindingRequest = 3;
-    MessageType_BindingResponse = 4;
-    MessageType_BindingUpdate = 5;
-    MessageType_ListenerRequest = 6;
-    MessageType_ListenerResponse = 7;
-    MessageType_ListenerNotify = 8;
+    MessageType_ValueRequest = 3;
+    MessageType_ValueResponse = 4;
+    MessageType_ValueUpdate = 5;
+    MessageType_SignalRequest = 6;
+    MessageType_SignalResponse = 7;
+    MessageType_SignalNotify = 8;
     MessageType_FileRequest = 9;
     MessageType_FileResponse = 10;
 }
@@ -32,7 +32,7 @@ message FrameResponse
     }
 }
 
-message Binding
+message Value
 {
     string id = 1;
     oneof value {
@@ -44,49 +44,49 @@ message Binding
     }
 }
 
-message BindingRequest
+message ValueRequest
 {
     string id = 1;
     optional string tag = 2;
 }
 
-message BindingResponse
+message ValueResponse
 {
     string id = 1;
     optional string tag = 2;
-    repeated Binding bindings = 3;
+    repeated Value values = 3;
 }
 
-message BindingUpdate
+message ValueUpdate
 {
     string id = 1;
     optional string tag = 2;
-    Binding binding = 3;
+    Value value = 3;
 }
 
-message ListenerRequest
+message SignalRequest
 {
     string id = 1;
 }
 
-message Listener
+message Signal
 {
     string id = 1;
     optional string type = 2;
 }
 
-message ListenerResponse
+message SignalResponse
 {
     string id = 1;
     optional string tag = 2;
-    repeated Listener listeners = 3;
+    repeated Signal signals = 3;
 }
 
-message ListenerNotify
+message SignalNotify
 {
     string frame_id = 1;
     optional string tag = 2;
-    string listener_id = 3;
+    string Signal_id = 3;
     oneof arg {
         bool arg_boolean = 4;
         int64 arg_number = 5;

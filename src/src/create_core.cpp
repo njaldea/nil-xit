@@ -3,6 +3,7 @@
 #include "structs.hpp"
 
 #include "tagged/utils.hpp"
+#include "unique/structs.hpp"
 #include "unique/utils.hpp"
 
 #include <nil/service.hpp>
@@ -25,74 +26,74 @@ namespace
         return std::string(&m.c[0], sizeof(i_t)); // NOLINT
     }
 
-    struct MsgSetBindingMapper
+    struct MsgSetValueMapper
     {
         template <typename T>
-        void operator()(const nil::xit::unique::Binding<T>& binding) const
+        void operator()(const nil::xit::unique::Value<T>& value) const
         {
-            nil::xit::unique::impl::msg_set(binding, *msg, tag);
+            nil::xit::unique::impl::msg_set(value, *msg, tag);
         }
 
         template <typename T>
-        void operator()(const nil::xit::tagged::Binding<T>& binding) const
+        void operator()(const nil::xit::tagged::Value<T>& value) const
         {
-            nil::xit::tagged::impl::msg_set(binding, *msg, tag);
+            nil::xit::tagged::impl::msg_set(value, *msg, tag);
         }
 
-        nil::xit::proto::Binding* msg;
+        nil::xit::proto::Value* msg;
         const char* tag;
     };
 
-    struct MsgSetListenerMapper
+    struct MsgSetSignalMapper
     {
         template <typename T>
-        void operator()(const nil::xit::unique::Listener<T>& listener) const
+        void operator()(const nil::xit::unique::Signal<T>& signal) const
         {
-            nil::xit::unique::impl::msg_set(listener, *msg);
+            nil::xit::unique::impl::msg_set(signal, *msg);
         }
 
         template <typename T>
-        void operator()(const nil::xit::tagged::Listener<T>& listener) const
+        void operator()(const nil::xit::tagged::Signal<T>& signal) const
         {
-            nil::xit::tagged::impl::msg_set(listener, *msg);
+            nil::xit::tagged::impl::msg_set(signal, *msg);
         }
 
-        nil::xit::proto::Listener* msg;
+        nil::xit::proto::Signal* msg;
     };
 
-    struct InvokeListenerMapper
+    struct InvokeSignalMapper
     {
         template <typename T>
-        void operator()(const nil::xit::unique::Listener<T>& listener) const
+        void operator()(const nil::xit::unique::Signal<T>& signal) const
         {
-            nil::xit::unique::impl::invoke(listener, *msg, tag);
+            nil::xit::unique::impl::invoke(signal, *msg, tag);
         }
 
         template <typename T>
-        void operator()(const nil::xit::tagged::Listener<T>& listener) const
+        void operator()(const nil::xit::tagged::Signal<T>& signal) const
         {
-            nil::xit::tagged::impl::invoke(listener, *msg, tag);
+            nil::xit::tagged::impl::invoke(signal, *msg, tag);
         }
 
-        const nil::xit::proto::ListenerNotify* msg;
+        const nil::xit::proto::SignalNotify* msg;
         const char* tag;
     };
 
-    struct BindingSetMapper
+    struct ValueSetMapper
     {
         template <typename T>
-        void operator()(nil::xit::unique::Binding<T>& binding) const
+        void operator()(nil::xit::unique::Value<T>& value) const
         {
-            nil::xit::unique::impl::binding_set(binding, *msg, tag);
+            nil::xit::unique::impl::value_set(value, *msg, tag);
         }
 
         template <typename T>
-        void operator()(nil::xit::tagged::Binding<T>& binding) const
+        void operator()(nil::xit::tagged::Value<T>& value) const
         {
-            nil::xit::tagged::impl::binding_set(binding, *msg, tag);
+            nil::xit::tagged::impl::value_set(value, *msg, tag);
         }
 
-        const nil::xit::proto::Binding* msg;
+        const nil::xit::proto::Value* msg;
         const char* tag;
     };
 }
@@ -138,7 +139,7 @@ namespace nil::xit::impl
 
                     const auto header = proto::MessageType_FrameResponse;
                     auto payload = nil::service::concat(header, response);
-                    send(core.service, id, std::move(payload));
+                    send(*core.service, id, std::move(payload));
                     return;
                 }
             }
@@ -152,18 +153,18 @@ namespace nil::xit::impl
 
             const auto header = proto::MessageType_FrameResponse;
             auto payload = nil::service::concat(header, response);
-            send(core.service, id, std::move(payload));
+            send(*core.service, id, std::move(payload));
             return;
         }
         // error response
     }
 
-    void handle(Core& core, const nil::service::ID& id, const proto::BindingRequest& request)
+    void handle(Core& core, const nil::service::ID& id, const proto::ValueRequest& request)
     {
         const auto it = core.frames.find(request.id());
         if (it != core.frames.end())
         {
-            proto::BindingResponse response;
+            proto::ValueResponse response;
             response.set_id(it->first);
             const char* tag = request.has_tag() ? request.tag().data() : nullptr;
             if (tag != nullptr)
@@ -173,19 +174,19 @@ namespace nil::xit::impl
             std::visit(
                 [&response, tag](const auto& frame)
                 {
-                    for (const auto& [binding_id, binding] : frame.bindings)
+                    for (const auto& [value_id, value] : frame.values)
                     {
-                        auto* msg_binding = response.add_bindings();
-                        msg_binding->set_id(binding_id);
-                        std::visit(MsgSetBindingMapper(msg_binding, tag), binding);
+                        auto* msg_value = response.add_values();
+                        msg_value->set_id(value_id);
+                        std::visit(MsgSetValueMapper(msg_value, tag), value);
                     }
                 },
                 it->second
             );
 
-            const auto header = proto::MessageType_BindingResponse;
+            const auto header = proto::MessageType_ValueResponse;
             auto payload = nil::service::concat(header, response);
-            send(core.service, id, std::move(payload));
+            send(*core.service, id, std::move(payload));
             return;
         }
         // error response
@@ -201,7 +202,7 @@ namespace nil::xit::impl
         }
     }
 
-    void handle(Core& core, const nil::service::ID& /* id */, const proto::BindingUpdate& msg)
+    void handle(Core& core, const nil::service::ID& /* id */, const proto::ValueUpdate& msg)
     {
         auto it = core.frames.find(msg.id());
         if (it != core.frames.end())
@@ -210,10 +211,10 @@ namespace nil::xit::impl
                 [&msg](auto& frame)
                 {
                     const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
-                    auto binding_it = frame.bindings.find(msg.binding().id());
-                    if (binding_it != frame.bindings.end())
+                    auto value_it = frame.values.find(msg.value().id());
+                    if (value_it != frame.values.end())
                     {
-                        std::visit(BindingSetMapper(&msg.binding(), tag), binding_it->second);
+                        std::visit(ValueSetMapper(&msg.value(), tag), value_it->second);
                     }
                 },
                 it->second
@@ -223,35 +224,35 @@ namespace nil::xit::impl
         // error response
     }
 
-    void handle(Core& core, const nil::service::ID& id, const proto::ListenerRequest& request)
+    void handle(Core& core, const nil::service::ID& id, const proto::SignalRequest& request)
     {
         const auto it = core.frames.find(request.id());
         if (it != core.frames.end())
         {
-            proto::ListenerResponse response;
+            proto::SignalResponse response;
             response.set_id(it->first);
             std::visit(
                 [&response](const auto& frame)
                 {
-                    for (const auto& [listener_id, listener] : frame.listeners)
+                    for (const auto& [signal_id, signal] : frame.signals)
                     {
-                        auto* msg_listener = response.add_listeners();
-                        msg_listener->set_id(listener_id);
-                        std::visit(MsgSetListenerMapper(msg_listener), listener);
+                        auto* msg_signal = response.add_signals();
+                        msg_signal->set_id(signal_id);
+                        std::visit(MsgSetSignalMapper(msg_signal), signal);
                     }
                 },
                 it->second
             );
 
-            const auto header = proto::MessageType_ListenerResponse;
+            const auto header = proto::MessageType_SignalResponse;
             auto payload = nil::service::concat(header, response);
-            send(core.service, id, std::move(payload));
+            send(*core.service, id, std::move(payload));
             return;
         }
         // error response
     }
 
-    void handle(Core& core, const nil::service::ID& /* id */, const proto::ListenerNotify& msg)
+    void handle(Core& core, const nil::service::ID& /* id */, const proto::SignalNotify& msg)
     {
         const auto it = core.frames.find(msg.frame_id());
         if (it != core.frames.end())
@@ -260,11 +261,10 @@ namespace nil::xit::impl
                 [&msg](const auto& frame)
                 {
                     const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
-                    auto& listeners = frame.listeners;
-                    auto lit = listeners.find(msg.listener_id());
-                    if (lit != listeners.end())
+                    auto lit = frame.signals.find(msg.signal_id());
+                    if (lit != frame.signals.end())
                     {
-                        std::visit(InvokeListenerMapper(&msg, tag), lit->second);
+                        std::visit(InvokeSignalMapper(&msg, tag), lit->second);
                     }
                 },
                 it->second
@@ -289,7 +289,7 @@ namespace nil::xit::impl
         ));
         auto header = proto::MessageType_FileResponse;
         auto payload = nil::service::concat(header, response);
-        send(core.service, id, std::move(payload));
+        send(*core.service, id, std::move(payload));
     }
 
     auto make_handlers(Core& core)
@@ -309,24 +309,24 @@ namespace nil::xit::impl
                 make_handler(&nil::service::consume<proto::FrameCache>)
             ),
             nil::service::mapping(
-                proto::MessageType_BindingRequest,
-                make_handler(&nil::service::consume<proto::BindingRequest>)
+                proto::MessageType_ValueRequest,
+                make_handler(&nil::service::consume<proto::ValueRequest>)
             ),
             nil::service::mapping(
-                proto::MessageType_ListenerRequest,
-                make_handler(&nil::service::consume<proto::ListenerRequest>)
+                proto::MessageType_SignalRequest,
+                make_handler(&nil::service::consume<proto::SignalRequest>)
             ),
             nil::service::mapping(
                 proto::MessageType_FileRequest,
                 make_handler(&nil::service::consume<proto::FileRequest>)
             ),
             nil::service::mapping(
-                proto::MessageType_BindingUpdate,
-                make_handler(&nil::service::consume<proto::BindingUpdate>)
+                proto::MessageType_ValueUpdate,
+                make_handler(&nil::service::consume<proto::ValueUpdate>)
             ),
             nil::service::mapping(
-                proto::MessageType_ListenerNotify,
-                make_handler(&nil::service::consume<proto::ListenerNotify>)
+                proto::MessageType_SignalNotify,
+                make_handler(&nil::service::consume<proto::SignalNotify>)
             )
         );
     }
@@ -336,13 +336,14 @@ namespace nil::xit
 {
     C create_core(nil::service::S service)
     {
+        using namespace std::filesystem;
         constexpr auto deleter = [](Core* obj) { std::default_delete<Core>()(obj); };
-        auto holder = std::make_unique<Core>(service, std::filesystem::temp_directory_path());
-        on_message(service, impl::make_handlers(*holder));
-        on_ready(
-            service,
-            [ptr = holder.get()]() { std::filesystem::create_directories(ptr->cache_location); }
+        auto holder = std::make_unique<Core>(
+            &static_cast<nil::service::MessagingService&>(service),
+            temp_directory_path() / "nil/xit"
         );
+        on_message(service, impl::make_handlers(*holder));
+        on_ready(service, [ptr = holder.get()]() { create_directories(ptr->cache_location); });
         return {{holder.release(), deleter}};
     }
 

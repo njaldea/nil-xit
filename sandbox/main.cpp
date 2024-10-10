@@ -34,41 +34,41 @@ auto& add_base(nil::xit::Core& core)
         "base",
         std::filesystem::path(__FILE__).parent_path() / "gui/Base.svelte"
     );
-    auto& binding = bind(
+    auto& value = add_value(
         frame,
-        "binding_0_1",
+        "value_0_1",
         "hello world",
-        [](std::string_view value) { std::cout << "value changed: " << value << std::endl; }
+        [](std::string_view new_value) { std::cout << "value changed: " << new_value << std::endl; }
     );
-    listen(
+    add_signal(
         frame,
-        "listener-1",
-        [&binding]()
+        "signal-1",
+        [&value]()
         {
-            std::cout << "listener-1 is notified, forcing binding_0_1 value" << std::endl;
-            post(binding, "new stuff here");
+            std::cout << "signal-1 is notified, forcing value_0_1 value" << std::endl;
+            post(value, "new stuff here");
         }
     );
-    listen(
+    add_signal(
         frame,
-        "listener-2",
+        "signal-2",
         [](const JSON& j)
         {
-            std::cout << "listener-2 is notified" << std::endl;
+            std::cout << "signal-2 is notified" << std::endl;
             std::cout << j.buffer << std::endl;
         }
     );
-    listen(
+    add_signal(
         frame,
-        "listener-3",
+        "signal-3",
         [](bool j)
         {
-            std::cout << "listener-3 is notified" << std::endl;
+            std::cout << "signal-3 is notified" << std::endl;
             std::cout << j << std::endl;
         }
     );
 
-    return binding;
+    return value;
 }
 
 int main()
@@ -98,23 +98,23 @@ int main()
             "tagged",
             std::filesystem::path(__FILE__).parent_path() / "gui/Tagged.svelte"
         );
-        bind(
+        add_value(
             frame,
-            "tagged_bind",
+            "tagged_value",
             [](std::string_view tag) -> std::int64_t
             {
-                std::cout << "tagged_bind getter: " << tag << std::endl;
+                std::cout << "tagged_value getter: " << tag << std::endl;
                 return 100;
             },
             [](std::string_view tag, std::int64_t v)
             {
-                std::cout << "tagged_bind setter: " << tag << std::endl;
+                std::cout << "tagged_value setter: " << tag << std::endl;
                 std::cout << v << std::endl;
             }
         );
-        listen(
+        add_signal(
             frame,
-            "tagged_listen",
+            "tagged_signal",
             [](std::string_view tag, std::string_view value)
             { std::cout << tag << ":" << value << std::endl; }
         );
@@ -132,15 +132,15 @@ int main()
             "json_editor", // frame id
             std::filesystem::path(__FILE__).parent_path() / "gui/JsonEditor.svelte"
         );
-        bind(
+        add_value(
             frame,
-            "json_binding",
+            "json_value",
             JSON{.buffer = R"({ "hello": "hello this is buffer" })"},
             [](const JSON& v) { std::cout << v.buffer << std::endl; }
         );
     }
     {
-        auto& str_bind = add_base(core);
+        auto& str_value = add_base(core);
         th = std::thread(
             [&]()
             {
@@ -148,12 +148,15 @@ int main()
                 std::cout << "input here: ";
                 while (std::getline(std::cin, line))
                 {
-                    post(str_bind, line);
+                    post(str_value, line);
                     std::cout << "input here: ";
                 }
             }
         );
     }
+
+    std::filesystem::remove_all(std::filesystem::temp_directory_path() / "sandbox");
+    set_cache_directory(core, std::filesystem::temp_directory_path() / "sandbox");
 
     start(server);
     th.join();

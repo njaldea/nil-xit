@@ -14,15 +14,15 @@ set(
         src/add_frame.cpp
 
         src/unique/structs.hpp
-        src/unique/bind.cpp
-        src/unique/listen.cpp
+        src/unique/add_value.cpp
+        src/unique/add_signal.cpp
         src/unique/post.cpp
         src/unique/utils.cpp
         src/unique/utils.hpp
 
         src/tagged/structs.hpp
-        src/tagged/bind.cpp
-        src/tagged/listen.cpp
+        src/tagged/add_value.cpp
+        src/tagged/add_signal.cpp
         src/tagged/post.cpp
         src/tagged/utils.cpp
         src/tagged/utils.hpp
@@ -33,11 +33,11 @@ set(
         publish/nil/xit.hpp
         publish/nil/xit/structs.hpp
         publish/nil/xit/add_frame.hpp
-        publish/nil/xit/unique/bind.hpp
-        publish/nil/xit/unique/listen.hpp
+        publish/nil/xit/unique/add_value.hpp
+        publish/nil/xit/unique/add_signal.hpp
         publish/nil/xit/unique/post.hpp
-        publish/nil/xit/tagged/bind.hpp
-        publish/nil/xit/tagged/listen.hpp
+        publish/nil/xit/tagged/add_value.hpp
+        publish/nil/xit/tagged/add_signal.hpp
         publish/nil/xit/tagged/post.hpp
 )
 

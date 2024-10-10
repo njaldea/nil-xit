@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-namespace nil::xit::tagged
+namespace nil::xit::unique
 {
     namespace impl
     {
@@ -44,7 +44,7 @@ namespace nil::xit::tagged
         using first_arg_t = typename first_arg<T>::type;
 
         template <typename T>
-        concept arg_none = std::invocable<T, std::string_view>;
+        concept arg_none = std::invocable<T>;
 
         template <typename T>
         concept has_deserialize = requires(T arg) {
@@ -54,48 +54,39 @@ namespace nil::xit::tagged
         };
 
         // clang-format off
-        void listen(Frame& frame, std::string id, std::function<void(std::string_view)> callback);
-        void listen(Frame& frame, std::string id, std::function<void(std::string_view, bool)> callback);
-        void listen(Frame& frame, std::string id, std::function<void(std::string_view, double)> callback);
-        void listen(Frame& frame, std::string id, std::function<void(std::string_view, std::int64_t)> callback);
-        void listen(Frame& frame, std::string id, std::function<void(std::string_view, std::string_view)> callback);
-        void listen(Frame& frame, std::string id, std::function<void(std::string_view, std::span<const std::uint8_t>)> callback);
+        void add_signal(Frame& frame, std::string id, std::function<void()> callback);
+        void add_signal(Frame& frame, std::string id, std::function<void(bool)> callback);
+        void add_signal(Frame& frame, std::string id, std::function<void(double)> callback);
+        void add_signal(Frame& frame, std::string id, std::function<void(std::int64_t)> callback);
+        void add_signal(Frame& frame, std::string id, std::function<void(std::string_view)> callback);
+        void add_signal(Frame& frame, std::string id, std::function<void(std::span<const std::uint8_t>)> callback);
         // clang-format on
     }
 
     template <impl::arg_none CB>
-    void listen(Frame& frame, std::string id, CB callback)
+    void add_signal(Frame& frame, std::string id, CB callback)
     {
-        impl::listen(
-            frame,
-            std::move(id),
-            std::function<void(std::string_view)>(std::move(callback))
-        );
+        impl::add_signal(frame, std::move(id), std::function<void()>(std::move(callback)));
     }
 
     template <typename CB>
         requires(!impl::arg_none<CB> && !impl::has_deserialize<CB>)
-    void listen(Frame& frame, std::string id, CB callback)
+    void add_signal(Frame& frame, std::string id, CB callback)
     {
         using type = impl::first_arg_t<CB>;
-        impl::listen(
-            frame,
-            std::move(id),
-            std::function<void(std::string_view, type)>(std::move(callback))
-        );
+        impl::add_signal(frame, std::move(id), std::function<void(type)>(std::move(callback)));
     }
 
     template <typename CB>
         requires(!impl::arg_none<CB> && impl::has_deserialize<CB>)
-    void listen(Frame& frame, std::string id, CB callback)
+    void add_signal(Frame& frame, std::string id, CB callback)
     {
         using type = impl::first_arg_t<CB>;
-        listen(
+        add_signal(
             frame,
             std::move(id),
-            [callback
-             = std::move(callback)](std::string_view tag, std::span<const std::uint8_t> data)
-            { callback(tag, buffer_type<type>::deserialize(data.data(), data.size())); }
+            [callback = std::move(callback)](std::span<const std::uint8_t> data)
+            { callback(buffer_type<type>::deserialize(data.data(), data.size())); }
         );
     }
 }

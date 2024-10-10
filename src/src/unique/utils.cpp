@@ -6,39 +6,35 @@
 
 namespace nil::xit::unique::impl
 {
-    void msg_set(const Binding<bool>& binding, proto::Binding& msg, const char* tag)
+    void msg_set(const Value<bool>& value, proto::Value& msg, const char* tag)
     {
-        nil::xit::impl::msg_set(binding.value, msg, tag);
+        nil::xit::impl::msg_set(value.value, msg, tag);
     }
 
-    void msg_set(const Binding<double>& binding, proto::Binding& msg, const char* tag)
+    void msg_set(const Value<double>& value, proto::Value& msg, const char* tag)
     {
-        nil::xit::impl::msg_set(binding.value, msg, tag);
+        nil::xit::impl::msg_set(value.value, msg, tag);
     }
 
-    void msg_set(const Binding<std::int64_t>& binding, proto::Binding& msg, const char* tag)
+    void msg_set(const Value<std::int64_t>& value, proto::Value& msg, const char* tag)
     {
-        nil::xit::impl::msg_set(binding.value, msg, tag);
+        nil::xit::impl::msg_set(value.value, msg, tag);
     }
 
-    void msg_set(const Binding<std::string>& binding, proto::Binding& msg, const char* tag)
+    void msg_set(const Value<std::string>& value, proto::Value& msg, const char* tag)
     {
-        nil::xit::impl::msg_set(binding.value, msg, tag);
+        nil::xit::impl::msg_set(value.value, msg, tag);
     }
 
-    void msg_set(
-        const Binding<std::vector<std::uint8_t>>& binding,
-        proto::Binding& msg,
-        const char* tag
-    )
+    void msg_set(const Value<std::vector<std::uint8_t>>& value, proto::Value& msg, const char* tag)
     {
-        nil::xit::impl::msg_set(binding.value, msg, tag);
+        nil::xit::impl::msg_set(value.value, msg, tag);
     }
 
     namespace impl
     {
         template <typename T>
-        bool binding_set(std::decay_t<T>& value_out, T&& value_in)
+        bool value_set(std::decay_t<T>& value_out, T&& value_in)
         {
             if (value_out != value_in)
             {
@@ -49,145 +45,140 @@ namespace nil::xit::unique::impl
         }
     }
 
-    void binding_set(Binding<bool>& binding, const proto::Binding& msg, const char* tag)
+    void value_set(Value<bool>& value, const proto::Value& msg, const char* tag)
     {
         (void)tag;
-        if (impl::binding_set(binding.value, msg.value_boolean()) && binding.on_change)
+        if (impl::value_set(value.value, msg.value_boolean()) && value.on_change)
         {
-            binding.on_change(binding.value);
+            value.on_change(value.value);
         }
     }
 
-    void binding_set(Binding<double>& binding, const proto::Binding& msg, const char* tag)
+    void value_set(Value<double>& value, const proto::Value& msg, const char* tag)
     {
         (void)tag;
-        if (impl::binding_set(binding.value, msg.value_double()) && binding.on_change)
+        if (impl::value_set(value.value, msg.value_double()) && value.on_change)
         {
-            binding.on_change(binding.value);
+            value.on_change(value.value);
         }
     }
 
-    void binding_set(Binding<std::int64_t>& binding, const proto::Binding& msg, const char* tag)
+    void value_set(Value<std::int64_t>& value, const proto::Value& msg, const char* tag)
     {
         (void)tag;
-        if (impl::binding_set(binding.value, msg.value_number()) && binding.on_change)
+        if (impl::value_set(value.value, msg.value_number()) && value.on_change)
         {
-            binding.on_change(binding.value);
+            value.on_change(value.value);
         }
     }
 
-    void binding_set(Binding<std::string>& binding, const proto::Binding& msg, const char* tag)
+    void value_set(Value<std::string>& value, const proto::Value& msg, const char* tag)
     {
         (void)tag;
-        if (impl::binding_set(binding.value, msg.value_string()) && binding.on_change)
+        if (impl::value_set(value.value, msg.value_string()) && value.on_change)
         {
-            binding.on_change(binding.value);
+            value.on_change(value.value);
         }
     }
 
-    void binding_set(
-        Binding<std::vector<std::uint8_t>>& binding,
-        const proto::Binding& msg,
+    void value_set(
+        Value<std::vector<std::uint8_t>>& value,
+        const proto::Value& msg,
         const char* tag
     )
     {
         (void)tag;
-        auto& value = binding.value;
-        if (value.size() != msg.value_buffer().size()
-            || 0 != std::memcmp(value.data(), msg.value_buffer().data(), value.size()))
+        if (value.value.size() != msg.value_buffer().size()
+            || 0 != std::memcmp(value.value.data(), msg.value_buffer().data(), value.value.size()))
         {
-            value = {msg.value_buffer().begin(), msg.value_buffer().end()};
-            if (binding.on_change)
+            value.value = {msg.value_buffer().begin(), msg.value_buffer().end()};
+            if (value.on_change)
             {
-                binding.on_change(value);
+                value.on_change(value.value);
             }
         }
     }
 
-    void msg_set(const Listener<void>& listener, proto::Listener& msg)
+    void msg_set(const Signal<void>& signal, proto::Signal& msg)
     {
         (void)msg;
-        (void)listener;
+        (void)signal;
     }
 
-    void msg_set(const Listener<bool>& listener, proto::Listener& msg)
+    void msg_set(const Signal<bool>& signal, proto::Signal& msg)
     {
-        (void)listener;
+        (void)signal;
         msg.set_type("arg_boolean");
     }
 
-    void msg_set(const Listener<double>& listener, proto::Listener& msg)
+    void msg_set(const Signal<double>& signal, proto::Signal& msg)
     {
-        (void)listener;
+        (void)signal;
         msg.set_type("arg_double");
     }
 
-    void msg_set(const Listener<std::int64_t>& listener, proto::Listener& msg)
+    void msg_set(const Signal<std::int64_t>& signal, proto::Signal& msg)
     {
-        (void)listener;
+        (void)signal;
         msg.set_type("arg_number");
     }
 
-    void msg_set(const Listener<std::string_view>& listener, proto::Listener& msg)
+    void msg_set(const Signal<std::string_view>& signal, proto::Signal& msg)
     {
-        (void)listener;
+        (void)signal;
         msg.set_type("arg_string");
     }
 
-    void msg_set(const Listener<std::span<const std::uint8_t>>& listener, proto::Listener& msg)
+    void msg_set(const Signal<std::span<const std::uint8_t>>& signal, proto::Signal& msg)
     {
-        (void)listener;
+        (void)signal;
         msg.set_type("arg_buffer");
     }
 
-    void invoke(const Listener<void>& listener, const proto::ListenerNotify& msg, const char* tag)
+    void invoke(const Signal<void>& signal, const proto::SignalNotify& msg, const char* tag)
     {
         (void)tag;
         (void)msg;
-        listener.on_change();
+        signal.on_change();
     }
 
-    void invoke(const Listener<bool>& listener, const proto::ListenerNotify& msg, const char* tag)
+    void invoke(const Signal<bool>& signal, const proto::SignalNotify& msg, const char* tag)
     {
         (void)tag;
-        listener.on_change(msg.arg_boolean());
+        signal.on_change(msg.arg_boolean());
     }
 
-    void invoke(const Listener<double>& listener, const proto::ListenerNotify& msg, const char* tag)
+    void invoke(const Signal<double>& signal, const proto::SignalNotify& msg, const char* tag)
     {
         (void)tag;
-        listener.on_change(msg.arg_double());
+        signal.on_change(msg.arg_double());
+    }
+
+    void invoke(const Signal<std::int64_t>& signal, const proto::SignalNotify& msg, const char* tag)
+    {
+        (void)tag;
+        signal.on_change(msg.arg_number());
     }
 
     void invoke(
-        const Listener<std::int64_t>& listener,
-        const proto::ListenerNotify& msg,
+        const Signal<std::string_view>& signal,
+        const proto::SignalNotify& msg,
         const char* tag
     )
     {
         (void)tag;
-        listener.on_change(msg.arg_number());
+        signal.on_change(msg.arg_string());
     }
 
     void invoke(
-        const Listener<std::string_view>& listener,
-        const proto::ListenerNotify& msg,
-        const char* tag
-    )
-    {
-        (void)tag;
-        listener.on_change(msg.arg_string());
-    }
-
-    void invoke(
-        const Listener<std::span<const std::uint8_t>>& listener,
-        const proto::ListenerNotify& msg,
+        const Signal<std::span<const std::uint8_t>>& signal,
+        const proto::SignalNotify& msg,
         const char* tag
     )
     {
         (void)tag;
         const auto& buffer = msg.arg_buffer();
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        listener.on_change({reinterpret_cast<const std::uint8_t*>(buffer.data()), buffer.size()});
+        signal.on_change({reinterpret_cast<const std::uint8_t*>(buffer.data()), buffer.size()});
     }
 }

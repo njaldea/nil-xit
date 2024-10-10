@@ -15,35 +15,35 @@ namespace nil::xit::tagged
 {
     namespace impl
     {
-        Binding<bool>& bind(
+        Value<bool>& add_value(
             Frame& frame,
             std::string id,
             std::function<bool(std::string_view)> getter,
             std::function<void(std::string_view, bool)> setter
         );
 
-        Binding<double>& bind(
+        Value<double>& add_value(
             Frame& frame,
             std::string id,
             std::function<double(std::string_view)> getter,
             std::function<void(std::string_view, double)> setter
         );
 
-        Binding<std::int64_t>& bind(
+        Value<std::int64_t>& add_value(
             Frame& frame,
             std::string id,
             std::function<std::int64_t(std::string_view)> getter,
             std::function<void(std::string_view, std::int64_t)> setter
         );
 
-        Binding<std::string>& bind(
+        Value<std::string>& add_value(
             Frame& frame,
             std::string id,
             std::function<std::string(std::string_view)> getter,
             std::function<void(std::string_view, std::string_view)> setter
         );
 
-        Binding<std::vector<std::uint8_t>>& bind(
+        Value<std::vector<std::uint8_t>>& add_value(
             Frame& frame,
             std::string id,
             std::function<std::vector<std::uint8_t>(std::string_view)> getter,
@@ -62,10 +62,10 @@ namespace nil::xit::tagged
 
     template <typename Getter>
         requires(!impl::has_codec<impl::return_t<Getter>>)
-    auto& bind(Frame& frame, std::string id, Getter getter)
+    auto& add_value(Frame& frame, std::string id, Getter getter)
     {
         using type = decltype(std::declval<Getter>().operator()(std::declval<std::string_view>()));
-        return impl::bind(
+        return impl::add_value(
             frame,
             std::move(id),
             std::function<type(std::string_view)>(std::move(getter)),
@@ -75,12 +75,12 @@ namespace nil::xit::tagged
 
     template <typename Getter, typename Setter>
         requires(!impl::has_codec<impl::return_t<Getter>>)
-    auto& bind(Frame& frame, std::string id, Getter getter, Setter setter)
+    auto& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
     {
         using type = impl::return_t<Getter>;
         if constexpr (std::is_same_v<type, std::string>)
         {
-            return impl::bind(
+            return impl::add_value(
                 frame,
                 std::move(id),
                 std::function<std::string(std::string_view)>(std::move(getter)),
@@ -89,7 +89,7 @@ namespace nil::xit::tagged
         }
         else if constexpr (std::is_same_v<type, std::vector<std::uint8_t>>)
         {
-            return impl::bind(
+            return impl::add_value(
                 frame,
                 std::move(id),
                 std::function<std::vector<std::uint8_t>(std::string_view)>(std::move(getter)),
@@ -100,7 +100,7 @@ namespace nil::xit::tagged
         }
         else
         {
-            return impl::bind(
+            return impl::add_value(
                 frame,
                 std::move(id),
                 std::function<type(std::string_view)>(std::move(getter)),
@@ -111,10 +111,10 @@ namespace nil::xit::tagged
 
     template <typename Getter>
         requires(impl::has_codec<impl::return_t<Getter>>)
-    auto& bind(Frame& frame, std::string id, Getter getter)
+    auto& add_value(Frame& frame, std::string id, Getter getter)
     {
         using type = impl::return_t<Getter>;
-        auto& obj = impl::bind(
+        auto& obj = impl::add_value(
             frame,
             std::move(id),
             std::function<std::vector<std::uint8_t>(std::string_view)>(
@@ -123,15 +123,15 @@ namespace nil::xit::tagged
             std::function<void(std::string_view, std::span<const std::uint8_t>)>()
         );
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return reinterpret_cast<Binding<type>&>(obj);
+        return reinterpret_cast<Value<type>&>(obj);
     }
 
     template <typename Getter, typename Setter>
         requires(impl::has_codec<impl::return_t<Getter>>)
-    auto&& bind(Frame& frame, std::string id, Getter getter, Setter setter)
+    auto&& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
     {
         using type = impl::return_t<Getter>;
-        auto& obj = impl::bind(
+        auto& obj = impl::add_value(
             frame,
             std::move(id),
             std::function<std::vector<std::uint8_t>(std::string_view)>(
@@ -148,6 +148,6 @@ namespace nil::xit::tagged
             )
         );
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return reinterpret_cast<Binding<type>&>(obj);
+        return reinterpret_cast<Value<type>&>(obj);
     }
 }

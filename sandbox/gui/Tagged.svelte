@@ -1,17 +1,15 @@
 <script>
-    import { json_string } from "@nil-/xit";
-    import { getContext } from "svelte";
+    import { xit } from "@nil-/xit";
 
-    /** @type import('@nil-/xit').Xit */
-    const { binding, listeners } = getContext("nil.xit");
+    const { values, signals } = xit();
 
-    const int_binding = binding.number('tagged_bind', 1101);
-    const string_listener = listeners.string('tagged_listen');
+    const int_value = values.number('tagged_value', 1101);
+    const string_signal = values.string('tagged_signal');
 
     const click = () => {
-        int_binding.update(v => v + 1);
-        string_listener(`${$int_binding} published`);
+        int_value.update(v => v + 1);
+        string_signal(`${$int_value} published`);
     };
 </script>
 
-<button onclick={click}>tagged {$int_binding}</button>
+<button onclick={click}>tagged {$int_value}</button>

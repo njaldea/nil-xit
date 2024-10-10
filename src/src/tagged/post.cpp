@@ -13,47 +13,47 @@ namespace nil::xit::tagged
     namespace impl
     {
         template <typename T>
-        void post(std::string_view tag, const Binding<T>& binding, T v)
+        void post(std::string_view tag, const Value<T>& value, T new_value)
         {
-            proto::BindingUpdate msg;
-            msg.set_id(binding.frame->id);
+            proto::ValueUpdate msg;
+            msg.set_id(value.frame->id);
 
-            auto* msg_binding = msg.mutable_binding();
-            msg_binding->set_id(binding.id);
-            nil::xit::impl::msg_set(std::move(v), *msg_binding, tag.data());
+            auto* msg_value = msg.mutable_value();
+            msg_value->set_id(value.id);
+            nil::xit::impl::msg_set(std::move(new_value), *msg_value, tag.data());
 
-            const auto header = proto::MessageType_BindingUpdate;
+            const auto header = proto::MessageType_ValueUpdate;
             auto payload = nil::service::concat(header, msg);
-            publish(binding.frame->core->service, std::move(payload));
+            publish(*value.frame->core->service, std::move(payload));
         }
     }
 
-    void post(std::string_view tag, const Binding<bool>& binding, bool value)
+    void post(std::string_view tag, const Value<bool>& value, bool new_value)
     {
-        impl::post(tag, binding, value);
+        impl::post(tag, value, new_value);
     }
 
-    void post(std::string_view tag, const Binding<double>& binding, double value)
+    void post(std::string_view tag, const Value<double>& value, double new_value)
     {
-        impl::post(tag, binding, value);
+        impl::post(tag, value, new_value);
     }
 
-    void post(std::string_view tag, const Binding<std::int64_t>& binding, std::int64_t value)
+    void post(std::string_view tag, const Value<std::int64_t>& value, std::int64_t new_value)
     {
-        impl::post(tag, binding, value);
+        impl::post(tag, value, new_value);
     }
 
-    void post(std::string_view tag, const Binding<std::string>& binding, std::string value)
+    void post(std::string_view tag, const Value<std::string>& value, std::string new_value)
     {
-        impl::post(tag, binding, std::move(value));
+        impl::post(tag, value, std::move(new_value));
     }
 
     void post(
         std::string_view tag,
-        const Binding<std::vector<std::uint8_t>>& binding,
-        std::vector<std::uint8_t> value
+        const Value<std::vector<std::uint8_t>>& value,
+        std::vector<std::uint8_t> new_value
     )
     {
-        impl::post(tag, binding, std::move(value));
+        impl::post(tag, value, std::move(new_value));
     }
 }
