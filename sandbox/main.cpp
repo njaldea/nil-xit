@@ -1,3 +1,4 @@
+#include "nil/xit/add_frame.hpp"
 #include <nil/service/ws/server/create.hpp>
 
 #include <nil/xit.hpp>
@@ -152,6 +153,14 @@ int main()
                     std::cout << "input here: ";
                 }
             }
+        );
+    }
+
+    {
+        add_unique_frame(
+            core,
+            "demo",
+            std::filesystem::path(__FILE__).parent_path() / "gui/Demo.svelte"
         );
     }
 

@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-namespace nil::xit::tagged::impl
+namespace nil::xit::tagged
 {
     void msg_set(const Value<bool>& value, proto::Value& msg, const char* tag)
     {

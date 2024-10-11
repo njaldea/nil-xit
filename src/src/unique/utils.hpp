@@ -4,7 +4,7 @@
 
 #include "../proto/message.pb.h"
 
-namespace nil::xit::unique::impl
+namespace nil::xit::unique
 {
     // clang-format off
     void msg_set(const Value<bool>& value, proto::Value& msg, const char* tag);

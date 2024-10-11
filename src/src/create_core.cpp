@@ -25,77 +25,6 @@ namespace
 
         return std::string(&m.c[0], sizeof(i_t)); // NOLINT
     }
-
-    struct MsgSetValueMapper
-    {
-        template <typename T>
-        void operator()(const nil::xit::unique::Value<T>& value) const
-        {
-            nil::xit::unique::impl::msg_set(value, *msg, tag);
-        }
-
-        template <typename T>
-        void operator()(const nil::xit::tagged::Value<T>& value) const
-        {
-            nil::xit::tagged::impl::msg_set(value, *msg, tag);
-        }
-
-        nil::xit::proto::Value* msg;
-        const char* tag;
-    };
-
-    struct MsgSetSignalMapper
-    {
-        template <typename T>
-        void operator()(const nil::xit::unique::Signal<T>& signal) const
-        {
-            nil::xit::unique::impl::msg_set(signal, *msg);
-        }
-
-        template <typename T>
-        void operator()(const nil::xit::tagged::Signal<T>& signal) const
-        {
-            nil::xit::tagged::impl::msg_set(signal, *msg);
-        }
-
-        nil::xit::proto::Signal* msg;
-    };
-
-    struct InvokeSignalMapper
-    {
-        template <typename T>
-        void operator()(const nil::xit::unique::Signal<T>& signal) const
-        {
-            nil::xit::unique::impl::invoke(signal, *msg, tag);
-        }
-
-        template <typename T>
-        void operator()(const nil::xit::tagged::Signal<T>& signal) const
-        {
-            nil::xit::tagged::impl::invoke(signal, *msg, tag);
-        }
-
-        const nil::xit::proto::SignalNotify* msg;
-        const char* tag;
-    };
-
-    struct ValueSetMapper
-    {
-        template <typename T>
-        void operator()(nil::xit::unique::Value<T>& value) const
-        {
-            nil::xit::unique::impl::value_set(value, *msg, tag);
-        }
-
-        template <typename T>
-        void operator()(nil::xit::tagged::Value<T>& value) const
-        {
-            nil::xit::tagged::impl::value_set(value, *msg, tag);
-        }
-
-        const nil::xit::proto::Value* msg;
-        const char* tag;
-    };
 }
 
 namespace nil::xit::impl
@@ -105,7 +34,8 @@ namespace nil::xit::impl
         const auto it = core.frames.find(request.id());
         if (it != core.frames.end())
         {
-            const auto cached_file = core.cache_location / request.id();
+            auto& [frame_id, frame] = *it;
+            const auto cached_file = core.cache_location / frame_id;
             if (std::filesystem::exists(cached_file))
             {
                 proto::FrameCache cache;
@@ -134,29 +64,23 @@ namespace nil::xit::impl
                 if (cached)
                 {
                     proto::FrameResponse response;
-                    response.set_id(it->first);
+                    response.set_id(frame_id);
                     response.set_content(cache.content());
 
                     const auto header = proto::MessageType_FrameResponse;
                     auto payload = nil::service::concat(header, response);
                     send(*core.service, id, std::move(payload));
-                    return;
                 }
             }
 
             proto::FrameResponse response;
-            response.set_id(it->first);
-            std::visit(
-                [&response](const auto& f) { response.set_file(f.path.string()); },
-                it->second
-            );
+            response.set_id(frame_id);
+            std::visit([&response](const auto& f) { response.set_file(f.path.string()); }, frame);
 
             const auto header = proto::MessageType_FrameResponse;
             auto payload = nil::service::concat(header, response);
             send(*core.service, id, std::move(payload));
-            return;
         }
-        // error response
     }
 
     void handle(Core& core, const nil::service::ID& id, const proto::ValueRequest& request)
@@ -164,32 +88,31 @@ namespace nil::xit::impl
         const auto it = core.frames.find(request.id());
         if (it != core.frames.end())
         {
+            auto& [frame_id, frame] = *it;
             proto::ValueResponse response;
-            response.set_id(it->first);
+            response.set_id(frame_id);
             const char* tag = request.has_tag() ? request.tag().data() : nullptr;
             if (tag != nullptr)
             {
                 response.set_tag(tag);
             }
             std::visit(
-                [&response, tag](const auto& frame)
+                [&response, tag](const auto& f)
                 {
-                    for (const auto& [value_id, value] : frame.values)
+                    for (const auto& [value_id, value] : f.values)
                     {
-                        auto* msg_value = response.add_values();
-                        msg_value->set_id(value_id);
-                        std::visit(MsgSetValueMapper(msg_value, tag), value);
+                        auto* msg = response.add_values();
+                        msg->set_id(value_id);
+                        std::visit([tag, msg](const auto& v) { msg_set(v, *msg, tag); }, value);
                     }
                 },
-                it->second
+                frame
             );
 
             const auto header = proto::MessageType_ValueResponse;
             auto payload = nil::service::concat(header, response);
             send(*core.service, id, std::move(payload));
-            return;
         }
-        // error response
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const proto::FrameCache& msg)
@@ -211,17 +134,16 @@ namespace nil::xit::impl
                 [&msg](auto& frame)
                 {
                     const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
-                    auto value_it = frame.values.find(msg.value().id());
-                    if (value_it != frame.values.end())
+                    auto v_it = frame.values.find(msg.value().id());
+                    if (v_it != frame.values.end())
                     {
-                        std::visit(ValueSetMapper(&msg.value(), tag), value_it->second);
+                        auto& v = v_it->second;
+                        std::visit([&msg, tag](auto& vv) { value_set(vv, msg.value(), tag); }, v);
                     }
                 },
                 it->second
             );
-            return;
         }
-        // error response
     }
 
     void handle(Core& core, const nil::service::ID& id, const proto::SignalRequest& request)
@@ -229,27 +151,26 @@ namespace nil::xit::impl
         const auto it = core.frames.find(request.id());
         if (it != core.frames.end())
         {
+            auto& [frame_id, frame] = *it;
             proto::SignalResponse response;
-            response.set_id(it->first);
+            response.set_id(frame_id);
             std::visit(
-                [&response](const auto& frame)
+                [&response](const auto& f)
                 {
-                    for (const auto& [signal_id, signal] : frame.signals)
+                    for (const auto& [signal_id, signal] : f.signals)
                     {
-                        auto* msg_signal = response.add_signals();
-                        msg_signal->set_id(signal_id);
-                        std::visit(MsgSetSignalMapper(msg_signal), signal);
+                        auto* msg = response.add_signals();
+                        msg->set_id(signal_id);
+                        std::visit([msg](const auto& s) { msg_set(s, *msg); }, signal);
                     }
                 },
-                it->second
+                frame
             );
 
             const auto header = proto::MessageType_SignalResponse;
             auto payload = nil::service::concat(header, response);
             send(*core.service, id, std::move(payload));
-            return;
         }
-        // error response
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const proto::SignalNotify& msg)
@@ -261,15 +182,15 @@ namespace nil::xit::impl
                 [&msg](const auto& frame)
                 {
                     const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
-                    auto lit = frame.signals.find(msg.signal_id());
-                    if (lit != frame.signals.end())
+                    auto s_it = frame.signals.find(msg.signal_id());
+                    if (s_it != frame.signals.end())
                     {
-                        std::visit(InvokeSignalMapper(&msg, tag), lit->second);
+                        auto& s = s_it->second;
+                        std::visit([&msg, tag](const auto& ss) { invoke(ss, msg, tag); }, s);
                     }
                 },
                 it->second
             );
-            return;
         }
     }
 

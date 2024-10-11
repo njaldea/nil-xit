@@ -4,7 +4,7 @@
 
 #include <type_traits>
 
-namespace nil::xit::unique::impl
+namespace nil::xit::unique
 {
     void msg_set(const Value<bool>& value, proto::Value& msg, const char* tag)
     {
