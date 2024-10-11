@@ -1,5 +1,7 @@
 <script>
     import { xit } from "@nil-/xit";
+
+    /** @type import('@nil-/xit').FrameInfo[] */
     let frames = [
         {frame: "base"},
         {frame: "json_editor"},

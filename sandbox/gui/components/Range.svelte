@@ -1,6 +1,12 @@
 <script>
     /** @type {{ min: number; max: number; value: number; step: number; label: string }}  */
-    let { min, max, value, step, label } = $props();
+    let {
+        value = $bindable(),
+        min,
+        max,
+        step,
+        label
+    } = $props();
 </script>
 
 <div>

@@ -1,6 +1,10 @@
 <script>
     /** @type {{ label: string, placeholder: string, value: string }}  */
-    let { label, placeholder, value } = $props();
+    let {
+        value = $bindable(),
+        label,
+        placeholder,
+    } = $props();
 </script>
 
 <div>
