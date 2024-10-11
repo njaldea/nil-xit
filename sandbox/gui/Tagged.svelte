@@ -4,7 +4,7 @@
     const { values, signals } = xit();
 
     const int_value = values.number('tagged_value', 1101);
-    const string_signal = values.string('tagged_signal');
+    const string_signal = signals.string('tagged_signal');
 
     const click = () => {
         int_value.update(v => v + 1);

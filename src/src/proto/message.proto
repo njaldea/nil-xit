@@ -86,7 +86,7 @@ message SignalNotify
 {
     string frame_id = 1;
     optional string tag = 2;
-    string Signal_id = 3;
+    string signal_id = 3;
     oneof arg {
         bool arg_boolean = 4;
         int64 arg_number = 5;
