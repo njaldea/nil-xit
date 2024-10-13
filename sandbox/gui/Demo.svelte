@@ -17,7 +17,7 @@
 
 <select bind:value={selected}>
     {#each frames as frame, i}
-    <option value={i}>{frame.tag ? `${frame.frame}-${frame.tag}` : frame.frame}</option>
+        <option value={i}>{frame.tag ? `${frame.frame}-${frame.tag}` : frame.frame}</option>
     {/each}
 </select>
 

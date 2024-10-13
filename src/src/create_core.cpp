@@ -2,11 +2,14 @@
 #include "proto/message.pb.h"
 #include "structs.hpp"
 
-#include "tagged/utils.hpp"
-#include "unique/structs.hpp"
-#include "unique/utils.hpp"
+#include "tagged/utils.hpp"   // IWYU pragma: keep
+#include "unique/structs.hpp" // IWYU pragma: keep
+#include "unique/utils.hpp"   // IWYU pragma: keep
 
-#include <nil/service.hpp>
+#include <nil/service/concat.hpp>
+#include <nil/service/consume.hpp>
+#include <nil/service/map.hpp>
+#include <nil/service/structs.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -213,59 +216,52 @@ namespace nil::xit::impl
         send(*core.service, id, std::move(payload));
     }
 
-    auto make_handlers(Core& core)
+    struct Mapper
     {
-        auto make_handler = [ptr = &core](auto consume)
+        Core* core;
+
+        template <typename T>
+        auto map(proto::MessageType type) const
         {
-            return [ptr, consume](const auto& id, const void* data, std::uint64_t size)
-            { handle(*ptr, id, consume(data, size)); };
-        };
-        return nil::service::map( //
-            nil::service::mapping(
-                proto::MessageType_FrameRequest,
-                make_handler(&nil::service::consume<proto::FrameRequest>)
-            ),
-            nil::service::mapping(
-                proto::MessageType_FrameCache,
-                make_handler(&nil::service::consume<proto::FrameCache>)
-            ),
-            nil::service::mapping(
-                proto::MessageType_ValueRequest,
-                make_handler(&nil::service::consume<proto::ValueRequest>)
-            ),
-            nil::service::mapping(
-                proto::MessageType_SignalRequest,
-                make_handler(&nil::service::consume<proto::SignalRequest>)
-            ),
-            nil::service::mapping(
-                proto::MessageType_FileRequest,
-                make_handler(&nil::service::consume<proto::FileRequest>)
-            ),
-            nil::service::mapping(
-                proto::MessageType_ValueUpdate,
-                make_handler(&nil::service::consume<proto::ValueUpdate>)
-            ),
-            nil::service::mapping(
-                proto::MessageType_SignalNotify,
-                make_handler(&nil::service::consume<proto::SignalNotify>)
-            )
-        );
-    }
+            return nil::service::mapping(
+                type,
+                [core = this->core](const auto& id, const void* data, std::uint64_t size)
+                { handle(*core, id, nil::service::consume<T>(data, size)); }
+            );
+        }
+    };
 }
 
 namespace nil::xit
 {
-    C create_core(nil::service::S service)
+    Core* create_core(nil::service::S service)
     {
         using namespace std::filesystem;
-        constexpr auto deleter = [](Core* obj) { std::default_delete<Core>()(obj); };
-        auto holder = std::make_unique<Core>(
+        Core* ptr = new Core(
             &static_cast<nil::service::MessagingService&>(service),
-            temp_directory_path() / "nil/xit"
+            temp_directory_path() / "nil/xit",
+            {}
         );
-        on_message(service, impl::make_handlers(*holder));
-        on_ready(service, [ptr = holder.get()]() { create_directories(ptr->cache_location); });
-        return {{holder.release(), deleter}};
+        const auto mapper = impl::Mapper{ptr};
+        on_message(
+            service,
+            nil::service::map(
+                mapper.map<proto::FrameRequest>(proto::MessageType_FrameRequest),
+                mapper.map<proto::FrameCache>(proto::MessageType_FrameCache),
+                mapper.map<proto::ValueRequest>(proto::MessageType_ValueRequest),
+                mapper.map<proto::SignalRequest>(proto::MessageType_SignalRequest),
+                mapper.map<proto::FileRequest>(proto::MessageType_FileRequest),
+                mapper.map<proto::ValueUpdate>(proto::MessageType_ValueUpdate),
+                mapper.map<proto::SignalNotify>(proto::MessageType_SignalNotify)
+            )
+        );
+        on_ready(service, [ptr]() { create_directories(ptr->cache_location); });
+        return ptr;
+    }
+
+    void delete_core(Core* core)
+    {
+        std::default_delete<Core>()(core);
     }
 
     void set_cache_directory(Core& core, const std::filesystem::path& tmp_path)

@@ -1,10 +1,13 @@
-#include "nil/xit/add_frame.hpp"
-#include <nil/service/ws/server/create.hpp>
+#include <nil/service/http/server/create.hpp>
 
+#include <nil/service/structs.hpp>
 #include <nil/xit.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <thread>
+
+const auto source_path = std::filesystem::path(__FILE__).parent_path();
 
 struct JSON
 {
@@ -30,11 +33,7 @@ namespace nil::xit
 
 auto& add_base(nil::xit::Core& core)
 {
-    nil::xit::unique::Frame& frame = add_unique_frame(
-        core,
-        "base",
-        std::filesystem::path(__FILE__).parent_path() / "gui/Base.svelte"
-    );
+    auto& frame = add_unique_frame(core, "base", source_path / "gui/Base.svelte");
     auto& value = add_value(
         frame,
         "value_0_1",
@@ -75,30 +74,42 @@ auto& add_base(nil::xit::Core& core)
 int main()
 {
     std::thread th;
-    auto server
-        = nil::service::ws::server::create({.port = 1101, .buffer = 1024ul * 1024ul * 100ul});
-    // https://xit-ui.vercel.app/view/{server or ip:port}/{frame id}
-    on_ready(
-        server,
-        [](const auto& id)
-        {
-            std::cout << "ws ready: " << id.text << '\n';                                 //
-            std::cout << " ui is at     : \n";                                            //
-            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/group\n";     //
-            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/base\n";      //
-            std::cout << " -  https://xit-ui.vercel.app/view/localhost:1101/json_editor"; //
-            std::cout << std::endl;
-        }
-    );
+    constexpr auto buffer_size = 1024ul * 1024ul * 100ul;
+    // auto server = nil::service::ws::server::create({.port = 1101, .buffer = buffer_size});
+    auto http_server = nil::service::http::server::create({.port = 1101, .buffer = buffer_size});
 
-    auto core = nil::xit::create_core(server);
+    use(http_server,
+        "/",
+        "text/html",
+        [](std::ostream& os)
+        {
+            std::ifstream file(source_path / "index.html", std::ios::binary);
+            os << file.rdbuf();
+        });
+
+    use(http_server,
+        "/xit/index.js",
+        "application/javascript",
+        [](std::ostream& os)
+        {
+            std::ifstream file(source_path / "xit/index.js", std::ios::binary);
+            os << file.rdbuf();
+        });
+
+    use(http_server,
+        "/assets/bundler.js",
+        "application/javascript",
+        [](std::ostream& os)
+        {
+            std::ifstream file(source_path / "assets/bundler.js", std::ios::binary);
+            os << file.rdbuf();
+        });
+
+    auto server = use_ws(http_server, "/ws/");
+    auto core = nil::xit::make_core(server);
 
     {
-        auto& frame = add_tagged_frame(
-            core,
-            "tagged",
-            std::filesystem::path(__FILE__).parent_path() / "gui/Tagged.svelte"
-        );
+        auto& frame = add_tagged_frame(core, "tagged", source_path / "gui/Tagged.svelte");
         add_value(
             frame,
             "tagged_value",
@@ -121,18 +132,10 @@ int main()
         );
     }
     {
-        add_unique_frame(
-            core,
-            "group",
-            std::filesystem::path(__FILE__).parent_path() / "gui/GroupUp.svelte"
-        );
+        add_unique_frame(core, "group", source_path / "gui/GroupUp.svelte");
     }
     {
-        auto& frame = add_unique_frame(
-            core,
-            "json_editor", // frame id
-            std::filesystem::path(__FILE__).parent_path() / "gui/JsonEditor.svelte"
-        );
+        auto& frame = add_unique_frame(core, "json_editor", source_path / "gui/JsonEditor.svelte");
         add_value(
             frame,
             "json_value",
@@ -157,17 +160,13 @@ int main()
     }
 
     {
-        add_unique_frame(
-            core,
-            "demo",
-            std::filesystem::path(__FILE__).parent_path() / "gui/Demo.svelte"
-        );
+        add_unique_frame(core, "demo", source_path / "gui/Demo.svelte");
     }
 
     std::filesystem::remove_all(std::filesystem::temp_directory_path() / "sandbox");
     set_cache_directory(core, std::filesystem::temp_directory_path() / "sandbox");
 
-    start(server);
+    start(http_server);
     th.join();
     return 0;
 }
