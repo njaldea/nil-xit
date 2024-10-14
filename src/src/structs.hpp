@@ -8,6 +8,7 @@
 #include <nil/service/structs.hpp>
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -18,6 +19,7 @@ namespace nil::xit
     {
         nil::service::MessagingService* service;
         std::filesystem::path cache_location;
+        std::optional<std::filesystem::path> directory;
         std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>> frames;
     };
 }

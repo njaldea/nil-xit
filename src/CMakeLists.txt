@@ -12,6 +12,7 @@ set(
         src/utils.cpp
         src/create_core.cpp
         src/add_frame.cpp
+        src/make_server.cpp
 
         src/unique/structs.hpp
         src/unique/add_value.cpp

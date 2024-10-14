@@ -13,6 +13,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <optional>
 
 namespace
 {
@@ -78,7 +79,20 @@ namespace nil::xit::impl
 
             proto::FrameResponse response;
             response.set_id(frame_id);
-            std::visit([&response](const auto& f) { response.set_file(f.path.string()); }, frame);
+            std::visit(
+                [&core, &response](const auto& f)
+                {
+                    if (core.directory.has_value())
+                    {
+                        response.set_file((*core.directory / f.path).string());
+                    }
+                    else
+                    {
+                        response.set_file(f.path.string());
+                    }
+                },
+                frame
+            );
 
             const auto header = proto::MessageType_FrameResponse;
             auto payload = nil::service::concat(header, response);
@@ -240,7 +254,8 @@ namespace nil::xit
         Core* ptr = new Core(
             &static_cast<nil::service::MessagingService&>(service),
             temp_directory_path() / "nil/xit",
-            {}
+            std::nullopt,
+            std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>>()
         );
         const auto mapper = impl::Mapper{ptr};
         on_message(
@@ -267,5 +282,10 @@ namespace nil::xit
     void set_cache_directory(Core& core, const std::filesystem::path& tmp_path)
     {
         core.cache_location = tmp_path / "nil/xit";
+    }
+
+    void set_relative_directory(Core& core, const std::filesystem::path& directory)
+    {
+        core.directory = directory;
     }
 }

@@ -1,13 +1,7 @@
-#include <nil/service/http/server/create.hpp>
-
-#include <nil/service/structs.hpp>
 #include <nil/xit.hpp>
 
-#include <fstream>
 #include <iostream>
 #include <thread>
-
-const auto source_path = std::filesystem::path(__FILE__).parent_path();
 
 struct JSON
 {
@@ -33,7 +27,7 @@ namespace nil::xit
 
 auto& add_base(nil::xit::Core& core)
 {
-    auto& frame = add_unique_frame(core, "base", source_path / "gui/Base.svelte");
+    auto& frame = add_unique_frame(core, "base", "gui/Base.svelte");
     auto& value = add_value(
         frame,
         "value_0_1",
@@ -73,43 +67,18 @@ auto& add_base(nil::xit::Core& core)
 
 int main()
 {
-    std::thread th;
-    constexpr auto buffer_size = 1024ul * 1024ul * 100ul;
-    // auto server = nil::service::ws::server::create({.port = 1101, .buffer = buffer_size});
-    auto http_server = nil::service::http::server::create({.port = 1101, .buffer = buffer_size});
+    const auto source_path = std::filesystem::path(__FILE__).parent_path();
 
-    use(http_server,
-        "/",
-        "text/html",
-        [](std::ostream& os)
-        {
-            std::ifstream file(source_path / "index.html", std::ios::binary);
-            os << file.rdbuf();
-        });
-
-    use(http_server,
-        "/xit/index.js",
-        "application/javascript",
-        [](std::ostream& os)
-        {
-            std::ifstream file(source_path / "xit/index.js", std::ios::binary);
-            os << file.rdbuf();
-        });
-
-    use(http_server,
-        "/assets/bundler.js",
-        "application/javascript",
-        [](std::ostream& os)
-        {
-            std::ifstream file(source_path / "assets/bundler.js", std::ios::binary);
-            os << file.rdbuf();
-        });
-
-    auto server = use_ws(http_server, "/ws/");
-    auto core = nil::xit::make_core(server);
+    auto http_server = nil::xit::make_server({
+        .source_path = source_path,
+        .port = 1101,
+        .buffer_size = 1024ul * 1024ul * 100ul //
+    });
+    auto core = nil::xit::make_core(http_server);
+    set_relative_directory(core, source_path);
 
     {
-        auto& frame = add_tagged_frame(core, "tagged", source_path / "gui/Tagged.svelte");
+        auto& frame = add_tagged_frame(core, "tagged", "gui/Tagged.svelte");
         add_value(
             frame,
             "tagged_value",
@@ -132,10 +101,10 @@ int main()
         );
     }
     {
-        add_unique_frame(core, "group", source_path / "gui/GroupUp.svelte");
+        add_unique_frame(core, "group", "gui/GroupUp.svelte");
     }
     {
-        auto& frame = add_unique_frame(core, "json_editor", source_path / "gui/JsonEditor.svelte");
+        auto& frame = add_unique_frame(core, "json_editor", "gui/JsonEditor.svelte");
         add_value(
             frame,
             "json_value",
@@ -143,6 +112,8 @@ int main()
             [](const JSON& v) { std::cout << v.buffer << std::endl; }
         );
     }
+
+    std::thread th;
     {
         auto& str_value = add_base(core);
         th = std::thread(
@@ -160,7 +131,7 @@ int main()
     }
 
     {
-        add_unique_frame(core, "demo", source_path / "gui/Demo.svelte");
+        add_unique_frame(core, "demo", "gui/Demo.svelte");
     }
 
     std::filesystem::remove_all(std::filesystem::temp_directory_path() / "sandbox");
