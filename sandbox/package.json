@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@nil-/xit": "^0.1.2",
+    "@nil-/xit": "^0.1.3",
     "svelte": "5.0.0-next.263",
     "vanilla-jsoneditor": "^1.0.7"
   }

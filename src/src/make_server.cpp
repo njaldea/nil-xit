@@ -20,7 +20,8 @@ namespace nil::xit
             [source_path = options.source_path](const auto& transaction)
             {
                 auto route = get_route(transaction);
-                if ("/" == route)
+                std::cout << route << std::endl;
+                if ("/" == route || (route[0] == '/' && route[1] == '?'))
                 {
                     std::ifstream file(
                         source_path / "node_modules/@nil-/xit/assets/index.html",
