@@ -20,7 +20,6 @@ namespace nil::xit
             [source_path = options.source_path](const auto& transaction)
             {
                 auto route = get_route(transaction);
-                std::cout << route << std::endl;
                 if ("/" == route || (route[0] == '/' && route[1] == '?'))
                 {
                     std::ifstream file(
