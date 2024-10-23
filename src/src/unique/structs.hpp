@@ -2,14 +2,17 @@
 
 #include <nil/xit/unique/structs.hpp>
 
-#include "../structs.hpp"
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <span>
 #include <string>
 #include <variant>
+
+namespace nil::xit
+{
+    struct Core;
+}
 
 namespace nil::xit::unique
 {
@@ -43,13 +46,13 @@ namespace nil::xit::unique
     template <typename T>
     struct Signal
     {
-        std::function<void(const T&)> on_change;
+        std::function<void(const T&)> on_call;
     };
 
     template <>
     struct Signal<void>
     {
-        std::function<void()> on_change;
+        std::function<void()> on_call;
     };
 
     struct Frame

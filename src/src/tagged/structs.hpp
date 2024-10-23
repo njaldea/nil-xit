@@ -2,14 +2,17 @@
 
 #include <nil/xit/tagged/structs.hpp>
 
-#include "../structs.hpp"
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <span>
 #include <string>
 #include <variant>
+
+namespace nil::xit
+{
+    struct Core;
+}
 
 namespace nil::xit::tagged
 {
@@ -43,13 +46,13 @@ namespace nil::xit::tagged
     template <typename T>
     struct Signal
     {
-        std::function<void(std::string_view, const T&)> on_change;
+        std::function<void(std::string_view, const T&)> on_call;
     };
 
     template <>
     struct Signal<void>
     {
-        std::function<void(std::string_view)> on_change;
+        std::function<void(std::string_view)> on_call;
     };
 
     struct Frame

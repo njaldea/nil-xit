@@ -22,7 +22,7 @@ namespace nil::xit
                 auto route = get_route(transaction);
                 if ("/" == route || (route[0] == '/' && route[1] == '?'))
                 {
-                    std::ifstream file(
+                    const std::ifstream file(
                         source_path / "node_modules/@nil-/xit/assets/index.html",
                         std::ios::binary
                     );
@@ -34,7 +34,7 @@ namespace nil::xit
                         = source_path / "node_modules/@nil-/xit" / route.substr(1);
                     if (exists(path))
                     {
-                        std::ifstream file(path, std::ios::binary);
+                        const std::ifstream file(path, std::ios::binary);
                         if (".js" == path.extension())
                         {
                             send(transaction, "application/javascript", file);

@@ -2,9 +2,9 @@
 #include "proto/message.pb.h"
 #include "structs.hpp"
 
-#include "tagged/utils.hpp"   // IWYU pragma: keep
-#include "unique/structs.hpp" // IWYU pragma: keep
-#include "unique/utils.hpp"   // IWYU pragma: keep
+#include "tagged/utils.hpp" // IWYU pragma: keep
+#include "unique/utils.hpp" // IWYU pragma: keep
+#include "utils.hpp"        // IWYU pragma: keep
 
 #include <nil/service/concat.hpp>
 #include <nil/service/consume.hpp>
@@ -31,7 +31,7 @@ namespace
     }
 }
 
-namespace nil::xit::impl
+namespace nil::xit
 {
     void handle(Core& core, const nil::service::ID& id, const proto::FrameRequest& request)
     {
@@ -174,6 +174,7 @@ namespace nil::xit::impl
             std::visit(
                 [&response](const auto& f)
                 {
+                    using nil::xit::utils::msg_set;
                     for (const auto& [signal_id, signal] : f.signals)
                     {
                         auto* msg = response.add_signals();
@@ -244,10 +245,7 @@ namespace nil::xit::impl
             );
         }
     };
-}
 
-namespace nil::xit
-{
     Core* create_core(nil::service::S service)
     {
         using namespace std::filesystem;
@@ -257,7 +255,7 @@ namespace nil::xit
             std::nullopt,
             std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>>()
         );
-        const auto mapper = impl::Mapper{ptr};
+        const auto mapper = Mapper{ptr};
         on_message(
             service,
             nil::service::map(

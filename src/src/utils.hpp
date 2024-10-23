@@ -2,11 +2,68 @@
 
 #include "proto/message.pb.h"
 
-namespace nil::xit::impl
+#include <type_traits>
+
+namespace nil::xit::utils
 {
-    void msg_set(bool value, proto::Value& msg, const char* tag);
-    void msg_set(double value, proto::Value& msg, const char* tag);
-    void msg_set(std::int64_t value, proto::Value& msg, const char* tag);
-    void msg_set(std::string value, proto::Value& msg, const char* tag);
-    void msg_set(std::vector<std::uint8_t> value, proto::Value& msg, const char* tag);
+    template <typename T>
+    void msg_set(T value, proto::Value& msg)
+    {
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            msg.set_value_boolean(value);
+        }
+        else if constexpr (std::is_same_v<T, double>)
+        {
+            msg.set_value_double(value);
+        }
+        else if constexpr (std::is_same_v<T, std::int64_t>)
+        {
+            msg.set_value_number(value);
+        }
+        else if constexpr (std::is_same_v<T, std::string>)
+        {
+            msg.set_value_string(std::move(value));
+        }
+        else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+        {
+            msg.set_value_buffer(value.data(), value.size());
+        }
+    }
+
+    template <typename T>
+    void msg_set(proto::Signal& msg)
+    {
+        if constexpr (std::is_same_v<T, void>)
+        {
+            (void)msg;
+        }
+        else if constexpr (std::is_same_v<T, bool>)
+        {
+            msg.set_type("arg_boolean");
+        }
+        else if constexpr (std::is_same_v<T, double>)
+        {
+            msg.set_type("arg_double");
+        }
+        else if constexpr (std::is_same_v<T, std::int64_t>)
+        {
+            msg.set_type("arg_number");
+        }
+        else if constexpr (std::is_same_v<T, std::string_view>)
+        {
+            msg.set_type("arg_string");
+        }
+        else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
+        {
+            msg.set_type("arg_buffer");
+        }
+    }
+
+    template <template <class> class T, typename U>
+    void msg_set(const T<U>& signal, proto::Signal& msg)
+    {
+        (void)signal;
+        msg_set<U>(msg);
+    }
 }

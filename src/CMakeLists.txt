@@ -9,7 +9,6 @@ set(
         src/codec.hpp
         src/structs.hpp
         src/utils.hpp
-        src/utils.cpp
         src/create_core.cpp
         src/add_frame.cpp
         src/make_server.cpp
@@ -18,14 +17,12 @@ set(
         src/unique/add_value.cpp
         src/unique/add_signal.cpp
         src/unique/post.cpp
-        src/unique/utils.cpp
         src/unique/utils.hpp
 
         src/tagged/structs.hpp
         src/tagged/add_value.cpp
         src/tagged/add_signal.cpp
         src/tagged/post.cpp
-        src/tagged/utils.cpp
         src/tagged/utils.hpp
 )
 

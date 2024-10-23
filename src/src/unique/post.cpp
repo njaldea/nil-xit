@@ -4,6 +4,7 @@
 
 #include "../codec.hpp"
 #include "../proto/message.pb.h"
+#include "../structs.hpp"
 #include "../utils.hpp"
 
 #include <nil/service.hpp>
@@ -20,7 +21,7 @@ namespace nil::xit::unique
 
             auto* msg_value = msg.mutable_value();
             msg_value->set_id(value.id);
-            nil::xit::impl::msg_set(std::move(v), *msg_value, nullptr);
+            nil::xit::utils::msg_set(std::move(v), *msg_value);
 
             const auto header = proto::MessageType_ValueUpdate;
             auto payload = nil::service::concat(header, msg);
