@@ -74,6 +74,7 @@ namespace nil::xit
                     const auto header = proto::MessageType_FrameResponse;
                     auto payload = nil::service::concat(header, response);
                     send(*core.service, id, std::move(payload));
+                    return;
                 }
             }
 
@@ -231,20 +232,12 @@ namespace nil::xit
         send(*core.service, id, std::move(payload));
     }
 
-    struct Mapper
+    template <typename T>
+    auto handler(Core* core)
     {
-        Core* core;
-
-        template <typename T>
-        auto map(proto::MessageType type) const
-        {
-            return nil::service::mapping(
-                type,
-                [core = this->core](const auto& id, const void* data, std::uint64_t size)
-                { handle(*core, id, nil::service::consume<T>(data, size)); }
-            );
-        }
-    };
+        return [core](const auto& id, const void* data, std::uint64_t size)
+        { handle(*core, id, nil::service::consume<T>(data, size)); };
+    }
 
     Core* create_core(nil::service::S service)
     {
@@ -255,18 +248,17 @@ namespace nil::xit
             std::nullopt,
             std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>>()
         );
-        const auto mapper = Mapper{ptr};
+        using nil::service::map;
+        using nil::service::mapping;
         on_message(
             service,
-            nil::service::map(
-                mapper.map<proto::FrameRequest>(proto::MessageType_FrameRequest),
-                mapper.map<proto::FrameCache>(proto::MessageType_FrameCache),
-                mapper.map<proto::ValueRequest>(proto::MessageType_ValueRequest),
-                mapper.map<proto::SignalRequest>(proto::MessageType_SignalRequest),
-                mapper.map<proto::FileRequest>(proto::MessageType_FileRequest),
-                mapper.map<proto::ValueUpdate>(proto::MessageType_ValueUpdate),
-                mapper.map<proto::SignalNotify>(proto::MessageType_SignalNotify)
-            )
+            map(mapping(proto::MessageType_FrameRequest, handler<proto::FrameRequest>(ptr)),
+                mapping(proto::MessageType_FrameCache, handler<proto::FrameCache>(ptr)),
+                mapping(proto::MessageType_ValueRequest, handler<proto::ValueRequest>(ptr)),
+                mapping(proto::MessageType_SignalRequest, handler<proto::SignalRequest>(ptr)),
+                mapping(proto::MessageType_FileRequest, handler<proto::FileRequest>(ptr)),
+                mapping(proto::MessageType_ValueUpdate, handler<proto::ValueUpdate>(ptr)),
+                mapping(proto::MessageType_SignalNotify, handler<proto::SignalNotify>(ptr)))
         );
         on_ready(service, [ptr]() { create_directories(ptr->cache_location); });
         return ptr;

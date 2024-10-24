@@ -31,8 +31,8 @@ namespace nil::xit::utils
         }
     }
 
-    template <typename T>
-    void msg_set(proto::Signal& msg)
+    template <template <class> class Signal, typename T>
+    void msg_set(const Signal<T>& /* signal */, proto::Signal& msg)
     {
         if constexpr (std::is_same_v<T, void>)
         {
@@ -58,12 +58,5 @@ namespace nil::xit::utils
         {
             msg.set_type("arg_buffer");
         }
-    }
-
-    template <template <class> class T, typename U>
-    void msg_set(const T<U>& signal, proto::Signal& msg)
-    {
-        (void)signal;
-        msg_set<U>(msg);
     }
 }

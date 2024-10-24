@@ -38,17 +38,14 @@ namespace nil::xit
                         if (".js" == path.extension())
                         {
                             send(transaction, "application/javascript", file);
-                            return;
                         }
-                        if (".png" == path.extension())
+                        else if (".png" == path.extension())
                         {
                             send(transaction, "image/png", file);
-                            return;
                         }
-                        if (".svg" == path.extension())
+                        else if (".svg" == path.extension())
                         {
                             send(transaction, "image/svg+xml", file);
-                            return;
                         }
                     }
                 }

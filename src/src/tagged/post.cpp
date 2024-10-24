@@ -4,7 +4,7 @@
 
 #include "../codec.hpp"
 #include "../proto/message.pb.h"
-#include "../structs.hpp"
+#include "../structs.hpp" // IWYU pragma: keep
 #include "../utils.hpp"
 
 #include <nil/service.hpp>

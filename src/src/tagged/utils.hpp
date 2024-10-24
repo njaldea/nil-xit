@@ -53,35 +53,38 @@ namespace nil::xit::tagged
     template <typename T>
     void invoke(const Signal<T>& signal, const proto::SignalNotify& msg, const char* tag)
     {
-        if constexpr (std::is_same_v<T, void>)
+        if (signal.on_call)
         {
-            signal.on_call(tag);
-        }
-        else if constexpr (std::is_same_v<T, bool>)
-        {
-            signal.on_call(tag, msg.arg_boolean());
-        }
-        else if constexpr (std::is_same_v<T, double>)
-        {
-            signal.on_call(tag, msg.arg_double());
-        }
-        else if constexpr (std::is_same_v<T, std::int64_t>)
-        {
-            signal.on_call(tag, msg.arg_number());
-        }
-        else if constexpr (std::is_same_v<T, std::string>)
-        {
-            signal.on_call(tag, msg.arg_string());
-        }
-        else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
-        {
-            const auto& buffer = msg.arg_buffer();
-            const auto span = std::span<const std::uint8_t>(
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                reinterpret_cast<const std::uint8_t*>(buffer.data()),
-                buffer.size()
-            );
-            signal.on_call(tag, span);
+            if constexpr (std::is_same_v<T, void>)
+            {
+                signal.on_call(tag);
+            }
+            else if constexpr (std::is_same_v<T, bool>)
+            {
+                signal.on_call(tag, msg.arg_boolean());
+            }
+            else if constexpr (std::is_same_v<T, double>)
+            {
+                signal.on_call(tag, msg.arg_double());
+            }
+            else if constexpr (std::is_same_v<T, std::int64_t>)
+            {
+                signal.on_call(tag, msg.arg_number());
+            }
+            else if constexpr (std::is_same_v<T, std::string>)
+            {
+                signal.on_call(tag, msg.arg_string());
+            }
+            else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+            {
+                const auto& buffer = msg.arg_buffer();
+                const auto span = std::span<const std::uint8_t>(
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                    reinterpret_cast<const std::uint8_t*>(buffer.data()),
+                    buffer.size()
+                );
+                signal.on_call(tag, span);
+            }
         }
     }
 }
