@@ -6,9 +6,9 @@
 
     const buf_value = values.json('json_value', {}, json_string);
 
-    const json_editor = (d) => {
+    const json_editor = (target) => {
         const editor = createJSONEditor({
-            target: d,
+            target,
             props: {
                 content: { json: $buf_value },
                 onChange: (updatedContent, previousContent, { contentErrors, patchResult }) => {

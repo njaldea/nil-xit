@@ -22,11 +22,12 @@ namespace nil::xit
                 auto route = get_route(transaction);
                 if ("/" == route || (route[0] == '/' && route[1] == '?'))
                 {
+                    set_content_type(transaction, "text/html");
                     const std::ifstream file(
                         source_path / "node_modules/@nil-/xit/assets/index.html",
                         std::ios::binary
                     );
-                    send(transaction, "text/html", file);
+                    send(transaction, file);
                 }
                 else
                 {
@@ -37,15 +38,18 @@ namespace nil::xit
                         const std::ifstream file(path, std::ios::binary);
                         if (".js" == path.extension())
                         {
-                            send(transaction, "application/javascript", file);
+                            set_content_type(transaction, "application/javascript");
+                            send(transaction, file);
                         }
                         else if (".png" == path.extension())
                         {
-                            send(transaction, "image/png", file);
+                            set_content_type(transaction, "image/png");
+                            send(transaction, file);
                         }
                         else if (".svg" == path.extension())
                         {
-                            send(transaction, "image/svg+xml", file);
+                            set_content_type(transaction, "image/svg+xml");
+                            send(transaction, file);
                         }
                     }
                 }
