@@ -13,14 +13,20 @@
 </script>
 
 <div class="wrapper">
-    {#if frames.length > 0}
-        {@const f = loader.all(frames)}
-        <div use:f></div>
-    {/if}
-    <!-- {#each frames as ff}
-        {@const f = loader.one(ff.frame, ff.tag)}
-        <div use:f></div>
-    {/each} -->
+    <!-- {#if frames.length > 0}
+        {#await loader.all(frames)}
+            <div>Loading...</div>
+        {:then f}
+            <div style="display: contents" use:f></div>
+        {/await}
+    {/if} -->
+    {#each frames as ff}
+        {#await loader.one(ff.frame, ff.tag)}
+            <div>Loading {ff.tag ? `${ff.frame}-${ff.tag}` : ff.frame}...</div>
+        {:then f}
+            <div style="display: contents" use:f></div>
+        {/await}
+    {/each}
 </div>
 
 <style>

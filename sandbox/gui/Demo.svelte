@@ -24,7 +24,10 @@
 {#key selected}
     {#if selected < frames.length}
         {@const f = frames[selected]}
-        {@const a = loader.one(f.frame, f.tag)}
-        <div use:a></div>
+        {#await loader.one(f.frame, f.tag)}
+            <div>Loading {f.tag ? `${f.frame}-${f.tag}` : f.frame}...</div>
+        {:then a}
+            <div style="display: contents" use:a></div>
+        {/await}
     {/if}
 {/key}
