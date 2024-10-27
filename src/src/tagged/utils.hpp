@@ -8,6 +8,9 @@
 
 #include <type_traits>
 
+template <typename T>
+void unreachable();
+
 namespace nil::xit::tagged
 {
     template <typename T>
@@ -37,7 +40,7 @@ namespace nil::xit::tagged
             {
                 value.setter(tag, msg.value_string());
             }
-            else if constexpr (std::is_same_v<T, std::vector<std::int8_t>>)
+            else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
             {
                 const auto& buffer = msg.value_buffer();
                 const auto span = std::span<const std::uint8_t>(
@@ -46,6 +49,10 @@ namespace nil::xit::tagged
                     buffer.size()
                 );
                 value.setter(tag, span);
+            }
+            else
+            {
+                unreachable<T>();
             }
         }
     }
@@ -71,11 +78,11 @@ namespace nil::xit::tagged
             {
                 signal.on_call(tag, msg.arg_number());
             }
-            else if constexpr (std::is_same_v<T, std::string>)
+            else if constexpr (std::is_same_v<T, std::string_view>)
             {
                 signal.on_call(tag, msg.arg_string());
             }
-            else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+            else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
             {
                 const auto& buffer = msg.arg_buffer();
                 const auto span = std::span<const std::uint8_t>(
@@ -84,6 +91,10 @@ namespace nil::xit::tagged
                     buffer.size()
                 );
                 signal.on_call(tag, span);
+            }
+            else
+            {
+                unreachable<T>();
             }
         }
     }

@@ -4,6 +4,9 @@
 
 #include <type_traits>
 
+template <typename T>
+void unreachable();
+
 namespace nil::xit::utils
 {
     template <typename T>
@@ -28,6 +31,10 @@ namespace nil::xit::utils
         else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
         {
             msg.set_value_buffer(value.data(), value.size());
+        }
+        else
+        {
+            unreachable<T>();
         }
     }
 
@@ -57,6 +64,10 @@ namespace nil::xit::utils
         else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
         {
             msg.set_type("arg_buffer");
+        }
+        else
+        {
+            unreachable<T>();
         }
     }
 }

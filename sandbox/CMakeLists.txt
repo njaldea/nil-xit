@@ -7,8 +7,11 @@ endif()
 
 add_executable(
     ${PROJECT_NAME}
-    main.cpp
+    sandbox.cpp
     add_frame.cpp
     add_frame.hpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE xit)
+
+add_executable(sandbox_test sandbox_test.cpp)
+target_link_libraries(sandbox_test PRIVATE xit)

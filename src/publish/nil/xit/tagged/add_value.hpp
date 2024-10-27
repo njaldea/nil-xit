@@ -139,12 +139,7 @@ namespace nil::xit::tagged
             ),
             std::function<void(std::string_view, std::span<const std::uint8_t>)>(
                 [setter = std::move(setter)](std::string_view i, std::span<const std::uint8_t> v)
-                {
-                    if (setter)
-                    {
-                        setter(i, buffer_type<type>::deserialize(v.data(), v.size()));
-                    }
-                }
+                { setter(i, buffer_type<type>::deserialize(v.data(), v.size())); }
             )
         );
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
