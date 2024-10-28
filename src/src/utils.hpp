@@ -4,11 +4,11 @@
 
 #include <type_traits>
 
-template <typename T>
-void unreachable();
-
 namespace nil::xit::utils
 {
+    template <typename T>
+    void unreachable();
+
     template <typename T>
     void msg_set(T value, proto::Value& msg)
     {

@@ -57,6 +57,10 @@ namespace nil::xit::unique
                 }
                 return false;
             }
+            else
+            {
+                nil::xit::utils::unreachable<T>();
+            }
         };
 
         if (apply(value, msg) && value.on_change)
@@ -87,16 +91,23 @@ namespace nil::xit::unique
             {
                 signal.on_call(msg.arg_number());
             }
-            else if constexpr (std::is_same_v<T, std::string>)
+            else if constexpr (std::is_same_v<T, std::string_view>)
             {
                 signal.on_call(msg.arg_string());
             }
-            else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+            else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
             {
                 const auto& buffer = msg.arg_buffer();
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                signal.on_call({reinterpret_cast<const std::uint8_t*>(buffer.data()), buffer.size()}
+                const auto span = std::span<const std::uint8_t>(
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                    reinterpret_cast<const std::uint8_t*>(buffer.data()),
+                    buffer.size()
                 );
+                signal.on_call(span);
+            }
+            else
+            {
+                nil::xit::utils::unreachable<T>();
             }
         }
     }

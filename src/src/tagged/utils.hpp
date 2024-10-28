@@ -8,9 +8,6 @@
 
 #include <type_traits>
 
-template <typename T>
-void unreachable();
-
 namespace nil::xit::tagged
 {
     template <typename T>
@@ -52,7 +49,7 @@ namespace nil::xit::tagged
             }
             else
             {
-                unreachable<T>();
+                nil::xit::utils::unreachable<T>();
             }
         }
     }
@@ -94,7 +91,7 @@ namespace nil::xit::tagged
             }
             else
             {
-                unreachable<T>();
+                nil::xit::utils::unreachable<T>();
             }
         }
     }
