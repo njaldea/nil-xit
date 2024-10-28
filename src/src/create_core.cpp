@@ -239,6 +239,21 @@ namespace nil::xit
         { handle(*core, id, nil::service::consume<T>(data, size)); };
     }
 
+    C::operator Core&() const
+    {
+        return *ptr;
+    }
+
+    C make_core(nil::service::S service)
+    {
+        return {{create_core(service), &delete_core}};
+    }
+
+    C make_core(nil::service::HTTPService& service)
+    {
+        return {{create_core(service), &delete_core}};
+    }
+
     Core* create_core(nil::service::S service)
     {
         using namespace std::filesystem;
@@ -262,6 +277,11 @@ namespace nil::xit
         );
         on_ready(service, [ptr]() { create_directories(ptr->cache_location); });
         return ptr;
+    }
+
+    Core* create_core(nil::service::HTTPService& service)
+    {
+        return create_core(use_ws(service, "/ws"));
     }
 
     void delete_core(Core* core)

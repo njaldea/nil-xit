@@ -9,38 +9,17 @@ namespace nil::xit
 {
     struct Core;
 
-    Core* create_core(nil::service::S service);
-    void delete_core(Core*);
-
     struct C
     {
         std::unique_ptr<Core, void (*)(Core*)> ptr;
-
-        operator Core&() const // NOLINT
-        {
-            return *ptr;
-        }
+        operator Core&() const; // NOLINT(hicpp-explicit-conversions)
     };
 
-    void set_relative_directory(Core& core, const std::filesystem::path& directory);
-    void set_cache_directory(Core& core, const std::filesystem::path& tmp_path);
-
-    inline C make_core(nil::service::S service)
-    {
-        return {std::unique_ptr<Core, void (*)(Core*)>( //
-            create_core(service),
-            &delete_core
-        )};
-    }
-
-    inline C make_core(nil::service::HTTPService& service)
-    {
-        auto c = C{std::unique_ptr<Core, void (*)(Core*)>( //
-            create_core(use_ws(service, "/ws")),
-            &delete_core
-        )};
-        return c;
-    }
+    C make_core(nil::service::S service);
+    C make_core(nil::service::HTTPService& service);
+    Core* create_core(nil::service::S service);
+    Core* create_core(nil::service::HTTPService& service);
+    void delete_core(Core*);
 
     struct HTTPServerOptions
     {
@@ -50,4 +29,7 @@ namespace nil::xit
     };
 
     nil::service::H make_server(const HTTPServerOptions& options);
+
+    void set_relative_directory(Core& core, const std::filesystem::path& directory);
+    void set_cache_directory(Core& core, const std::filesystem::path& tmp_path);
 }
