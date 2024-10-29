@@ -8,7 +8,7 @@
         },
         "sandbox": {
             "description": "sandbox",
-            "dependencies": []
+            "dependencies": ["nlohmann-json"]
         }
     }
 }

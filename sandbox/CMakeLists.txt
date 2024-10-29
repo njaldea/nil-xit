@@ -13,5 +13,8 @@ add_executable(
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE xit)
 
+find_package(nlohmann_json CONFIG REQUIRED)
+
 add_executable(sandbox_test sandbox_test.cpp)
 target_link_libraries(sandbox_test PRIVATE xit)
+target_link_libraries(sandbox_test PRIVATE nlohmann_json::nlohmann_json)
