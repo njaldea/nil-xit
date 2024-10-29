@@ -1,5 +1,6 @@
 <script>
     import { xit, json_string } from "@nil-/xit";
+    import "https://cdn.plot.ly/plotly-2.35.2.min.js";
 
     const { values } = xit();
 
@@ -12,15 +13,10 @@
             destroy: () => Plotly.purge(target)
         }
     };
-
 </script>
 
 <svelte:head>
     <title>nil - xit - view</title>
 </svelte:head>
 
-{#await import("https://cdn.plot.ly/plotly-2.35.2.min.js")}
-    <div>importing</div>
-{:then _}
-    <div use:plot_it={$scene}></div>
-{/await}
+<div use:plot_it={$scene}></div>
