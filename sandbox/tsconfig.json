@@ -5,6 +5,6 @@
 		"module": "esnext",
 		"target": "esnext"
     },
-    "include": [ "gui/**/*" ],
+    "include": [ "basic/gui/**/*", "test/gui/**/*" ],
     "exclude": [ "./node_modules" ]
 }

@@ -8,7 +8,7 @@
         },
         "sandbox": {
             "description": "sandbox",
-            "dependencies": ["nlohmann-json"]
+            "dependencies": ["nlohmann-json", "nil-gate"]
         }
     }
 }

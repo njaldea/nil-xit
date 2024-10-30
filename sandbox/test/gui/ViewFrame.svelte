@@ -8,10 +8,15 @@
 
     const plot_it = (target, props) => {
         Plotly.newPlot(target, props);
+        const observer = new ResizeObserver(() => Plotly.Plots.resize(target));
+        observer.observe(target);
         return {
             update: (new_props) => Plotly.react(target, new_props),
-            destroy: () => Plotly.purge(target)
-        }
+            destroy: () => {
+                observer.unobserve(target);
+                Plotly.purge(target);
+            }
+        };
     };
 </script>
 
