@@ -60,6 +60,7 @@ namespace nil::xit::tagged
         Core* core;
         std::string id;
         std::filesystem::path path;
+        std::function<void(std::string_view)> on_load;
 
         using Value_t = std::variant<
             Value<bool>,

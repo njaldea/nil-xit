@@ -10,6 +10,14 @@
 
 namespace nil::xit::unique
 {
+    inline void load(const Frame& frame, const char* /* tag */)
+    {
+        if (frame.on_load)
+        {
+            frame.on_load();
+        }
+    }
+
     template <typename T>
     void msg_set(const Value<T>& value, proto::Value& msg, const char* /* tag */)
     {

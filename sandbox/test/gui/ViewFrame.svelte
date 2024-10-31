@@ -4,17 +4,17 @@
 
     const { values } = xit();
 
-    const scene = values.json("scene", {}, json_string);
+    const scene = values.json("scene", null, json_string);
 
     const plot_it = (target, props) => {
-        Plotly.newPlot(target, props);
-        const observer = new ResizeObserver(() => Plotly.Plots.resize(target));
+        window.Plotly.newPlot(target, props);
+        const observer = new ResizeObserver(() => window.Plotly.Plots.resize(target));
         observer.observe(target);
         return {
-            update: (new_props) => Plotly.react(target, new_props),
+            update: (new_props) => window.Plotly.react(target, new_props),
             destroy: () => {
                 observer.unobserve(target);
-                Plotly.purge(target);
+                window.Plotly.purge(target);
             }
         };
     };
@@ -24,4 +24,6 @@
     <title>nil - xit - view</title>
 </svelte:head>
 
-<div use:plot_it={$scene}></div>
+{#if $scene != null}
+    <div use:plot_it={$scene}></div>
+{/if}

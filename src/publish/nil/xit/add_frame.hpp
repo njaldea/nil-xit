@@ -6,10 +6,21 @@
 #include "unique/structs.hpp"
 
 #include <filesystem>
+#include <functional>
 #include <string>
 
 namespace nil::xit
 {
-    unique::Frame& add_unique_frame(Core& core, std::string id, std::filesystem::path path);
-    tagged::Frame& add_tagged_frame(Core& core, std::string id, std::filesystem::path path);
+    unique::Frame& add_unique_frame(
+        Core& core,
+        std::string id,
+        std::filesystem::path path,
+        std::function<void()> on_load = {}
+    );
+    tagged::Frame& add_tagged_frame(
+        Core& core,
+        std::string id,
+        std::filesystem::path path,
+        std::function<void(std::string_view)> on_load = {}
+    );
 }

@@ -101,6 +101,28 @@ namespace nil::xit
         }
     }
 
+    void handle(Core& core, const nil::service::ID& /* id */, const proto::FrameCache& msg)
+    {
+        const auto it = core.frames.find(msg.id());
+        if (it != core.frames.end())
+        {
+            std::ofstream f(core.cache_location / msg.id(), std::ios::binary | std::ios::out);
+            msg.SerializeToOstream(&f);
+        }
+    }
+
+    void handle(Core& core, const nil::service::ID& /* id */, const proto::FrameLoaded& msg)
+    {
+        const auto it = core.frames.find(msg.id());
+        if (it != core.frames.end())
+        {
+            std::visit(
+                [&msg](auto& frame) { load(frame, msg.has_tag() ? msg.tag().data() : nullptr); },
+                it->second
+            );
+        }
+    }
+
     void handle(Core& core, const nil::service::ID& id, const proto::ValueRequest& request)
     {
         const auto it = core.frames.find(request.id());
@@ -130,16 +152,6 @@ namespace nil::xit
             const auto header = proto::MessageType_ValueResponse;
             auto payload = nil::service::concat(header, response);
             send(*core.service, id, std::move(payload));
-        }
-    }
-
-    void handle(Core& core, const nil::service::ID& /* id */, const proto::FrameCache& msg)
-    {
-        const auto it = core.frames.find(msg.id());
-        if (it != core.frames.end())
-        {
-            std::ofstream f(core.cache_location / msg.id(), std::ios::binary | std::ios::out);
-            msg.SerializeToOstream(&f);
         }
     }
 
@@ -269,6 +281,7 @@ namespace nil::xit
             service,
             map(mapping(proto::MessageType_FrameRequest, handler<proto::FrameRequest>(ptr)),
                 mapping(proto::MessageType_FrameCache, handler<proto::FrameCache>(ptr)),
+                mapping(proto::MessageType_FrameLoaded, handler<proto::FrameLoaded>(ptr)),
                 mapping(proto::MessageType_ValueRequest, handler<proto::ValueRequest>(ptr)),
                 mapping(proto::MessageType_SignalRequest, handler<proto::SignalRequest>(ptr)),
                 mapping(proto::MessageType_FileRequest, handler<proto::FileRequest>(ptr)),

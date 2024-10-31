@@ -8,14 +8,15 @@ enum MessageType {
     MessageType_FrameRequest = 0;
     MessageType_FrameResponse = 1;
     MessageType_FrameCache = 2;
-    MessageType_ValueRequest = 3;
-    MessageType_ValueResponse = 4;
-    MessageType_ValueUpdate = 5;
-    MessageType_SignalRequest = 6;
-    MessageType_SignalResponse = 7;
-    MessageType_SignalNotify = 8;
-    MessageType_FileRequest = 9;
-    MessageType_FileResponse = 10;
+    MessageType_FrameLoaded = 3;
+    MessageType_ValueRequest = 4;
+    MessageType_ValueResponse = 5;
+    MessageType_ValueUpdate = 6;
+    MessageType_SignalRequest = 7;
+    MessageType_SignalResponse = 8;
+    MessageType_SignalNotify = 9;
+    MessageType_FileRequest = 10;
+    MessageType_FileResponse = 11;
 }
 
 message FrameRequest
@@ -30,6 +31,17 @@ message FrameResponse
         string file = 2;
         string content = 3;
     }
+}
+
+message FrameCache {
+    string id = 1;
+    string content = 2;
+    repeated FileInfo files = 3;
+}
+
+message FrameLoaded {
+    string id = 1;
+    optional string tag = 2;
 }
 
 message Value
@@ -110,10 +122,4 @@ message FileResponse {
 message FileInfo {
     string target = 1;
     bytes metadata = 2;
-}
-
-message FrameCache {
-    string id = 1;
-    string content = 2;
-    repeated FileInfo files = 3;
 }

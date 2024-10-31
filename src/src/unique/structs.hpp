@@ -60,6 +60,7 @@ namespace nil::xit::unique
         Core* core;
         std::string id;
         std::filesystem::path path;
+        std::function<void()> on_load;
 
         using Value_t = std::variant<
             Value<bool>,

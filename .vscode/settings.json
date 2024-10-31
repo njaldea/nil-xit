@@ -28,5 +28,6 @@
     "--background-index"
   ],
   "editor.stickyScroll.defaultModel": "foldingProviderModel",
-  "gitlens.codeLens.enabled": false
+  "gitlens.codeLens.enabled": false,
+  "chat.commandCenter.enabled": false,
 }
