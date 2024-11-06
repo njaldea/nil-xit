@@ -86,6 +86,10 @@ struct UniqueFrameInfo: IFrameInfo
     {
         return input;
     }
+
+    void add_tag(std::string_view /* tag */, nil::gate::Core& /* gate */)
+    {
+    }
 };
 
 template <typename T>
@@ -100,6 +104,14 @@ struct TaggedFrameInfo: IFrameInfo
     };
 
     std::unordered_map<std::string, Entry, transparent::Hash, transparent::Equal> info;
+    std::function<T(std::string_view)> initializer;
+
+    void add_tag(std::string_view tag, nil::gate::Core& gate)
+    {
+        auto v = initializer(tag);
+        auto* edge = gate.edge(v);
+        info.emplace(tag, typename TaggedFrameInfo<T>::Entry{std::move(v), edge});
+    }
 
     nil::gate::edges::Compatible<T> get_input(std::string_view tag)
     {
@@ -124,39 +136,6 @@ struct OutputFrameInfo: IFrameInfo
     nil::xit::tagged::Value<T>* output = nullptr;
 };
 
-template <typename T>
-auto input(UniqueFrameInfo<T>* info)
-{
-    struct Input
-    {
-        UniqueFrameInfo<T>* info;
-
-        void add_tag(std::string_view /* tag */, nil::gate::Core& /* gate */)
-        {
-        }
-    };
-
-    return Input{info};
-}
-
-template <typename T>
-auto input(TaggedFrameInfo<T>* info, T value)
-{
-    struct Input
-    {
-        TaggedFrameInfo<T>* info;
-        T value;
-
-        void add_tag(std::string_view tag, nil::gate::Core& gate)
-        {
-            auto* edge = gate.edge(value);
-            info->info.emplace(tag, typename TaggedFrameInfo<T>::Entry{std::move(value), edge});
-        }
-    };
-
-    return Input{info, std::move(value)};
-}
-
 struct App2
 {
     explicit App2(nil::service::S service)
@@ -174,17 +153,14 @@ struct App2
     void add_node(
         std::string_view tag,
         Callable callable,
-        std::tuple<I...> inputs,
+        std::tuple<I*...> inputs,
         std::tuple<O*...> outputs
     )
     {
-        apply([tag, this](auto&... input) { (input.add_tag(tag, this->gate), ...); }, inputs);
+        apply([tag, this](auto*... input) { (input->add_tag(tag, this->gate), ...); }, inputs);
         auto gate_outputs = gate.node(
             std::move(callable),
-            std::apply(
-                [tag](auto&... i) { return std::make_tuple(i.info->get_input(tag)...); },
-                inputs
-            )
+            std::apply([tag](auto*... i) { return std::make_tuple(i->get_input(tag)...); }, inputs)
         );
         for_each(
             [&](auto* output, auto* gate_output)
@@ -192,10 +168,10 @@ struct App2
                 using o_t = typename std::decay_t<std::remove_pointer_t<decltype(output)>>::type;
                 auto& [key, rerun] = *output->rerun.emplace(tag, this->gate.edge(RerunTag())).first;
                 gate.node(
-                    [output, &key](RerunTag, const o_t& output_data)
+                    [output, t = &key](RerunTag, const o_t& output_data)
                     {
-                        std::cout << "out (test) " << key << std::endl;
-                        post(key, *output->output, output_data);
+                        std::cout << "out (test) " << *t << std::endl;
+                        post(*t, *output->output, output_data);
                     },
                     {rerun, gate_output}
                 );
@@ -207,9 +183,14 @@ struct App2
     }
 
     template <typename T>
-    TaggedFrameInfo<T>* add_tagged_input(std::string id, std::filesystem::path path)
+    TaggedFrameInfo<T>* add_tagged_input(
+        std::string id,
+        std::filesystem::path path,
+        std::function<T(std::string_view)> initializer
+    )
     {
-        auto* s = make_frame<TaggedFrameInfo<T>>(id);
+        auto* s = make_frame<TaggedFrameInfo<T>>(id, input_frames);
+        s->initializer = std::move(initializer);
         auto& frame = add_tagged_frame(xit, std::move(id), std::move(path));
         add_value(
             frame,
@@ -238,7 +219,7 @@ struct App2
     template <typename T>
     UniqueFrameInfo<T>* add_unique_input(std::string id, std::filesystem::path path, T init_data)
     {
-        auto* s = make_frame<UniqueFrameInfo<T>>(id);
+        auto* s = make_frame<UniqueFrameInfo<T>>(id, input_frames);
         s->input = gate.edge(init_data);
         auto& frame = add_unique_frame(xit, std::move(id), std::move(path));
         add_value(
@@ -257,7 +238,7 @@ struct App2
     template <typename T>
     OutputFrameInfo<T>* add_output(std::string id, std::filesystem::path path)
     {
-        auto* s = make_frame<OutputFrameInfo<T>>(id);
+        auto* s = make_frame<OutputFrameInfo<T>>(id, output_frames);
         auto& frame = add_tagged_frame(
             xit,
             std::move(id),
@@ -276,7 +257,7 @@ struct App2
     }
 
     template <typename T>
-    T* make_frame(std::string_view tag)
+    T* make_frame(std::string_view tag, auto& frames)
     {
         auto t = std::make_unique<T>();
         auto p = t.get();
@@ -287,7 +268,26 @@ struct App2
     nil::xit::C xit;
     nil::gate::Core gate;
 
-    std::unordered_map<std::string, std::unique_ptr<IFrameInfo>> frames;
+    std::unordered_map<std::string, std::unique_ptr<IFrameInfo>> input_frames;
+    std::unordered_map<std::string, std::unique_ptr<IFrameInfo>> output_frames;
+};
+
+template <typename T>
+using input_t = std::tuple<std::string, T>;
+template <typename T>
+using output_t = std::string;
+
+struct Callable
+{
+    std::string tag;
+
+    nlohmann::json operator()(const nlohmann::json& input_data, std::int64_t value) const
+    {
+        std::cout << "run (test) " << tag << std::endl;
+        auto result = input_data;
+        result[0]["y"][0] = input_data[0]["y"][0].get<std::int64_t>() * value;
+        return result;
+    }
 };
 
 int main()
@@ -307,48 +307,27 @@ int main()
     auto& main_frame = add_unique_frame(app.xit, "demo", "gui/Main.svelte");
     add_value(main_frame, "tags", nlohmann::json::parse(R"(["", "a", "b"])"));
     add_value(main_frame, "view", nlohmann::json::parse(R"(["view_frame"])"));
-    add_value(main_frame, "pane", nlohmann::json::parse(R"(["editor_frame"])"));
+    add_value(main_frame, "pane", nlohmann::json::parse(R"(["slider_frame", "editor_frame"])"));
     add_value(main_frame, "selected", 1L);
 
     app.gate.set_runner<nil::gate::runners::NonBlocking>();
-    auto* editor = app.add_tagged_input<nlohmann::json>("editor_frame", "gui/EditorFrame.svelte");
+    auto* editor = app.add_tagged_input<nlohmann::json>(
+        "editor_frame",
+        "gui/EditorFrame.svelte",
+        [](std::string_view /* tag */)
+        {
+            return nlohmann::json::array({nlohmann::json::object(
+                {{"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
+                 {"y", nlohmann::json::array({20, 14, 23})},
+                 {"type", "bar"}}
+            )});
+        }
+    );
     auto* slider = app.add_unique_input<std::int64_t>("slider_frame", "gui/Slider.svelte", 0L);
     auto* view = app.add_output<nlohmann::json>("view_frame", "gui/ViewFrame.svelte");
 
-    const auto data = []()
-    {
-        return nlohmann::json::array({nlohmann::json::object(
-            {{"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
-             {"y", nlohmann::json::array({20, 14, 23})},
-             {"type", "bar"}}
-        )});
-    };
-
-    struct Callable
-    {
-        std::string tag;
-
-        nlohmann::json operator()(const nlohmann::json& input_data, std::int64_t value) const
-        {
-            std::cout << "run (test) " << tag << std::endl;
-            auto result = input_data;
-            result[0]["y"][0] = input_data[0]["y"][0].get<std::int64_t>() * value;
-            return result;
-        }
-    };
-
-    app.add_node(
-        "a",
-        Callable("a"),
-        std::make_tuple(input(editor, data()), input(slider)),
-        std::make_tuple(view)
-    );
-    app.add_node(
-        "b",
-        Callable("b"),
-        std::make_tuple(input(editor, data()), input(slider)),
-        std::make_tuple(view)
-    );
+    app.add_node("a", Callable("a"), std::make_tuple(editor, slider), std::make_tuple(view));
+    app.add_node("b", Callable("b"), std::make_tuple(editor, slider), std::make_tuple(view));
 
     // TODO: direct communication for each frame (avoid unnecessary broadcasting to all frames)
     // TODO: how about when input/output are type erased. how do check compatibility with the
