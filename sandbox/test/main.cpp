@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include <iostream>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -32,6 +33,9 @@ namespace transparent
             return l == r;
         }
     };
+
+    template <typename T>
+    using hash_map = std::unordered_map<std::string, T, Hash, Equal>;
 }
 
 struct RerunTag
@@ -99,19 +103,11 @@ struct TaggedFrameInfo: IFrameInfo
 
     struct Entry
     {
-        T data = T();
+        std::optional<T> data;
         nil::gate::edges::Mutable<T>* input = nullptr;
     };
 
-    std::unordered_map<std::string, Entry, transparent::Hash, transparent::Equal> info;
-    std::function<T(std::string_view)> initializer;
-
-    void add_tag(std::string_view tag, nil::gate::Core& gate)
-    {
-        auto v = initializer(tag);
-        auto* edge = gate.edge(v);
-        info.emplace(tag, typename TaggedFrameInfo<T>::Entry{std::move(v), edge});
-    }
+    transparent::hash_map<Entry> info;
 
     nil::gate::edges::Compatible<T> get_input(std::string_view tag)
     {
@@ -121,33 +117,34 @@ struct TaggedFrameInfo: IFrameInfo
         }
         return nullptr;
     }
+
+    void add_tag(std::string_view tag, nil::gate::Core& gate)
+    {
+        auto* edge = gate.edge<T>();
+        info.emplace(tag, typename TaggedFrameInfo<T>::Entry{std::nullopt, edge});
+    }
 };
 
 template <typename T>
 struct OutputFrameInfo: IFrameInfo
 {
     using type = T;
-    std::unordered_map<
-        std::string,
-        nil::gate::edges::Mutable<RerunTag>*,
-        transparent::Hash,
-        transparent::Equal>
-        rerun;
+    transparent::hash_map<nil::gate::edges::Mutable<RerunTag>*> rerun;
     nil::xit::tagged::Value<T>* output = nullptr;
 };
 
-struct App2
+struct App
 {
-    explicit App2(nil::service::S service)
+    explicit App(nil::service::S service)
         : xit(nil::xit::make_core(service))
     {
     }
 
-    ~App2() noexcept = default;
-    App2(App2&&) = delete;
-    App2(const App2&) = delete;
-    App2& operator=(App2&&) = delete;
-    App2& operator=(const App2&) = delete;
+    ~App() noexcept = default;
+    App(App&&) = delete;
+    App(const App&) = delete;
+    App& operator=(App&&) = delete;
+    App& operator=(const App&) = delete;
 
     template <typename Callable, typename... I, typename... O>
     void add_node(
@@ -190,16 +187,22 @@ struct App2
     )
     {
         auto* s = make_frame<TaggedFrameInfo<T>>(id, input_frames);
-        s->initializer = std::move(initializer);
         auto& frame = add_tagged_frame(xit, std::move(id), std::move(path));
         add_value(
             frame,
             "value",
-            [s](std::string_view tag)
+            [s, initializer, g = &this->gate](std::string_view tag)
             {
                 if (auto it = s->info.find(tag); it != s->info.end())
                 {
-                    return it->second.data;
+                    auto& info = it->second;
+                    if (!info.data.has_value())
+                    {
+                        info.data = initializer(tag);
+                        info.input->set_value(info.data.value());
+                        g->commit();
+                    }
+                    return info.data.value();
                 }
                 return T();
             },
@@ -207,8 +210,9 @@ struct App2
             {
                 if (auto it = s->info.find(tag); it != s->info.end())
                 {
-                    it->second.data = std::move(new_data);
-                    it->second.input->set_value(it->second.data);
+                    auto& info = it->second;
+                    info.data = std::move(new_data);
+                    info.input->set_value(info.data.value());
                     g->commit();
                 }
             }
@@ -243,7 +247,7 @@ struct App2
             xit,
             std::move(id),
             std::move(path),
-            [s, g = &gate](std::string_view tag)
+            [s, g = &this->gate](std::string_view tag)
             {
                 if (const auto it = s->rerun.find(tag); it != s->rerun.end())
                 {
@@ -299,7 +303,7 @@ int main()
         .buffer_size = 1024ul * 1024ul * 100ul //
     });
 
-    App2 app(use_ws(http_server, "/ws"));
+    App app(use_ws(http_server, "/ws"));
 
     set_relative_directory(app.xit, source_path);
     set_cache_directory(app.xit, std::filesystem::temp_directory_path() / "nil-xit-gtest");
