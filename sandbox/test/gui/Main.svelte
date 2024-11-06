@@ -2,7 +2,12 @@
     import { xit, json_string } from "@nil-/xit";
 
     const { values, loader } = xit();
-    const scenes = values.json("scenes", { scenes: [""] }, json_string);
+    /** @type import("@nil-/xit").Writable<string[]> */
+    const tags = values.json("tags", [], json_string);
+    /** @type import("@nil-/xit").Writable<string[]> */
+    const views = values.json("view", [], json_string);
+    /** @type import("@nil-/xit").Writable<string[]> */
+    const pane = values.json("pane", [], json_string);
     const selected = values.number("selected", 0);
 </script>
 
@@ -12,28 +17,33 @@
 
 <div class="root">
     <select bind:value={$selected}>
-        {#each $scenes.scenes as id, i}
+        {#each $tags as id, i}
             <option value={i}>{id}</option>
         {/each}
     </select>
 
     {#key $selected}
-        {#if 0 < $selected && $selected < $scenes.scenes.length}
-            {@const tag = $scenes.scenes[$selected]}
-            {#await Promise.all([
-                loader.one("view_frame", tag),
-                loader.one("slider_frame", tag),
-                loader.one("editor_frame", tag)
-            ])}
+        {#if 0 < $selected && $selected < $tags.length}
+            {@const tag = $tags[$selected]}
+            {@const v_actions = Promise.all($views.map(v => loader.one(v, tag)))}
+            {@const p_actions = Promise.all($pane.map(v => loader.one(v, tag)))}
+            {#await Promise.all([ v_actions, p_actions ])}
                 <div>Loading...</div>
-            {:then [view, slider, editor]}
+            {:then [ view_actions, pane_actions ]}
                 <div class="root-content">
                     <div class="view">
-                        <div style="display: contents" use:view></div>
+                        {#await view_actions then a}
+                            {#each a as action}
+                                <div style="display: contents" use:action></div>
+                            {/each}
+                        {/await}
                     </div>
                     <div class="pane">
-                        <div style="display: contents" use:slider></div>
-                        <div style="display: contents" use:editor></div>
+                        {#await pane_actions then a}
+                            {#each a as action}
+                                <div style="display: contents" use:action></div>
+                            {/each}
+                        {/await}
                     </div>
                 </div>
             {:catch}

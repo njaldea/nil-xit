@@ -4,7 +4,7 @@
 
     const { values } = xit();
 
-    const scene = values.json("scene", null, json_string);
+    const scene = values.json("value", null, json_string);
 
     const plot_it = (target, props) => {
         window.Plotly.newPlot(target, props);

@@ -29,6 +29,12 @@ namespace
 
         return std::string(&m.c[0], sizeof(i_t)); // NOLINT
     }
+
+    template <typename T>
+    auto get_tag(const T& message)
+    {
+        return message.has_tag() ? std::string_view(message.tag()) : std::string_view();
+    }
 }
 
 namespace nil::xit
@@ -116,10 +122,7 @@ namespace nil::xit
         const auto it = core.frames.find(msg.id());
         if (it != core.frames.end())
         {
-            std::visit(
-                [&msg](auto& frame) { load(frame, msg.has_tag() ? msg.tag().data() : nullptr); },
-                it->second
-            );
+            std::visit([&msg](auto& frame) { load(frame, get_tag(msg)); }, it->second);
         }
     }
 
@@ -131,8 +134,8 @@ namespace nil::xit
             auto& [frame_id, frame] = *it;
             proto::ValueResponse response;
             response.set_id(frame_id);
-            const char* tag = request.has_tag() ? request.tag().data() : nullptr;
-            if (tag != nullptr)
+            auto tag = get_tag(request);
+            if (request.has_tag())
             {
                 response.set_tag(tag);
             }
@@ -163,7 +166,7 @@ namespace nil::xit
             std::visit(
                 [&msg](auto& frame)
                 {
-                    const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
+                    auto tag = get_tag(msg);
                     auto v_it = frame.values.find(msg.value().id());
                     if (v_it != frame.values.end())
                     {
@@ -212,7 +215,7 @@ namespace nil::xit
             std::visit(
                 [&msg](const auto& frame)
                 {
-                    const char* tag = msg.has_tag() ? msg.tag().data() : nullptr;
+                    auto tag = get_tag(msg);
                     auto s_it = frame.signals.find(msg.signal_id());
                     if (s_it != frame.signals.end())
                     {

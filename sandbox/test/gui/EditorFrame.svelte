@@ -4,7 +4,7 @@
 
     const { values } = xit();
 
-    const buf_value = values.json('scene', {}, json_string);
+    const buf_value = values.json('value', {}, json_string);
 
     const json_editor = (target) => {
         const editor = createJSONEditor({

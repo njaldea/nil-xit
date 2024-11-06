@@ -10,7 +10,7 @@
 
 namespace nil::xit::tagged
 {
-    inline void load(const Frame& frame, const char* tag)
+    inline void load(const Frame& frame, std::string_view tag)
     {
         if (frame.on_load)
         {
@@ -19,13 +19,13 @@ namespace nil::xit::tagged
     }
 
     template <typename T>
-    void msg_set(const Value<T>& value, proto::Value& msg, const char* tag)
+    void msg_set(const Value<T>& value, proto::Value& msg, std::string_view tag)
     {
         nil::xit::utils::msg_set(value.getter(tag), msg);
     }
 
     template <typename T>
-    void value_set(Value<T>& value, const proto::Value& msg, const char* tag)
+    void value_set(Value<T>& value, const proto::Value& msg, std::string_view tag)
     {
         if (value.setter)
         {
@@ -63,7 +63,7 @@ namespace nil::xit::tagged
     }
 
     template <typename T>
-    void invoke(const Signal<T>& signal, const proto::SignalNotify& msg, const char* tag)
+    void invoke(const Signal<T>& signal, const proto::SignalNotify& msg, std::string_view tag)
     {
         if (signal.on_call)
         {
