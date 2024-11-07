@@ -11,7 +11,7 @@ namespace nil::xit
         std::function<void()> on_load
     )
     {
-        auto f = unique::Frame{&core, id, std::move(path), std::move(on_load), {}, {}};
+        auto f = unique::Frame{&core, id, std::move(path), std::move(on_load), {}, {}, {}};
         return std::get<unique::Frame>(
             core.frames.emplace(std::move(id), std::move(f)).first->second
         );
@@ -24,7 +24,7 @@ namespace nil::xit
         std::function<void(std::string_view)> on_load
     )
     {
-        auto f = tagged::Frame{&core, id, std::move(path), std::move(on_load), {}, {}};
+        auto f = tagged::Frame{&core, id, std::move(path), std::move(on_load), {}, {}, {}};
         return std::get<tagged::Frame>(
             core.frames.emplace(std::move(id), std::move(f)).first->second
         );

@@ -8,6 +8,7 @@
 #include <nil/service/structs.hpp>
 
 #include <filesystem>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -21,5 +22,6 @@ namespace nil::xit
         std::filesystem::path cache_location;
         std::optional<std::filesystem::path> directory;
         std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>> frames;
+        std::mutex mutex;
     };
 }

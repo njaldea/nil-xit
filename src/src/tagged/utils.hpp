@@ -1,15 +1,78 @@
 #pragma once
 
+#include "../proto/message.pb.h"
+#include "../utils.hpp"
 #include "structs.hpp"
 
-#include "../utils.hpp"
-
-#include "../proto/message.pb.h"
+#include <nil/service/concat.hpp>
 
 #include <type_traits>
 
 namespace nil::xit::tagged
 {
+    template <typename T>
+    void post_impl(
+        std::string_view tag,
+        const Value<T>& value,
+        T new_value,
+        const std::vector<nil::service::ID>& ids
+    )
+    {
+        proto::ValueUpdate msg;
+        msg.set_id(value.frame->id);
+        msg.set_tag(tag);
+
+        auto* msg_value = msg.mutable_value();
+        msg_value->set_id(value.id);
+        nil::xit::utils::msg_set(std::move(new_value), *msg_value);
+
+        constexpr auto header = proto::MessageType_ValueUpdate;
+        send(*value.frame->core->service, ids, nil::service::concat(header, msg));
+    }
+
+    inline void subscribe(Frame& frame, std::string_view tag, nil::service::ID id)
+    {
+        auto t = std::string(tag);
+        auto it = frame.subscribers.find(t);
+        if (it == frame.subscribers.end())
+        {
+            it = frame.subscribers.emplace(std::move(t), std::vector<nil::service::ID>()).first;
+        }
+        it->second.push_back(std::move(id));
+    }
+
+    inline void unsubscribe(Frame& frame, std::string_view tag, const nil::service::ID& id)
+    {
+        auto t = std::string(tag);
+        auto it = frame.subscribers.find(t);
+        if (it != frame.subscribers.end())
+        {
+            auto& subs = it->second;
+            subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
+            if (subs.empty())
+            {
+                frame.subscribers.erase(it);
+            }
+        }
+    }
+
+    inline void unsubscribe(Frame& frame, const nil::service::ID& id)
+    {
+        for (auto it = frame.subscribers.begin(); it != frame.subscribers.end();)
+        {
+            auto& subs = it->second;
+            subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
+            if (subs.empty())
+            {
+                it = frame.subscribers.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
     inline void load(const Frame& frame, std::string_view tag)
     {
         if (frame.on_load)
@@ -25,40 +88,95 @@ namespace nil::xit::tagged
     }
 
     template <typename T>
-    void value_set(Value<T>& value, const proto::Value& msg, std::string_view tag)
+    void value_set( // NOLINT
+        Value<T>& value,
+        const proto::Value& msg,
+        std::string_view tag,
+        const nil::service::ID& id
+    )
     {
-        if (value.setter)
+        constexpr auto get_fid = [](auto& x_value, auto i_tag, auto& ex_tag)
         {
-            if constexpr (std::is_same_v<T, bool>)
+            auto fid = [&]()
+            {
+                std::vector<nil::service::ID> r;
+                auto _ = std::lock_guard(x_value.frame->core->mutex);
+                auto& subscribers = x_value.frame->subscribers[std::string(i_tag)];
+                std::copy_if(
+                    subscribers.begin(),
+                    subscribers.end(),
+                    std::back_inserter(r),
+                    [&](const nil::service::ID& sub_id) { return sub_id != ex_tag; }
+                );
+                return r;
+            }();
+            return fid;
+        };
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            if (value.setter)
             {
                 value.setter(tag, msg.value_boolean());
             }
-            else if constexpr (std::is_same_v<T, double>)
+            auto ids = get_fid(value, tag, id);
+            if (!ids.empty())
+            {
+                post_impl(tag, value, msg.value_boolean(), ids);
+            }
+        }
+        else if constexpr (std::is_same_v<T, double>)
+        {
+            if (value.setter)
             {
                 value.setter(tag, msg.value_double());
             }
-            else if constexpr (std::is_same_v<T, std::int64_t>)
+            if (auto ids = get_fid(value, tag, id); !ids.empty())
+            {
+                post_impl(tag, value, msg.value_double(), ids);
+            }
+        }
+        else if constexpr (std::is_same_v<T, std::int64_t>)
+        {
+            if (value.setter)
             {
                 value.setter(tag, msg.value_number());
             }
-            else if constexpr (std::is_same_v<T, std::string>)
+            if (auto ids = get_fid(value, tag, id); !ids.empty())
+            {
+                post_impl(tag, value, msg.value_number(), ids);
+            }
+        }
+        else if constexpr (std::is_same_v<T, std::string>)
+        {
+            if (value.setter)
             {
                 value.setter(tag, msg.value_string());
             }
-            else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+            if (auto ids = get_fid(value, tag, id); !ids.empty())
             {
-                const auto& buffer = msg.value_buffer();
-                const auto span = std::span<const std::uint8_t>(
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                    reinterpret_cast<const std::uint8_t*>(buffer.data()),
-                    buffer.size()
-                );
+                post_impl(tag, value, msg.value_string(), ids);
+            }
+        }
+        else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+        {
+            const auto& buffer = msg.value_buffer();
+            const auto span = std::span<const std::uint8_t>(
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                reinterpret_cast<const std::uint8_t*>(buffer.data()),
+                buffer.size()
+            );
+            if (value.setter)
+            {
                 value.setter(tag, span);
             }
-            else
+            if (auto ids = get_fid(value, tag, id); !ids.empty())
             {
-                nil::xit::utils::unreachable<T>();
+                post_impl(tag, value, std::vector<std::uint8_t>(span.begin(), span.end()), ids);
             }
+        }
+        else
+        {
+            nil::xit::utils::unreachable<T>();
         }
     }
 

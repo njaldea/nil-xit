@@ -8,7 +8,7 @@
     const views = values.json("view", [], json_string);
     /** @type import("@nil-/xit").Writable<string[]> */
     const pane = values.json("pane", [], json_string);
-    const selected = values.number("selected", 0);
+    let selected = 0;
 </script>
 
 <svelte:head>
@@ -16,15 +16,15 @@
 </svelte:head>
 
 <div class="root">
-    <select bind:value={$selected}>
+    <select bind:value={selected}>
         {#each $tags as id, i}
             <option value={i}>{id}</option>
         {/each}
     </select>
 
-    {#key $selected}
-        {#if 0 < $selected && $selected < $tags.length}
-            {@const tag = $tags[$selected]}
+    {#key selected}
+        {#if 0 < selected && selected < $tags.length}
+            {@const tag = $tags[selected]}
             {@const v_actions = Promise.all($views.map(v => loader.one(v, tag)))}
             {@const p_actions = Promise.all($pane.map(v => loader.one(v, tag)))}
             {#await Promise.all([ v_actions, p_actions ])}

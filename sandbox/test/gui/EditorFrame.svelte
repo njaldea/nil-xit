@@ -7,11 +7,15 @@
     const buf_value = values.json('value', {}, json_string);
 
     const json_editor = (target) => {
+        let is_notified = true;
         const editor = createJSONEditor({
             target,
             props: {
-                content: { json: $buf_value },
+                content: { json: null },
                 onChange: (updatedContent, previousContent, { contentErrors, patchResult }) => {
+                    if (is_notified) {
+                        return;
+                    }
                     if ("json" in updatedContent)
                     {
                         $buf_value = updatedContent.json;
@@ -30,7 +34,17 @@
                 }
             }
         });
-        return { destroy: () => editor.destroy() };
+        const unsub = buf_value.subscribe((v) => {
+            is_notified = true;
+            editor.set({ json: v });
+            is_notified = false;
+        });
+        return {
+            destroy: () => {
+                unsub();
+                editor.destroy();
+            }
+        };
     };
 </script>
 

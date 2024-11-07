@@ -2,12 +2,15 @@
 
 #include <nil/xit/tagged/structs.hpp>
 
+#include <nil/service/ID.hpp>
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <span>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace nil::xit
 {
@@ -61,6 +64,7 @@ namespace nil::xit::tagged
         std::string id;
         std::filesystem::path path;
         std::function<void(std::string_view)> on_load;
+        std::unordered_map<std::string, std::vector<nil::service::ID>> subscribers;
 
         using Value_t = std::variant<
             Value<bool>,

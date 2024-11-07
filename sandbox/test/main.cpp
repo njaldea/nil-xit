@@ -284,12 +284,13 @@ using output_t = std::string;
 struct Callable
 {
     std::string tag;
+    std::uint32_t index;
 
     nlohmann::json operator()(const nlohmann::json& input_data, std::int64_t value) const
     {
         std::cout << "run (test) " << tag << std::endl;
         auto result = input_data;
-        result[0]["y"][0] = input_data[0]["y"][0].get<std::int64_t>() * value;
+        result[0]["y"][index] = input_data[0]["y"][index].get<std::int64_t>() * value;
         return result;
     }
 };
@@ -312,7 +313,6 @@ int main()
     add_value(main_frame, "tags", nlohmann::json::parse(R"(["", "a", "b"])"));
     add_value(main_frame, "view", nlohmann::json::parse(R"(["view_frame"])"));
     add_value(main_frame, "pane", nlohmann::json::parse(R"(["slider_frame", "editor_frame"])"));
-    add_value(main_frame, "selected", 1L);
 
     app.gate.set_runner<nil::gate::runners::NonBlocking>();
     auto* editor = app.add_tagged_input<nlohmann::json>(
@@ -330,8 +330,8 @@ int main()
     auto* slider = app.add_unique_input<std::int64_t>("slider_frame", "gui/Slider.svelte", 0L);
     auto* view = app.add_output<nlohmann::json>("view_frame", "gui/ViewFrame.svelte");
 
-    app.add_node("a", Callable("a"), std::make_tuple(editor, slider), std::make_tuple(view));
-    app.add_node("b", Callable("b"), std::make_tuple(editor, slider), std::make_tuple(view));
+    app.add_node("a", Callable("a", 0), std::make_tuple(editor, slider), std::make_tuple(view));
+    app.add_node("b", Callable("b", 1), std::make_tuple(editor, slider), std::make_tuple(view));
 
     // TODO: direct communication for each frame (avoid unnecessary broadcasting to all frames)
     // TODO: how about when input/output are type erased. how do check compatibility with the

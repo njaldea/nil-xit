@@ -2,12 +2,15 @@
 
 #include <nil/xit/unique/structs.hpp>
 
+#include <nil/service/ID.hpp>
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <span>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace nil::xit
 {
@@ -61,6 +64,7 @@ namespace nil::xit::unique
         std::string id;
         std::filesystem::path path;
         std::function<void()> on_load;
+        std::vector<nil::service::ID> subscribers;
 
         using Value_t = std::variant<
             Value<bool>,

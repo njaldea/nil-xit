@@ -107,6 +107,32 @@ namespace nil::xit
         }
     }
 
+    void handle(Core& core, const nil::service::ID& id, const proto::FrameSubscribe& msg)
+    {
+        const auto it = core.frames.find(msg.id());
+        if (it != core.frames.end())
+        {
+            auto _ = std::lock_guard(core.mutex);
+            std::visit(
+                [&msg, &id](auto& frame) { subscribe(frame, get_tag(msg), id); },
+                it->second
+            );
+        }
+    }
+
+    void handle(Core& core, const nil::service::ID& id, const proto::FrameUnsubscribe& msg)
+    {
+        const auto it = core.frames.find(msg.id());
+        if (it != core.frames.end())
+        {
+            auto _ = std::lock_guard(core.mutex);
+            std::visit(
+                [&msg, &id](auto& frame) { unsubscribe(frame, get_tag(msg), id); },
+                it->second
+            );
+        }
+    }
+
     void handle(Core& core, const nil::service::ID& /* id */, const proto::FrameCache& msg)
     {
         const auto it = core.frames.find(msg.id());
@@ -158,20 +184,23 @@ namespace nil::xit
         }
     }
 
-    void handle(Core& core, const nil::service::ID& /* id */, const proto::ValueUpdate& msg)
+    void handle(Core& core, const nil::service::ID& id, const proto::ValueUpdate& msg)
     {
         auto it = core.frames.find(msg.id());
         if (it != core.frames.end())
         {
             std::visit(
-                [&msg](auto& frame)
+                [&msg, &id](auto& frame)
                 {
                     auto tag = get_tag(msg);
                     auto v_it = frame.values.find(msg.value().id());
                     if (v_it != frame.values.end())
                     {
                         auto& v = v_it->second;
-                        std::visit([&msg, tag](auto& vv) { value_set(vv, msg.value(), tag); }, v);
+                        std::visit(
+                            [&msg, &id, tag](auto& vv) { value_set(vv, msg.value(), tag, id); },
+                            v
+                        );
                     }
                 },
                 it->second
@@ -276,7 +305,8 @@ namespace nil::xit
             &static_cast<nil::service::MessagingService&>(service),
             temp_directory_path() / "nil/xit",
             std::nullopt,
-            std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>>()
+            std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>>(),
+            std::mutex()
         );
         using nil::service::map;
         using nil::service::mapping;
@@ -289,7 +319,20 @@ namespace nil::xit
                 mapping(proto::MessageType_SignalRequest, handler<proto::SignalRequest>(ptr)),
                 mapping(proto::MessageType_FileRequest, handler<proto::FileRequest>(ptr)),
                 mapping(proto::MessageType_ValueUpdate, handler<proto::ValueUpdate>(ptr)),
-                mapping(proto::MessageType_SignalNotify, handler<proto::SignalNotify>(ptr)))
+                mapping(proto::MessageType_SignalNotify, handler<proto::SignalNotify>(ptr)),
+                mapping(proto::MessageType_FrameSubscribe, handler<proto::FrameSubscribe>(ptr)),
+                mapping(proto::MessageType_FrameUnsubscribe, handler<proto::FrameUnsubscribe>(ptr)))
+        );
+        on_disconnect(
+            service,
+            [ptr](const auto& id)
+            {
+                auto _ = std::lock_guard(ptr->mutex);
+                for (auto& frame : ptr->frames)
+                {
+                    std::visit([&id](auto& f) { unsubscribe(f, id); }, frame.second);
+                }
+            }
         );
         on_ready(service, [ptr]() { create_directories(ptr->cache_location); });
         return ptr;

@@ -9,14 +9,16 @@ enum MessageType {
     MessageType_FrameResponse = 1;
     MessageType_FrameCache = 2;
     MessageType_FrameLoaded = 3;
-    MessageType_ValueRequest = 4;
-    MessageType_ValueResponse = 5;
-    MessageType_ValueUpdate = 6;
-    MessageType_SignalRequest = 7;
-    MessageType_SignalResponse = 8;
-    MessageType_SignalNotify = 9;
-    MessageType_FileRequest = 10;
-    MessageType_FileResponse = 11;
+    MessageType_FrameSubscribe = 4;
+    MessageType_FrameUnsubscribe = 5;
+    MessageType_ValueRequest = 6;
+    MessageType_ValueResponse = 7;
+    MessageType_ValueUpdate = 8;
+    MessageType_SignalRequest = 9;
+    MessageType_SignalResponse = 10;
+    MessageType_SignalNotify = 11;
+    MessageType_FileRequest = 12;
+    MessageType_FileResponse = 13;
 }
 
 message FrameRequest
@@ -40,6 +42,16 @@ message FrameCache {
 }
 
 message FrameLoaded {
+    string id = 1;
+    optional string tag = 2;
+}
+
+message FrameSubscribe {
+    string id = 1;
+    optional string tag = 2;
+}
+
+message FrameUnsubscribe {
     string id = 1;
     optional string tag = 2;
 }
