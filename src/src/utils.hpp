@@ -9,6 +9,32 @@ namespace nil::xit::utils
     template <typename T>
     void unreachable();
 
+    namespace transparent
+    {
+        struct Hash
+        {
+            using is_transparent = void;
+
+            std::size_t operator()(std::string_view s) const
+            {
+                return std::hash<std::string_view>()(s);
+            }
+        };
+
+        struct Equal
+        {
+            using is_transparent = void;
+
+            bool operator()(std::string_view l, std::string_view r) const
+            {
+                return l == r;
+            }
+        };
+
+        template <typename T>
+        using hash_map = std::unordered_map<std::string, T, Hash, Equal>;
+    }
+
     template <typename T>
     void msg_set(T value, proto::Value& msg)
     {

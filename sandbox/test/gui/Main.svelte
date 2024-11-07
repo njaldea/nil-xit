@@ -49,6 +49,8 @@
             {:catch}
                 <div>Error during loading...</div>
             {/await}
+        {:else}
+            <div>Nothing to load...</div>
         {/if}
     {/key}
 </div>

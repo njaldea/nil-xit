@@ -32,19 +32,17 @@ namespace nil::xit::tagged
 
     inline void subscribe(Frame& frame, std::string_view tag, nil::service::ID id)
     {
-        auto t = std::string(tag);
-        auto it = frame.subscribers.find(t);
+        auto it = frame.subscribers.find(tag);
         if (it == frame.subscribers.end())
         {
-            it = frame.subscribers.emplace(std::move(t), std::vector<nil::service::ID>()).first;
+            it = frame.subscribers.emplace(tag, std::vector<nil::service::ID>()).first;
         }
         it->second.push_back(std::move(id));
     }
 
     inline void unsubscribe(Frame& frame, std::string_view tag, const nil::service::ID& id)
     {
-        auto t = std::string(tag);
-        auto it = frame.subscribers.find(t);
+        auto it = frame.subscribers.find(tag);
         if (it != frame.subscribers.end())
         {
             auto& subs = it->second;
@@ -97,20 +95,16 @@ namespace nil::xit::tagged
     {
         constexpr auto get_fid = [](auto& x_value, auto i_tag, auto& ex_tag)
         {
-            auto fid = [&]()
-            {
-                std::vector<nil::service::ID> r;
-                auto _ = std::lock_guard(x_value.frame->core->mutex);
-                auto& subscribers = x_value.frame->subscribers[std::string(i_tag)];
-                std::copy_if(
-                    subscribers.begin(),
-                    subscribers.end(),
-                    std::back_inserter(r),
-                    [&](const nil::service::ID& sub_id) { return sub_id != ex_tag; }
-                );
-                return r;
-            }();
-            return fid;
+            std::vector<nil::service::ID> ret;
+            auto _ = std::lock_guard(x_value.frame->core->mutex);
+            auto& subscribers = x_value.frame->subscribers[std::string(i_tag)];
+            std::copy_if(
+                subscribers.begin(),
+                subscribers.end(),
+                std::back_inserter(ret),
+                [&](const nil::service::ID& sub_id) { return sub_id != ex_tag; }
+            );
+            return ret;
         };
         if constexpr (std::is_same_v<T, bool>)
         {

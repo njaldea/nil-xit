@@ -65,7 +65,7 @@ namespace nil::xit
 }
 
 template <typename P, typename A, typename B, std::size_t... I>
-void for_each(P predicate, A&& a, B&& b, std::index_sequence<I...> /* indices */)
+void for_each(P predicate, const A& a, const B& b, std::index_sequence<I...> /* indices */)
 {
     (([&]() { predicate(get<I>(a), get<I>(b)); }()), ...);
 }
@@ -318,10 +318,10 @@ int main()
     auto* editor = app.add_tagged_input<nlohmann::json>(
         "editor_frame",
         "gui/EditorFrame.svelte",
-        [](std::string_view /* tag */)
+        [](std::string_view tag)
         {
             return nlohmann::json::array({nlohmann::json::object(
-                {{"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
+                {{"x", nlohmann::json::array({"giraffes", "orangutans", tag})},
                  {"y", nlohmann::json::array({20, 14, 23})},
                  {"type", "bar"}}
             )});
@@ -333,9 +333,15 @@ int main()
     app.add_node("a", Callable("a", 0), std::make_tuple(editor, slider), std::make_tuple(view));
     app.add_node("b", Callable("b", 1), std::make_tuple(editor, slider), std::make_tuple(view));
 
-    // TODO: direct communication for each frame (avoid unnecessary broadcasting to all frames)
-    // TODO: how about when input/output are type erased. how do check compatibility with the
-    // node/callable
+    // TODO:
+    //  - test api for registering the input/output frames
+    //  - test api for registering the node (test)
+    //  - type erasure due to runtime storage
+    //      - resolve in runtime if the frame is compatible to the test
+    //  - value (binding) restructuring
+    //      - only 1 value per frame is going to be forwarded to the test
+    //      - how about having multiple value bindings?
+    //          - having json path or id to collect into one json/struct?
 
     on_ready(http_server, [&]() { app.gate.commit(); });
     start(http_server);

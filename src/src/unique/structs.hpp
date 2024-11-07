@@ -4,6 +4,8 @@
 
 #include <nil/service/ID.hpp>
 
+#include "../utils.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -72,7 +74,7 @@ namespace nil::xit::unique
             Value<double>,
             Value<std::string>,
             Value<std::vector<std::uint8_t>>>;
-        std::unordered_map<std::string, Value_t> values;
+        utils::transparent::hash_map<Value_t> values;
 
         using Signal_t = std::variant<
             Signal<void>,
@@ -81,6 +83,6 @@ namespace nil::xit::unique
             Signal<double>,
             Signal<std::string_view>,
             Signal<std::span<const std::uint8_t>>>;
-        std::unordered_map<std::string, Signal_t> signals;
+        utils::transparent::hash_map<Signal_t> signals;
     };
 }

@@ -4,6 +4,8 @@
 
 #include <nil/service/ID.hpp>
 
+#include "../utils.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -64,7 +66,7 @@ namespace nil::xit::tagged
         std::string id;
         std::filesystem::path path;
         std::function<void(std::string_view)> on_load;
-        std::unordered_map<std::string, std::vector<nil::service::ID>> subscribers;
+        utils::transparent::hash_map<std::vector<nil::service::ID>> subscribers;
 
         using Value_t = std::variant<
             Value<bool>,
@@ -72,7 +74,7 @@ namespace nil::xit::tagged
             Value<double>,
             Value<std::string>,
             Value<std::vector<std::uint8_t>>>;
-        std::unordered_map<std::string, Value_t> values;
+        utils::transparent::hash_map<Value_t> values;
 
         using Signal_t = std::variant<
             Signal<void>,
@@ -81,6 +83,6 @@ namespace nil::xit::tagged
             Signal<double>,
             Signal<std::string_view>,
             Signal<std::span<const std::uint8_t>>>;
-        std::unordered_map<std::string, Signal_t> signals;
+        utils::transparent::hash_map<Signal_t> signals;
     };
 }
