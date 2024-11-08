@@ -13,7 +13,10 @@ namespace nil::xit
             {.port = options.port, .buffer = options.buffer_size}
         );
 
-        on_ready(http_server, []() { std::cout << "http://localhost:1101" << std::endl; });
+        on_ready(
+            http_server,
+            [p = options.port]() { std::cout << "http://localhost:" << p << std::endl; }
+        );
 
         on_get(
             http_server,
@@ -23,16 +26,12 @@ namespace nil::xit
                 if (route[0] == '/' && (route.size() == 1 || route[1] == '?'))
                 {
                     set_content_type(transaction, "text/html");
-                    const std::ifstream file(
-                        source_path / "node_modules/@nil-/xit/assets/index.html",
-                        std::ios::binary
-                    );
+                    const std::ifstream file(source_path / "assets/index.html", std::ios::binary);
                     send(transaction, file);
                 }
                 else
                 {
-                    const std::filesystem::path path
-                        = source_path / "node_modules/@nil-/xit" / route.substr(1);
+                    const std::filesystem::path path = source_path / route.substr(1);
                     if (exists(path))
                     {
                         const std::ifstream file(path, std::ios::binary);

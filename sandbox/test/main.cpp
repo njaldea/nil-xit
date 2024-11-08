@@ -135,8 +135,8 @@ struct OutputFrameInfo: IFrameInfo
 
 struct App
 {
-    explicit App(nil::service::S service)
-        : xit(nil::xit::make_core(service))
+    explicit App(nil::xit::C init_xit)
+        : xit(std::move(init_xit))
     {
     }
 
@@ -299,12 +299,12 @@ int main()
 {
     const auto source_path = std::filesystem::path(__FILE__).parent_path();
     const auto http_server = nil::xit::make_server({
-        .source_path = source_path.parent_path(),
+        .source_path = source_path.parent_path() / "node_modules/@nil-/xit",
         .port = 1101,
         .buffer_size = 1024ul * 1024ul * 100ul //
     });
 
-    App app(use_ws(http_server, "/ws"));
+    App app(nil::xit::make_core(http_server));
 
     set_relative_directory(app.xit, source_path);
     set_cache_directory(app.xit, std::filesystem::temp_directory_path() / "nil-xit-gtest");
