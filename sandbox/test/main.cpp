@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <nil/xit.hpp>
 
 #include <nil/gate.hpp>
@@ -6,6 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <string_view>
 #include <tuple>
@@ -128,9 +130,9 @@ namespace frame
                         *frame,
                         id,
                         getter(data.value()),
-                        [this, setter = std::move(setter)](T new_data)
+                        [this, setter = std::move(setter)](V new_data)
                         {
-                            setter(data.value(), new_data);
+                            setter(data.value(), std::move(new_data));
                             input->set_value(data.value());
                             gate->commit();
                         }
@@ -348,12 +350,10 @@ struct App
     template <typename T>
     frame::input::Info<T>* get_input(std::string_view id) const
     {
-        std::cout << id << std::endl;
         if (auto it = input_frames.find(id); it != input_frames.end())
         {
             return static_cast<frame::input::Info<T>*>(it->second.get());
         }
-        std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__) << std::endl;
         return nullptr;
     }
 
@@ -477,13 +477,25 @@ void install(
     );
 }
 
+struct Ranges
+{
+    std::int64_t v1;
+    std::int64_t v2;
+    std::int64_t v3;
+
+    bool operator==(const Ranges& o) const
+    {
+        return v1 == o.v1 && v2 == o.v2 && v3 == o.v3;
+    }
+};
+
 // This is the example of the "test"
 struct Derived final
     : Base<
           Derived,
           InputFrames<
               Frame<nlohmann::json, "input_frame">, //
-              Frame<std::int64_t, "slider_frame">>, //
+              Frame<Ranges, "slider_frame">>,       //
           OutputFrames<                             //
               Frame<nlohmann::json, "view_frame">   //
               >>
@@ -494,53 +506,43 @@ struct Derived final
 // TODO: optionality of returning? pass as an output argument?
 Derived::return_t Derived::run(Derived::argument_t args) // NOLINT
 {
-    const auto& [input_data, value] = args;
+    const auto& [input_data, ranges] = args;
     auto tag = std::string(input_data["x"][2]);
     std::cout << "run (test) " << tag << std::endl;
     auto result = input_data;
-    if (tag == "a")
-    {
-        result["y"][0] = input_data["y"][0].get<std::int64_t>() * value;
-    }
-    else if (tag == "b")
-    {
-        result["y"][1] = input_data["y"][1].get<std::int64_t>() * value;
-    }
+    result["y"][0] = input_data["y"][0].get<std::int64_t>() * ranges.v1;
+    result["y"][1] = input_data["y"][1].get<std::int64_t>() * ranges.v2;
+    result["y"][2] = input_data["y"][2].get<std::int64_t>() * ranges.v3;
     return {result};
 }
 
-namespace managers
+namespace builders
 {
-    struct Frame
+    struct IFrame
     {
-        virtual ~Frame() = default;
-        Frame() = default;
-        Frame(Frame&&) = delete;
-        Frame(const Frame&) = delete;
-        Frame& operator=(Frame&&) = delete;
-        Frame& operator=(const Frame&) = delete;
+        virtual ~IFrame() = default;
+        IFrame() = default;
+        IFrame(IFrame&&) = delete;
+        IFrame(const IFrame&) = delete;
+        IFrame& operator=(IFrame&&) = delete;
+        IFrame& operator=(const IFrame&) = delete;
         virtual void install(App& app) = 0;
     };
 
-    struct FrameManager
+    namespace input
     {
-        template <typename Initializer>
-        auto& create_tagged(
-            std::string_view id,
-            std::filesystem::path file,
-            Initializer initializer
-        )
-        {
-            using type = decltype(initializer(std::declval<std::string_view>()));
 
-            struct Impl: Frame
+        namespace tagged
+        {
+            template <typename T>
+            struct Frame: IFrame
             {
-                Impl(
+                Frame(
                     std::string_view init_id,
                     std::filesystem::path init_file,
-                    Initializer init_initializer
+                    std::function<T(std::string_view)> init_initializer
                 )
-                    : Frame()
+                    : IFrame()
                     , id(init_id)
                     , file(std::move(init_file))
                     , initializer(std::move(init_initializer))
@@ -549,25 +551,249 @@ namespace managers
 
                 void install(App& app) override
                 {
-                    app.add_tagged_input<type>(id, file, initializer);
+                    auto* frame = app.add_tagged_input<T>(id, file, initializer);
+                    for (const auto& value_installer : values)
+                    {
+                        value_installer(*frame);
+                    }
+                }
+
+                Frame<T>& value(std::string_view value_id, auto getter, auto setter)
+                {
+                    using type = std::remove_cvref_t<decltype(getter(std::declval<const T&>()))>;
+                    values.emplace_back(
+                        [value_id = std::string(value_id),
+                         getter = std::move(getter),
+                         setter = std::move(setter)](frame::input::tagged::Info<T>& info) {
+                            info.template add_value<type>(
+                                value_id,
+                                std::move(getter),
+                                std::move(setter)
+                            );
+                        }
+                    );
+                    return *this;
+                }
+
+                Frame<T>& value(std::string_view value_id, auto accessor)
+                {
+                    using type = decltype(accessor.get(std::declval<const T&>()));
+                    return value(
+                        value_id,
+                        [accessor](const T& value) { return accessor.get(value); },
+                        [accessor](T& value, type new_value)
+                        { return accessor.set(value, std::move(new_value)); }
+                    );
+                }
+
+                Frame<T>& value(std::string_view value_id)
+                {
+                    return value(
+                        value_id,
+                        [](const T& value) { return value; },
+                        [](T& value, T new_value) { value = std::move(new_value); }
+                    );
                 }
 
                 std::string id;
                 std::filesystem::path file;
-                Initializer initializer;
+                std::function<T(std::string_view)> initializer;
 
-                std::vector<std::function<void()>> values;
+                std::vector<std::function<void(frame::input::tagged::Info<T>&)>> values;
             };
+        }
 
-            auto ptr = std::make_unique<Impl>(std::string(id), file, std::move(initializer));
+        namespace unique
+        {
+            template <typename T>
+            struct Frame: IFrame
+            {
+                Frame(
+                    std::string_view init_id,
+                    std::filesystem::path init_file,
+                    std::function<T()> init_initializer
+                )
+                    : IFrame()
+                    , id(init_id)
+                    , file(std::move(init_file))
+                    , initializer(std::move(init_initializer))
+                {
+                }
+
+                void install(App& app) override
+                {
+                    auto* frame = app.add_unique_input<T>(id, file, initializer());
+                    for (const auto& value_installer : values)
+                    {
+                        value_installer(*frame);
+                    }
+                }
+
+                Frame<T>& value(std::string_view value_id, auto getter, auto setter)
+                {
+                    using type = decltype(getter(std::declval<const T&>()));
+                    values.emplace_back(
+                        [value_id = std::string(value_id),
+                         getter = std::move(getter),
+                         setter = std::move(setter)](frame::input::unique::Info<T>& info) {
+                            info.template add_value<type>(
+                                value_id,
+                                std::move(getter),
+                                std::move(setter)
+                            );
+                        }
+                    );
+                    return *this;
+                }
+
+                Frame<T>& value(std::string_view value_id, auto accessor)
+                {
+                    using type = decltype(accessor.get(std::declval<const T&>()));
+                    return value(
+                        value_id,
+                        [accessor](const T& value) { return accessor.get(value); },
+                        [accessor](T& value, type new_value)
+                        { return accessor.set(value, std::move(new_value)); }
+                    );
+                }
+
+                Frame<T>& value(std::string_view value_id)
+                {
+                    return value(
+                        value_id,
+                        [](const T& value) { return value; },
+                        [](T& value, T new_value) { value = std::move(new_value); }
+                    );
+                }
+
+                std::string id;
+                std::filesystem::path file;
+                std::function<T()> initializer;
+
+                std::vector<std::function<void(frame::input::unique::Info<T>&)>> values;
+            };
+        }
+    }
+
+    namespace output
+    {
+        template <typename T>
+        struct Frame: IFrame
+        {
+            Frame(std::string_view init_id, std::filesystem::path init_file)
+                : IFrame()
+                , id(init_id)
+                , file(std::move(init_file))
+            {
+            }
+
+            void install(App& app) override
+            {
+                app.add_output<T>(id, file);
+            }
+
+            std::string id;
+            std::filesystem::path file;
+        };
+    }
+
+    struct FrameBuilder
+    {
+        template <typename Initializer>
+        auto& create_tagged_input(
+            std::string_view id,
+            std::filesystem::path file,
+            Initializer initializer
+        )
+        {
+            using type = decltype(initializer(std::declval<std::string_view>()));
+            auto ptr = std::make_unique<input::tagged::Frame<type>>(
+                std::string(id),
+                file,
+                std::move(initializer)
+            );
+
             auto* raw_ptr = ptr.get();
-
             frames.emplace_back(std::move(ptr));
             return *raw_ptr;
         }
 
-        std::vector<std::unique_ptr<Frame>> frames;
+        template <typename T>
+        auto& create_unique_input(std::string_view id, std::filesystem::path file, T init_value)
+        {
+            auto ptr = std::make_unique<input::unique::Frame<T>>(
+                std::string(id),
+                file,
+                [v = std::move(init_value)]() { return v; }
+            );
+
+            auto* raw_ptr = ptr.get();
+            frames.emplace_back(std::move(ptr));
+            return *raw_ptr;
+        }
+
+        template <typename T>
+        void create_output(std::string_view id, std::filesystem::path file, type<T> /* type */)
+        {
+            frames.emplace_back(std::make_unique<output::Frame<T>>(std::string(id), file));
+        }
+
+        void install(App& app)
+        {
+            for (const auto& frame : frames)
+            {
+                frame->install(app);
+            }
+        }
+
+        std::vector<std::unique_ptr<IFrame>> frames;
     };
+}
+
+nlohmann::json as_json(std::istream& iss)
+{
+    return nlohmann::json::parse(iss);
+}
+
+template <typename Reader>
+auto from_file(std::filesystem::path source_path, std::string file_name, Reader reader)
+{
+    using type = decltype(reader(std::declval<std::istream&>()));
+    return [source_path = std::move(source_path),
+            file_name = std::move(file_name),
+            reader = std::move(reader)](std::string_view tag)
+    {
+        auto path = source_path / tag / file_name;
+        if (!std::filesystem::exists(path))
+        {
+            std::cout << path << std::endl;
+            std::cout << "not found" << std::endl;
+            return type(); // TODO: throw? or default?
+        }
+        std::ifstream file(path, std::ios::binary);
+        return reader(file);
+    };
+}
+
+template <typename C, typename M>
+auto from_member(M C::*member_ptr)
+{
+    struct Accessor
+    {
+        M get(const C& data) const
+        {
+            return data.*member_ptr;
+        }
+
+        void set(C& data, M new_data) const
+        {
+            data.*member_ptr = std::move(new_data);
+        }
+
+        M C::*member_ptr;
+    };
+
+    return Accessor{member_ptr};
 }
 
 int main()
@@ -591,60 +817,21 @@ int main()
 
     app.gate.set_runner<nil::gate::runners::NonBlocking>();
 
-    // managers::FrameManager frame_manager;
-    // frame_manager.create_tagged(
-    //     "input_frame",
-    //     "gui/EditorFrame.svelte",
-    //     [](std::string_view tag)
-    //     {
-    //         // figure out how to get the path from tag?
-    //         return nlohmann::json::object(
-    //             {{"x", nlohmann::json::array({"giraffes", "orangutans", tag})},
-    //              {"y", nlohmann::json::array({20, 14, 23})},
-    //              {"type", "bar"}}
-    //         );
-    //     }
-    // );
-
-    {
-        auto* frame = app.add_tagged_input<nlohmann::json>(
+    builders::FrameBuilder frame_builder;
+    frame_builder
+        .create_tagged_input(
             "input_frame",
             "gui/EditorFrame.svelte",
-            [](std::string_view tag)
-            {
-                // TODO: move this to the frame itself
-                // add trait to be able to read from and write to file
-                return nlohmann::json::object(
-                    {{"x", nlohmann::json::array({"giraffes", "orangutans", tag})},
-                     {"y", nlohmann::json::array({20, 14, 23})},
-                     {"type", "bar"}}
-                );
-            }
-        );
-        frame->add_value<nlohmann::json>(
-            "value",
-            [](const nlohmann::json& data)
-            {
-                std::cout << "getter: " << data.dump() << std::endl;
-                return data;
-            },
-            [](nlohmann::json& data, nlohmann::json new_data)
-            {
-                std::cout << "setter1: " << data.dump() << std::endl;
-                std::cout << "setter2: " << new_data.dump() << std::endl;
-                data = std::move(new_data);
-            }
-        );
-    }
-    {
-        auto* frame = app.add_unique_input<std::int64_t>("slider_frame", "gui/Slider.svelte", 0L);
-        frame->add_value<std::int64_t>(
-            "value",
-            [](std::int64_t value) { return value; },
-            [](std::int64_t& value, std::int64_t new_value) { value = new_value; }
-        );
-    }
-    app.add_output<nlohmann::json>("view_frame", "gui/ViewFrame.svelte");
+            from_file(source_path / "files", "input_frame.json", &as_json)
+        )
+        .value("value");
+    frame_builder
+        .create_unique_input("slider_frame", "gui/Slider.svelte", Ranges{0, 0, 0}) //
+        .value("value-1", from_member(&Ranges::v1))
+        .value("value-2", from_member(&Ranges::v2))
+        .value("value-3", from_member(&Ranges::v3));
+    frame_builder.create_output("view_frame", "gui/ViewFrame.svelte", type<nlohmann::json>());
+    frame_builder.install(app);
 
     // TODO: store this somewhere to be called during registration
     install(type<Derived::base_t>(), app, "a");
