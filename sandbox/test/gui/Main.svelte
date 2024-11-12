@@ -68,14 +68,16 @@
     }
 
     .view {
-        width: calc(100% - 200px);
+        width: calc(100% - 350px);
     }
 
     .pane {
         position: absolute;
-        left: calc(100% - 200px);
+        left: calc(100% - 350px);
         right: 0;
         top: 0;
         bottom: 0;
+        display: flex;
+        flex-direction: column;
     }
 </style>
