@@ -4,7 +4,7 @@
 
     const { values } = xit();
 
-    const scene = values.json("value", null, json_string);
+    const value = values.json("value", null, json_string);
 
     const plot_it = (target, props) => {
         window.Plotly.newPlot(target, props);
@@ -24,6 +24,12 @@
     <title>nil - xit - view</title>
 </svelte:head>
 
-{#if $scene != null}
-    <div use:plot_it={$scene}></div>
+{#if $value != null}
+    <div use:plot_it={[$value]}></div>
 {/if}
+
+<style>
+    div {
+        height: 100%;
+    }
+</style>

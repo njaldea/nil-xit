@@ -23,7 +23,8 @@
             "description": "select executable",
             "type": "pickString",
             "options": [
-                "sandbox"
+                "sandbox",
+                "sandbox_test"
             ]
         },
         {

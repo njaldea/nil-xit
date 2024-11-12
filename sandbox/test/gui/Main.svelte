@@ -57,12 +57,14 @@
 
 <style>
     .root {
+        height: 100%;
         display: flex;
         flex-direction: column;
     }
 
     .root-content {
         position: relative;
+        height: 100%;
     }
 
     .view {

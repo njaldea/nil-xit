@@ -39,14 +39,6 @@ namespace transparent
     using hash_map = std::unordered_map<std::string, T, Hash, Equal>;
 }
 
-struct RerunTag
-{
-    bool operator==(const RerunTag& /* o */) const
-    {
-        return false;
-    }
-};
-
 namespace nil::xit
 {
     template <>
@@ -71,86 +63,163 @@ void for_each(P predicate, const A& a, const B& b, std::index_sequence<I...> /* 
     (([&]() { predicate(get<I>(a), get<I>(b)); }()), ...);
 }
 
-struct IFrameInfo
+struct RerunTag
 {
-    IFrameInfo() = default;
-    IFrameInfo(IFrameInfo&&) = delete;
-    IFrameInfo(const IFrameInfo&) = delete;
-    IFrameInfo& operator=(IFrameInfo&&) = delete;
-    IFrameInfo& operator=(const IFrameInfo&) = delete;
-    virtual ~IFrameInfo() = default;
+    bool operator==(const RerunTag& /* o */) const
+    {
+        return false;
+    }
 };
 
-namespace input
+namespace frame
 {
-
-    template <typename T>
-    struct FrameInfo: IFrameInfo
+    struct IInfo
     {
-        using type = T;
-
-        FrameInfo() = default;
-        FrameInfo(FrameInfo&&) = delete;
-        FrameInfo(const FrameInfo&) = delete;
-        FrameInfo& operator=(FrameInfo&&) = delete;
-        FrameInfo& operator=(const FrameInfo&) = delete;
-        ~FrameInfo() override = default;
-
-        virtual nil::gate::edges::Compatible<T> get_input(std::string_view tag) = 0;
-        virtual void add_tag(std::string_view tag, nil::gate::Core& gate) = 0;
+        IInfo() = default;
+        IInfo(IInfo&&) = delete;
+        IInfo(const IInfo&) = delete;
+        IInfo& operator=(IInfo&&) = delete;
+        IInfo& operator=(const IInfo&) = delete;
+        virtual ~IInfo() = default;
     };
 
-    template <typename T>
-    struct UniqueFrameInfo: FrameInfo<T>
+    namespace input
     {
-        nil::gate::edges::Mutable<T>* input = nullptr;
-
-        nil::gate::edges::Compatible<T> get_input(std::string_view /* tag */) override
+        template <typename T>
+        struct Info: IInfo
         {
-            return input;
-        }
+            using type = T;
 
-        void add_tag(std::string_view /* tag */, nil::gate::Core& /* gate */) override
-        {
-        }
-    };
-
-    template <typename T>
-    struct TaggedFrameInfo: FrameInfo<T>
-    {
-        struct Entry
-        {
-            std::optional<T> data;
-            nil::gate::edges::Mutable<T>* input = nullptr;
+            virtual nil::gate::edges::Compatible<T> get_input(std::string_view tag) = 0;
+            virtual void add_tag(std::string_view tag) = 0;
         };
 
-        transparent::hash_map<Entry> info;
-
-        nil::gate::edges::Compatible<T> get_input(std::string_view tag) override
+        namespace unique
         {
-            if (const auto it = info.find(tag); it != info.end())
+            template <typename T>
+            struct Info: input::Info<T>
             {
-                return it->second.input;
-            }
-            return nullptr;
+                nil::xit::unique::Frame* frame = nullptr;
+                nil::gate::Core* gate = nullptr;
+                std::optional<T> data;
+                nil::gate::edges::Mutable<T>* input = nullptr;
+
+                nil::gate::edges::Compatible<T> get_input(std::string_view /* tag */) override
+                {
+                    return input;
+                }
+
+                void add_tag(std::string_view /* tag */) override
+                {
+                }
+
+                template <typename V, typename Getter, typename Setter>
+                    requires requires(Getter g, Setter s) {
+                        { g(std::declval<const T&>()) } -> std::same_as<V>;
+                        { s(std::declval<T&>(), std::declval<V>()) } -> std::same_as<void>;
+                    }
+                void add_value(std::string id, Getter getter, Setter setter)
+                {
+                    if (!data.has_value())
+                    {
+                        return;
+                    }
+                    nil::xit::unique::add_value(
+                        *frame,
+                        id,
+                        getter(data.value()),
+                        [this, setter = std::move(setter)](T new_data)
+                        {
+                            setter(data.value(), new_data);
+                            input->set_value(data.value());
+                            gate->commit();
+                        }
+                    );
+                }
+            };
         }
 
-        void add_tag(std::string_view tag, nil::gate::Core& gate) override
+        namespace tagged
         {
-            info.emplace(tag, typename TaggedFrameInfo<T>::Entry{std::nullopt, gate.edge<T>()});
-        }
-    };
-}
+            template <typename T>
+            struct Info: input::Info<T>
+            {
+                struct Entry
+                {
+                    std::optional<T> data;
+                    nil::gate::edges::Mutable<T>* input = nullptr;
+                };
 
-namespace output
-{
-    template <typename T>
-    struct FrameInfo: IFrameInfo
+                nil::xit::tagged::Frame* frame = nullptr;
+                nil::gate::Core* gate = nullptr;
+                std::function<T(std::string_view)> initializer;
+                transparent::hash_map<Entry> info;
+
+                nil::gate::edges::Compatible<T> get_input(std::string_view tag) override
+                {
+                    if (const auto it = info.find(tag); it != info.end())
+                    {
+                        return it->second.input;
+                    }
+                    return nullptr;
+                }
+
+                void add_tag(std::string_view tag) override
+                {
+                    info.emplace(tag, typename Info<T>::Entry{std::nullopt, gate->edge<T>()});
+                }
+
+                template <typename V, typename Getter, typename Setter>
+                    requires requires(Getter g, Setter s) {
+                        { g(std::declval<const T&>()) } -> std::same_as<V>;
+                        { s(std::declval<T&>(), std::declval<V>()) } -> std::same_as<void>;
+                    }
+                void add_value(std::string id, Getter getter, Setter setter)
+                {
+                    nil::xit::tagged::add_value(
+                        *frame,
+                        id,
+                        [this, getter = std::move(getter)](std::string_view tag)
+                        {
+                            if (auto it = info.find(tag); it != info.end())
+                            {
+                                auto& entry = it->second;
+                                if (!entry.data.has_value())
+                                {
+                                    entry.data = initializer(tag);
+                                    entry.input->set_value(entry.data.value());
+                                    gate->commit();
+                                }
+                                return getter(entry.data.value());
+                            }
+                            return V();
+                        },
+                        [this, setter = std::move(setter)](std::string_view tag, V new_data)
+                        {
+                            if (auto it = info.find(tag); it != info.end())
+                            {
+                                auto& entry = it->second;
+                                setter(entry.data.value(), std::move(new_data));
+                                entry.input->set_value(entry.data.value());
+                                gate->commit();
+                            }
+                        }
+                    );
+                }
+            };
+        }
+    }
+
+    namespace output
     {
-        using type = T;
-        transparent::hash_map<nil::gate::edges::Mutable<RerunTag>*> rerun;
-        nil::xit::tagged::Value<T>* output = nullptr;
-    };
+        template <typename T>
+        struct Info: IInfo
+        {
+            using type = T;
+            transparent::hash_map<nil::gate::edges::Mutable<RerunTag>*> rerun;
+            nil::xit::tagged::Value<T>* output = nullptr;
+        };
+    }
 }
 
 struct App
@@ -174,13 +243,13 @@ struct App
         std::tuple<Outputs...> outputs
     )
     {
-        apply([tag, this](auto*... input) { (input->add_tag(tag, this->gate), ...); }, inputs);
+        std::apply([&](auto*... input) { (input->add_tag(tag), ...); }, inputs);
         if constexpr (sizeof...(Outputs) == 0)
         {
             gate.node(
                 std::move(callable),
                 std::apply(
-                    [tag](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
+                    [&](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
                     inputs
                 )
             );
@@ -190,7 +259,7 @@ struct App
             auto gate_outputs = gate.node(
                 std::move(callable),
                 std::apply(
-                    [tag](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
+                    [&](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
                     inputs
                 )
             );
@@ -218,73 +287,38 @@ struct App
     }
 
     template <typename T>
-    input::TaggedFrameInfo<T>* add_tagged_input(
+    frame::input::tagged::Info<T>* add_tagged_input(
         std::string id,
         std::filesystem::path path,
         std::function<T(std::string_view)> initializer
     )
     {
-        auto* s = make_frame<input::TaggedFrameInfo<T>>(id, input_frames);
-        auto& frame = add_tagged_frame(xit, std::move(id), std::move(path));
-        add_value(
-            frame,
-            "value",
-            [s, initializer, g = &this->gate](std::string_view tag)
-            {
-                if (auto it = s->info.find(tag); it != s->info.end())
-                {
-                    auto& info = it->second;
-                    if (!info.data.has_value())
-                    {
-                        info.data = initializer(tag);
-                        info.input->set_value(info.data.value());
-                        g->commit();
-                    }
-                    return info.data.value();
-                }
-                return T();
-            },
-            [s, g = &this->gate](std::string_view tag, T new_data)
-            {
-                if (auto it = s->info.find(tag); it != s->info.end())
-                {
-                    auto& info = it->second;
-                    info.data = std::move(new_data);
-                    info.input->set_value(info.data.value());
-                    g->commit();
-                }
-            }
-        );
+        auto* s = make_frame<frame::input::tagged::Info<T>>(id, input_frames);
+        s->frame = &add_tagged_frame(xit, std::move(id), std::move(path));
+        s->gate = &gate;
+        s->initializer = std::move(initializer);
         return s;
     }
 
     template <typename T>
-    input::UniqueFrameInfo<T>* add_unique_input(
+    frame::input::unique::Info<T>* add_unique_input(
         std::string id,
         std::filesystem::path path,
         T init_data
     )
     {
-        auto* s = make_frame<input::UniqueFrameInfo<T>>(id, input_frames);
+        auto* s = make_frame<frame::input::unique::Info<T>>(id, input_frames);
+        s->frame = &add_unique_frame(xit, std::move(id), std::move(path));
+        s->gate = &gate;
+        s->data = std::move(init_data);
         s->input = gate.edge(init_data);
-        auto& frame = add_unique_frame(xit, std::move(id), std::move(path));
-        add_value(
-            frame,
-            "value",
-            std::move(init_data),
-            [s, g = &this->gate](T new_data)
-            {
-                s->input->set_value(std::move(new_data));
-                g->commit();
-            }
-        );
         return s;
     }
 
     template <typename T>
-    output::FrameInfo<T>* add_output(std::string id, std::filesystem::path path)
+    frame::output::Info<T>* add_output(std::string id, std::filesystem::path path)
     {
-        auto* s = make_frame<output::FrameInfo<T>>(id, output_frames);
+        auto* s = make_frame<frame::output::Info<T>>(id, output_frames);
         auto& frame = add_tagged_frame(
             xit,
             std::move(id),
@@ -311,11 +345,33 @@ struct App
         return p;
     }
 
+    template <typename T>
+    frame::input::Info<T>* get_input(std::string_view id) const
+    {
+        std::cout << id << std::endl;
+        if (auto it = input_frames.find(id); it != input_frames.end())
+        {
+            return static_cast<frame::input::Info<T>*>(it->second.get());
+        }
+        std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__) << std::endl;
+        return nullptr;
+    }
+
+    template <typename T>
+    frame::output::Info<T>* get_output(std::string_view id) const
+    {
+        if (auto it = output_frames.find(id); it != output_frames.end())
+        {
+            return static_cast<frame::output::Info<T>*>(it->second.get());
+        }
+        return nullptr;
+    }
+
     nil::xit::C xit;
     nil::gate::Core gate;
 
-    std::unordered_map<std::string, std::unique_ptr<IFrameInfo>> input_frames;
-    std::unordered_map<std::string, std::unique_ptr<IFrameInfo>> output_frames;
+    transparent::hash_map<std::unique_ptr<frame::IInfo>> input_frames;
+    transparent::hash_map<std::unique_ptr<frame::IInfo>> output_frames;
 };
 
 template <typename... T>
@@ -340,7 +396,6 @@ struct StringLiteral
 template <typename T, StringLiteral S>
 struct Frame
 {
-    using type = T;
 };
 
 template <typename... T>
@@ -366,11 +421,17 @@ struct std::tuple_element<I, Inputs<T...>>
     using type = decltype(*get<I>(std::declval<Inputs<T...>>().data));
 };
 
+template <typename... T>
+struct InputFrames;
+template <typename... T>
+struct OutputFrames;
+
 template <typename P, typename I, typename O>
 struct Base;
 
 template <typename P, typename... T, StringLiteral... I, typename... U, StringLiteral... O>
-struct Base<P, std::tuple<Frame<T, I>...>, std::tuple<Frame<U, O>...>>
+    requires(sizeof...(T) == sizeof...(I) && sizeof...(U) == sizeof...(O))
+struct Base<P, InputFrames<Frame<T, I>...>, OutputFrames<Frame<U, O>...>>
 {
     virtual ~Base() noexcept = default;
     Base() = default;
@@ -379,56 +440,134 @@ struct Base<P, std::tuple<Frame<T, I>...>, std::tuple<Frame<U, O>...>>
     Base& operator=(Base&&) = delete;
     Base& operator=(const Base&) = delete;
 
-    static void install(App& a, std::string_view tag)
-    {
-        a.add_node(
-            tag,
-            [](const T&... args) -> return_t
-            {
-                P p;
-                return p.run(argument_t{{std::addressof(args)...}});
-            },
-            std::make_tuple( // NOLINTNEXTLINE
-                static_cast<input::FrameInfo<T>*>(a.input_frames.at(std::string(I.value)).get())...
-            ),
-            std::make_tuple( // NOLINTNEXTLINE
-                static_cast<output::FrameInfo<U>*>(a.output_frames.at(std::string(O.value)).get()
-                )...
-            )
-        );
-    }
-
+    using base_t = Base<P, InputFrames<Frame<T, I>...>, OutputFrames<Frame<U, O>...>>;
     using return_t = std::conditional_t<sizeof...(U) == 0, void, std::tuple<U...>>;
     using argument_t = Inputs<T...>;
+
+    virtual void setup() {};
+    virtual void teardown() {};
+    virtual return_t run(argument_t args) = 0;
 };
 
-struct Derived
+template <typename P, typename... T, StringLiteral... I, typename... U, StringLiteral... O>
+void install(
+    type<Base<P, InputFrames<Frame<T, I>...>, OutputFrames<Frame<U, O>...>>> /* type */,
+    App& a,
+    std::string_view tag
+)
+{
+    using base_t = Base<P, InputFrames<Frame<T, I>...>, OutputFrames<Frame<U, O>...>>;
+    using return_t = base_t::return_t;
+    using argument_t = base_t::argument_t;
+    a.add_node(
+        tag,
+        [](const T&... args) -> return_t
+        {
+            P p;
+            p.setup();
+            return [&]()
+            {
+                auto r = p.run(argument_t{{std::addressof(args)...}});
+                p.teardown();
+                return r;
+            }();
+        },
+        std::make_tuple(a.get_input<T>(I.value)...), // NOLINT
+        std::make_tuple(a.get_output<U>(O.value)...) // NOLINT
+    );
+}
+
+// This is the example of the "test"
+struct Derived final
     : Base<
           Derived,
-          std::tuple<Frame<nlohmann::json, "editor_frame">, Frame<std::int64_t, "slider_frame">>,
-          std::tuple<Frame<nlohmann::json, "view_frame">> //
-          >
+          InputFrames<
+              Frame<nlohmann::json, "input_frame">, //
+              Frame<std::int64_t, "slider_frame">>, //
+          OutputFrames<                             //
+              Frame<nlohmann::json, "view_frame">   //
+              >>
 {
-    Derived() = default;
-    return_t run(argument_t args);
+    return_t run(argument_t args) override;
 };
 
 // TODO: optionality of returning? pass as an output argument?
 Derived::return_t Derived::run(Derived::argument_t args) // NOLINT
 {
     const auto& [input_data, value] = args;
-    auto tag = std::string(input_data[0]["x"][2]);
+    auto tag = std::string(input_data["x"][2]);
     std::cout << "run (test) " << tag << std::endl;
     auto result = input_data;
     if (tag == "a")
     {
-        result[0]["y"][0] = input_data[0]["y"][0].get<std::int64_t>() * value;
+        result["y"][0] = input_data["y"][0].get<std::int64_t>() * value;
     }
     else if (tag == "b")
     {
-        result[0]["y"][1] = input_data[0]["y"][1].get<std::int64_t>() * value;
+        result["y"][1] = input_data["y"][1].get<std::int64_t>() * value;
     }
     return {result};
+}
+
+namespace managers
+{
+    struct Frame
+    {
+        virtual ~Frame() = default;
+        Frame() = default;
+        Frame(Frame&&) = delete;
+        Frame(const Frame&) = delete;
+        Frame& operator=(Frame&&) = delete;
+        Frame& operator=(const Frame&) = delete;
+        virtual void install(App& app) = 0;
+    };
+
+    struct FrameManager
+    {
+        template <typename Initializer>
+        auto& create_tagged(
+            std::string_view id,
+            std::filesystem::path file,
+            Initializer initializer
+        )
+        {
+            using type = decltype(initializer(std::declval<std::string_view>()));
+
+            struct Impl: Frame
+            {
+                Impl(
+                    std::string_view init_id,
+                    std::filesystem::path init_file,
+                    Initializer init_initializer
+                )
+                    : Frame()
+                    , id(init_id)
+                    , file(std::move(init_file))
+                    , initializer(std::move(init_initializer))
+                {
+                }
+
+                void install(App& app) override
+                {
+                    app.add_tagged_input<type>(id, file, initializer);
+                }
+
+                std::string id;
+                std::filesystem::path file;
+                Initializer initializer;
+
+                std::vector<std::function<void()>> values;
+            };
+
+            auto ptr = std::make_unique<Impl>(std::string(id), file, std::move(initializer));
+            auto* raw_ptr = ptr.get();
+
+            frames.emplace_back(std::move(ptr));
+            return *raw_ptr;
+        }
+
+        std::vector<std::unique_ptr<Frame>> frames;
+    };
 }
 
 int main()
@@ -448,29 +587,68 @@ int main()
     auto& main_frame = add_unique_frame(app.xit, "demo", "gui/Main.svelte");
     add_value(main_frame, "tags", nlohmann::json::parse(R"(["", "a", "b"])"));
     add_value(main_frame, "view", nlohmann::json::parse(R"(["view_frame"])"));
-    add_value(main_frame, "pane", nlohmann::json::parse(R"(["slider_frame", "editor_frame"])"));
+    add_value(main_frame, "pane", nlohmann::json::parse(R"(["slider_frame", "input_frame"])"));
 
     app.gate.set_runner<nil::gate::runners::NonBlocking>();
-    app.add_tagged_input<nlohmann::json>(
-        "editor_frame",
-        "gui/EditorFrame.svelte",
-        [](std::string_view tag)
-        {
-            // TODO: move this to the frame itself
-            // add trait to be able to read from and write to file
-            return nlohmann::json::array({nlohmann::json::object(
-                {{"x", nlohmann::json::array({"giraffes", "orangutans", tag})},
-                 {"y", nlohmann::json::array({20, 14, 23})},
-                 {"type", "bar"}}
-            )});
-        }
-    );
-    app.add_unique_input<std::int64_t>("slider_frame", "gui/Slider.svelte", 0L);
+
+    // managers::FrameManager frame_manager;
+    // frame_manager.create_tagged(
+    //     "input_frame",
+    //     "gui/EditorFrame.svelte",
+    //     [](std::string_view tag)
+    //     {
+    //         // figure out how to get the path from tag?
+    //         return nlohmann::json::object(
+    //             {{"x", nlohmann::json::array({"giraffes", "orangutans", tag})},
+    //              {"y", nlohmann::json::array({20, 14, 23})},
+    //              {"type", "bar"}}
+    //         );
+    //     }
+    // );
+
+    {
+        auto* frame = app.add_tagged_input<nlohmann::json>(
+            "input_frame",
+            "gui/EditorFrame.svelte",
+            [](std::string_view tag)
+            {
+                // TODO: move this to the frame itself
+                // add trait to be able to read from and write to file
+                return nlohmann::json::object(
+                    {{"x", nlohmann::json::array({"giraffes", "orangutans", tag})},
+                     {"y", nlohmann::json::array({20, 14, 23})},
+                     {"type", "bar"}}
+                );
+            }
+        );
+        frame->add_value<nlohmann::json>(
+            "value",
+            [](const nlohmann::json& data)
+            {
+                std::cout << "getter: " << data.dump() << std::endl;
+                return data;
+            },
+            [](nlohmann::json& data, nlohmann::json new_data)
+            {
+                std::cout << "setter1: " << data.dump() << std::endl;
+                std::cout << "setter2: " << new_data.dump() << std::endl;
+                data = std::move(new_data);
+            }
+        );
+    }
+    {
+        auto* frame = app.add_unique_input<std::int64_t>("slider_frame", "gui/Slider.svelte", 0L);
+        frame->add_value<std::int64_t>(
+            "value",
+            [](std::int64_t value) { return value; },
+            [](std::int64_t& value, std::int64_t new_value) { value = new_value; }
+        );
+    }
     app.add_output<nlohmann::json>("view_frame", "gui/ViewFrame.svelte");
 
     // TODO: store this somewhere to be called during registration
-    Derived::install(app, "a");
-    Derived::install(app, "b");
+    install(type<Derived::base_t>(), app, "a");
+    install(type<Derived::base_t>(), app, "b");
 
     // TODO:
     //  - test api for registering the input/output frames
