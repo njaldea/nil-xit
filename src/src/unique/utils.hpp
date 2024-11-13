@@ -7,6 +7,7 @@
 #include <nil/service/concat.hpp>
 
 #include <algorithm>
+#include <ranges>
 #include <type_traits>
 
 namespace nil::xit::unique
@@ -53,87 +54,89 @@ namespace nil::xit::unique
     template <typename T>
     void msg_set(const Value<T>& value, proto::Value& msg, std::string_view /* tag */)
     {
-        nil::xit::utils::msg_set(value.value, msg);
+        nil::xit::utils::msg_set(value.getter(), msg);
     }
 
     template <typename T>
-    void value_set(
+    void value_set( // NOLINT
         Value<T>& value,
         const proto::Value& msg,
         std::string_view /* tag */,
         const nil::service::ID& id
     )
     {
-        constexpr auto apply = [](Value<T>& v, const proto::Value& m)
+        constexpr auto get_fid = [](auto& x_value, auto& ex_tag)
         {
-            constexpr auto set = [](T& l, auto&& r)
-            {
-                if (l != r)
-                {
-                    l = std::forward<decltype(r)>(r);
-                    return true;
-                }
-                return false;
-            };
-            if constexpr (std::is_same_v<T, bool>)
-            {
-                return set(v.value, m.value_boolean());
-            }
-            else if constexpr (std::is_same_v<T, double>)
-            {
-                return set(v.value, m.value_double());
-            }
-            else if constexpr (std::is_same_v<T, std::int64_t>)
-            {
-                return set(v.value, m.value_number());
-            }
-            else if constexpr (std::is_same_v<T, std::string>)
-            {
-                return set(v.value, m.value_string());
-            }
-            else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
-            {
-                const auto& mm = m.value_buffer();
-                const auto& vv = v.value;
-                if (vv.size() != mm.size() || 0 != std::memcmp(vv.data(), mm.data(), vv.size()))
-                {
-                    v.value = {m.value_buffer().begin(), m.value_buffer().end()};
-                    return true;
-                }
-                return false;
-            }
-            else
-            {
-                nil::xit::utils::unreachable<T>();
-            }
+            const auto not_ex_tag = [ex_tag](const auto& sub_id) { return ex_tag != sub_id; };
+            auto _ = std::lock_guard(x_value.frame->core->mutex);
+            auto& subscribers = x_value.frame->subscribers;
+            auto view = subscribers | std::ranges::views::filter(not_ex_tag);
+            return std::vector<nil::service::ID>(view.begin(), view.end());
         };
-
-        if (apply(value, msg))
+        if constexpr (std::is_same_v<T, bool>)
         {
-            if (value.on_change)
+            if (value.setter)
             {
-                value.on_change(value.value);
+                value.setter(msg.value_boolean());
             }
-            auto ids = [&]()
+            if (const auto ids = get_fid(value, id); !ids.empty())
             {
-                auto ret = [&]()
-                {
-                    std::vector<nil::service::ID> r;
-                    auto _ = std::lock_guard(value.frame->core->mutex);
-                    std::copy_if(
-                        value.frame->subscribers.begin(),
-                        value.frame->subscribers.end(),
-                        std::back_inserter(r),
-                        [&](const nil::service::ID& t) { return t != id; }
-                    );
-                    return r;
-                }();
-                return ret;
-            }();
-            if (!ids.empty())
-            {
-                post_impl(value, value.value, ids);
+                post_impl(value, msg.value_boolean(), ids);
             }
+        }
+        else if constexpr (std::is_same_v<T, double>)
+        {
+            if (value.setter)
+            {
+                value.setter(msg.value_double());
+            }
+            if (auto ids = get_fid(value, id); !ids.empty())
+            {
+                post_impl(value, msg.value_double(), ids);
+            }
+        }
+        else if constexpr (std::is_same_v<T, std::int64_t>)
+        {
+            if (value.setter)
+            {
+                value.setter(msg.value_number());
+            }
+            if (auto ids = get_fid(value, id); !ids.empty())
+            {
+                post_impl(value, msg.value_number(), ids);
+            }
+        }
+        else if constexpr (std::is_same_v<T, std::string>)
+        {
+            if (value.setter)
+            {
+                value.setter(msg.value_string());
+            }
+            if (auto ids = get_fid(value, id); !ids.empty())
+            {
+                post_impl(value, msg.value_string(), ids);
+            }
+        }
+        else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+        {
+            const auto& buffer = msg.value_buffer();
+            const auto span = std::span<const std::uint8_t>(
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                reinterpret_cast<const std::uint8_t*>(buffer.data()),
+                buffer.size()
+            );
+            if (value.setter)
+            {
+                value.setter(span);
+            }
+            if (auto ids = get_fid(value, id); !ids.empty())
+            {
+                post_impl(value, std::vector<std::uint8_t>(span.begin(), span.end()), ids);
+            }
+        }
+        else
+        {
+            nil::xit::utils::unreachable<T>();
         }
     }
 

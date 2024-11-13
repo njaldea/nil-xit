@@ -89,7 +89,7 @@ namespace nil::xit::test
                 using type = T;
 
                 virtual nil::gate::edges::Compatible<T> get_input(std::string_view tag) = 0;
-                virtual void add_tag(std::string_view tag) = 0;
+                virtual void init_input(std::string_view tag) = 0;
             };
 
             namespace unique
@@ -99,16 +99,25 @@ namespace nil::xit::test
                 {
                     nil::xit::unique::Frame* frame = nullptr;
                     nil::gate::Core* gate = nullptr;
-                    std::optional<T> data;
-                    nil::gate::edges::Mutable<T>* input = nullptr;
+                    std::function<T()> initializer;
+
+                    struct
+                    {
+                        std::optional<T> data;
+                        nil::gate::edges::Mutable<T>* input = nullptr;
+                    } info;
 
                     nil::gate::edges::Compatible<T> get_input(std::string_view /* tag */) override
                     {
-                        return input;
+                        return info.input;
                     }
 
-                    void add_tag(std::string_view /* tag */) override
+                    void init_input(std::string_view /* tag */) override
                     {
+                        if (info.input == nullptr)
+                        {
+                            info.input = gate->edge<T>();
+                        }
                     }
 
                     template <typename V, typename Getter, typename Setter>
@@ -118,18 +127,23 @@ namespace nil::xit::test
                         }
                     void add_value(std::string id, Getter getter, Setter setter)
                     {
-                        if (!data.has_value())
-                        {
-                            return;
-                        }
                         nil::xit::unique::add_value(
                             *frame,
                             id,
-                            getter(data.value()),
+                            [this, getter = std::move(getter)]()
+                            {
+                                if (!info.data.has_value())
+                                {
+                                    info.data = this->initializer();
+                                    info.input->set_value(info.data.value());
+                                    gate->commit();
+                                }
+                                return getter(info.data.value());
+                            },
                             [this, setter = std::move(setter)](V new_data)
                             {
-                                setter(data.value(), std::move(new_data));
-                                input->set_value(data.value());
+                                setter(info.data.value(), std::move(new_data));
+                                info.input->set_value(info.data.value());
                                 gate->commit();
                             }
                         );
@@ -162,7 +176,7 @@ namespace nil::xit::test
                         return nullptr;
                     }
 
-                    void add_tag(std::string_view tag) override
+                    void init_input(std::string_view tag) override
                     {
                         info.emplace(tag, typename Info<T>::Entry{std::nullopt, gate->edge<T>()});
                     }
@@ -266,11 +280,12 @@ namespace nil::xit::test
 
     struct App
     {
-        explicit App(nil::service::S service)
+        explicit App(nil::service::S service, std::string_view app_name)
             : xit(nil::xit::make_core(service))
         {
             gate.set_runner<nil::gate::runners::NonBlocking>();
             on_ready(service, [this]() { gate.commit(); });
+            set_cache_directory(xit, std::filesystem::temp_directory_path() / app_name);
         }
 
         ~App() noexcept = default;
@@ -305,7 +320,7 @@ namespace nil::xit::test
             std::tuple<Outputs...> outputs
         )
         {
-            std::apply([&](auto*... input) { (input->add_tag(tag), ...); }, inputs);
+            std::apply([&](auto*... input) { (input->init_input(tag), ...); }, inputs);
             auto gate_outputs = gate.node(
                 std::move(callable),
                 std::apply(
@@ -353,14 +368,13 @@ namespace nil::xit::test
         frame::input::unique::Info<T>* add_unique_input(
             std::string id,
             std::filesystem::path path,
-            T init_data
+            std::function<T()> initializer
         )
         {
             auto* s = make_frame<frame::input::unique::Info<T>>(id, input_frames);
             s->frame = &add_unique_frame(xit, std::move(id), std::move(path));
             s->gate = &gate;
-            s->input = gate.edge(init_data);
-            s->data = std::move(init_data);
+            s->initializer = std::move(initializer);
             return s;
         }
 
@@ -619,7 +633,11 @@ namespace nil::xit::test
                 template <typename T>
                 struct Frame final: IFrame
                 {
-                    Frame(std::string init_id, std::filesystem::path init_file, T init_initializer)
+                    Frame(
+                        std::string init_id,
+                        std::filesystem::path init_file,
+                        std::function<T()> init_initializer
+                    )
                         : IFrame()
                         , id(std::move(init_id))
                         , file(std::move(init_file))
@@ -678,7 +696,7 @@ namespace nil::xit::test
 
                     std::string id;
                     std::filesystem::path file;
-                    T initializer;
+                    std::function<T()> initializer;
                     std::vector<std::function<void(frame::input::unique::Info<T>&)>> values;
                 };
             }
@@ -740,6 +758,9 @@ namespace nil::xit::test
         struct FrameBuilder
         {
             template <typename Initializer>
+                requires requires(Initializer initializer) {
+                    { initializer(std::declval<std::string_view>()) };
+                }
             auto& create_tagged_input(
                 std::string id,
                 std::filesystem::path file,
@@ -758,13 +779,21 @@ namespace nil::xit::test
                 return *raw_ptr;
             }
 
-            template <typename T>
-            auto& create_unique_input(std::string id, std::filesystem::path file, T init_value)
+            template <typename Initializer>
+                requires requires(Initializer initializer) {
+                    { initializer() };
+                }
+            auto& create_unique_input(
+                std::string id,
+                std::filesystem::path file,
+                Initializer initializer
+            )
             {
-                auto ptr = std::make_unique<input::unique::Frame<T>>(
+                using type = decltype(initializer());
+                auto ptr = std::make_unique<input::unique::Frame<type>>(
                     std::move(id),
                     file,
-                    std::move(init_value)
+                    std::move(initializer)
                 );
 
                 auto* raw_ptr = ptr.get();
@@ -820,32 +849,93 @@ namespace nil::xit::test
         };
     }
 
-    nlohmann::json as_json(std::istream& iss)
-    {
-        return nlohmann::json::parse(iss);
-    }
-
     template <typename Reader>
         requires requires(Reader reader) {
             { reader(std::declval<std::istream&>()) };
         }
     auto from_file(std::filesystem::path source_path, std::string file_name, Reader reader)
     {
-        using type = decltype(reader(std::declval<std::istream&>()));
-        return [source_path = std::move(source_path),
-                file_name = std::move(file_name),
-                reader = std::move(reader)](std::string_view tag)
+        struct Loader final
         {
-            auto path = source_path / tag / file_name;
-            if (!std::filesystem::exists(path))
+        public:
+            Loader(
+                std::filesystem::path init_source_path,
+                std::string init_file_name,
+                Reader init_reader
+            )
+                : source_path(std::move(init_source_path))
+                , file_name(std::move(init_file_name))
+                , reader(std::move(init_reader))
             {
-                std::cout << path << std::endl;
-                std::cout << "not found" << std::endl;
-                return type(); // TODO: throw? or default?
             }
-            std::ifstream file(path, std::ios::binary);
-            return reader(file);
+
+            ~Loader() noexcept = default;
+            Loader(const Loader&) = default;
+            Loader(Loader&&) = default;
+            Loader& operator=(const Loader&) = default;
+            Loader& operator=(Loader&&) = default;
+
+            auto operator()(std::string_view tag) const
+            {
+                return load(source_path / tag / file_name);
+            }
+
+            auto operator()() const
+            {
+                return load(source_path / file_name);
+            }
+
+        private:
+            std::filesystem::path source_path;
+            std::string file_name;
+            Reader reader;
+
+            auto load(const std::filesystem::path& path) const
+            {
+                if (!std::filesystem::exists(path))
+                {
+                    throw std::runtime_error("not found: " + path.string());
+                }
+                std::ifstream file(path, std::ios::binary);
+                return reader(file);
+            }
         };
+
+        return Loader{std::move(source_path), std::move(file_name), std::move(reader)};
+    }
+
+    template <typename T>
+    auto from_data(T data)
+    {
+        struct Loader final
+        {
+        public:
+            explicit Loader(T init_data)
+                : data(std::move(init_data))
+            {
+            }
+
+            ~Loader() noexcept = default;
+            Loader(const Loader&) = default;
+            Loader(Loader&&) = default;
+            Loader& operator=(const Loader&) = default;
+            Loader& operator=(Loader&&) = default;
+
+            auto operator()(std::string_view /* tag */) const
+            {
+                return data;
+            }
+
+            auto operator()() const
+            {
+                return data;
+            }
+
+        private:
+            T data;
+        };
+
+        return Loader{std::move(data)};
     }
 
     template <typename C, typename M>
@@ -957,12 +1047,31 @@ namespace user_base
         view["y"][1] = input_data["y"][1].get<std::int64_t>() * ranges.v2;
         view["y"][2] = input_data["y"][2].get<std::int64_t>() * ranges.v3;
     }
+
+    nlohmann::json as_json(std::istream& iss)
+    {
+        return nlohmann::json::parse(iss);
+    }
+
+    Ranges as_range(std::istream& iss)
+    {
+        auto r = Ranges{};
+        auto c = char{};
+        iss >> c;
+        iss >> r.v1;
+        iss >> c;
+        iss >> r.v2;
+        iss >> c;
+        iss >> r.v3;
+        iss >> c;
+        return r;
+    }
 }
 
 int main()
 {
     using nil::xit::test::App;
-    using nil::xit::test::as_json; // TODO how about write logic?
+    using nil::xit::test::from_data;
     using nil::xit::test::from_file;
     using nil::xit::test::from_json_ptr;
     using nil::xit::test::from_member;
@@ -977,51 +1086,48 @@ int main()
         .buffer_size = 1024ul * 1024ul * 100ul //
     });
 
-    App app(use_ws(http_server, "/ws"));
+    App app(use_ws(http_server, "/ws"), "nil-xit-gtest");
 
     set_relative_directory(app.xit, source_path);
-    set_cache_directory(app.xit, std::filesystem::temp_directory_path() / "nil-xit-gtest");
 
-    auto& main_frame = add_unique_frame(app.xit, "demo", "gui/Main.svelte");
-    // each tag should include information about what frames are included so that when loaded
-    // it can display only the important frames
-    add_value(main_frame, "tags", nlohmann::json::parse(R"(["", "a", "b"])"));
-    add_value(main_frame, "view", nlohmann::json::parse(R"(["view_frame"])"));
-    add_value(main_frame, "pane", nlohmann::json::parse(R"(["slider_frame", "input_frame"])"));
+    // TODO: move somewhere else.
+    {
+        using j = nlohmann::json;
+        auto& frame = add_unique_frame(app.xit, "demo", source_path / "gui/Main.svelte");
+        // each tag should include information about what frames are included so that when loaded
+        // it can display only the important frames
+        add_value(frame, "tags", []() { return j::parse(R"(["", "a", "b"])"); });
+        add_value(frame, "view", []() { return j::parse(R"(["view_frame"])"); });
+        add_value(frame, "pane", []() { return j::parse(R"(["slider_frame", "input_frame"])"); });
+    }
 
-    FrameBuilder frame_builder;
-    frame_builder
-        .create_tagged_input(
-            "input_frame",
-            "gui/InputFrame.svelte",
-            from_file(source_path / "files", "input_frame.json", &as_json)
-        )
-        .value("value");
-    frame_builder
-        .create_unique_input("slider_frame", "gui/Slider.svelte", Ranges{0, 0, 0}) //
-        .value("value-1", from_member(&Ranges::v1))
-        .value("value-2", from_member(&Ranges::v2))
-        .value("value-3", from_member(&Ranges::v3));
-    // example using from_json_ptr
-    // frame_builder
-    //     .create_unique_input<nlohmann::json>(
-    //         "slider_frame",
-    //         "gui/Slider.svelte",
-    //         nlohmann::json::array({0, 0, 0})
-    //     ) //
-    //     .value("value-1", from_json_ptr<std::int64_t>("/0"))
-    //     .value("value-2", from_json_ptr<std::int64_t>("/1"))
-    //     .value("value-3", from_json_ptr<std::int64_t>("/2"));
-    frame_builder.create_output("view_frame", "gui/ViewFrame.svelte", type<nlohmann::json>())
-        .value("value-x", from_json_ptr<nlohmann::json>("/x"))
-        .value("value-y", from_json_ptr<nlohmann::json>("/y"));
+    {
+        // TODO: move to static initialization (behind macro like TEST of gtest)
+        FrameBuilder frame_builder;
+        frame_builder
+            .create_tagged_input(
+                "input_frame",
+                "gui/InputFrame.svelte",
+                from_file(source_path / "files", "input_frame.json", &user_base::as_json)
+            )
+            .value("value");
+        frame_builder
+            .create_unique_input("slider_frame", "gui/Slider.svelte", from_data(Ranges{3, 2, 1}))
+            // from_file(source_path / "files", "slider_frame.json", &user_base::as_range)
+            .value("value-1", from_member(&Ranges::v1))
+            .value("value-2", from_member(&Ranges::v2))
+            .value("value-3", from_member(&Ranges::v3));
+        frame_builder.create_output("view_frame", "gui/ViewFrame.svelte", type<nlohmann::json>())
+            .value("value-x", from_json_ptr<nlohmann::json>("/x"))
+            .value("value-y", from_json_ptr<nlohmann::json>("/y"));
 
-    TestBuilder test_builder;
-    test_builder.add_test<user_base::Derived>("a");
-    test_builder.add_test<user_base::Derived>("b");
+        TestBuilder test_builder;
+        test_builder.add_test<user_base::Derived>("a");
+        test_builder.add_test<user_base::Derived>("b");
 
-    frame_builder.install(app);
-    test_builder.install(app);
+        frame_builder.install(app);
+        test_builder.install(app);
+    }
 
     // TODO:
     //  - test api for registering the input/output frames

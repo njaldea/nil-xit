@@ -22,6 +22,10 @@ namespace nil::xit
         std::filesystem::path cache_location;
         std::optional<std::filesystem::path> directory;
         std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>> frames;
+        // this mutex is to safe guard subscriber tracking
+        // this is going to be "solved" if nil/service allows dispatching of callbacks to the
+        // messaging thread if post is ran only in messaging thread, this is going to be threadsafe
+        // by default
         std::mutex mutex;
     };
 }

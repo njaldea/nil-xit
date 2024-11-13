@@ -26,8 +26,8 @@ namespace nil::xit::unique
     {
         Frame* frame;
         std::string id;
-        T value;
-        std::function<void(const T&)> on_change;
+        std::function<T()> getter;
+        std::function<void(const T&)> setter;
     };
 
     template <>
@@ -35,8 +35,8 @@ namespace nil::xit::unique
     {
         Frame* frame;
         std::string id;
-        std::string value;
-        std::function<void(std::string_view)> on_change;
+        std::function<std::string()> getter;
+        std::function<void(std::string_view)> setter;
     };
 
     template <>
@@ -44,8 +44,8 @@ namespace nil::xit::unique
     {
         Frame* frame;
         std::string id;
-        std::vector<std::uint8_t> value;
-        std::function<void(std::span<const std::uint8_t>)> on_change;
+        std::function<std::vector<std::uint8_t>()> getter;
+        std::function<void(std::span<const std::uint8_t>)> setter;
     };
 
     template <typename T>

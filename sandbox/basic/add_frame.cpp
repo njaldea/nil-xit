@@ -15,7 +15,7 @@ nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core)
     auto& value = add_value(
         frame,
         "value_0_1",
-        "hello world",
+        []() { return std::string("hello world"); },
         [](std::string_view new_value) { std::cout << "value changed: " << new_value << std::endl; }
     );
     add_signal(
@@ -82,11 +82,17 @@ void add_group(nil::xit::Core& core)
 void add_json_editor(nil::xit::Core& core)
 {
     auto& frame = add_unique_frame(core, "json_editor", "gui/JsonEditor.svelte");
+    auto json = std::make_shared<JSON>();
+    json->buffer = R"({ "hello": "hello this is buffer" })";
     add_value(
         frame,
         "json_value",
-        JSON{.buffer = R"({ "hello": "hello this is buffer" })"},
-        [](const JSON& v) { std::cout << v.buffer << std::endl; }
+        [json]() { return *json; },
+        [json](const JSON& v)
+        {
+            *json = v;
+            std::cout << v.buffer << std::endl;
+        }
     );
 }
 

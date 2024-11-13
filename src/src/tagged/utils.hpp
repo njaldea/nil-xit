@@ -6,6 +6,7 @@
 
 #include <nil/service/concat.hpp>
 
+#include <ranges>
 #include <type_traits>
 
 namespace nil::xit::tagged
@@ -95,16 +96,11 @@ namespace nil::xit::tagged
     {
         constexpr auto get_fid = [](auto& x_value, auto i_tag, auto& ex_tag)
         {
-            std::vector<nil::service::ID> ret;
+            const auto not_ex_tag = [ex_tag](const auto& sub_id) { return ex_tag != sub_id; };
             auto _ = std::lock_guard(x_value.frame->core->mutex);
             auto& subscribers = x_value.frame->subscribers[std::string(i_tag)];
-            std::copy_if(
-                subscribers.begin(),
-                subscribers.end(),
-                std::back_inserter(ret),
-                [&](const nil::service::ID& sub_id) { return sub_id != ex_tag; }
-            );
-            return ret;
+            auto view = subscribers | std::ranges::views::filter(not_ex_tag);
+            return std::vector<nil::service::ID>(view.begin(), view.end());
         };
         if constexpr (std::is_same_v<T, bool>)
         {
@@ -112,8 +108,7 @@ namespace nil::xit::tagged
             {
                 value.setter(tag, msg.value_boolean());
             }
-            auto ids = get_fid(value, tag, id);
-            if (!ids.empty())
+            if (const auto ids = get_fid(value, tag, id); !ids.empty())
             {
                 post_impl(tag, value, msg.value_boolean(), ids);
             }
