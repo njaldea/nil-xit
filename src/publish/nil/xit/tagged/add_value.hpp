@@ -128,7 +128,7 @@ namespace nil::xit::tagged
 
     template <typename Getter, typename Setter>
         requires(impl::has_codec<impl::return_t<Getter>>)
-    auto&& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
+    auto& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
     {
         using type = impl::return_t<Getter>;
         auto& obj = impl::add_value(

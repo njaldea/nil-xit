@@ -4,7 +4,8 @@
 
     const { values } = xit();
 
-    const value = values.json("value", null, json_string);
+    const value_x = values.json("value-x", null, json_string);
+    const value_y = values.json("value-y", null, json_string);
 
     const plot_it = (target, props) => {
         window.Plotly.newPlot(target, props);
@@ -24,8 +25,8 @@
     <title>nil - xit - view</title>
 </svelte:head>
 
-{#if $value != null}
-    <div use:plot_it={[$value]}></div>
+{#if $value_x != null && $value_y != null}
+    <div use:plot_it={[{ x: $value_x, y:$value_y, type: "bar"}]}></div>
 {/if}
 
 <style>
