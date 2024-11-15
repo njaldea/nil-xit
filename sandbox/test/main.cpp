@@ -1,22 +1,16 @@
 #include <filesystem>
-#include <nil/xit.hpp>
 
-#include <nil/gate.hpp>
-#include <nil/gate/bias/nil.hpp>
-#include <nil/gate/runners/NonBlocking.hpp>
+#include "xit_gtest.hpp" // IWYU pragma: keep
 
 #include <nlohmann/json.hpp>
 
-#include <fstream>
 #include <iostream>
 #include <string_view>
-#include <tuple>
-#include <type_traits>
-#include <unordered_map>
 #include <utility>
 
 namespace nil::xit
 {
+    // this is necessary when publishing a custom data through the network going to the UI
     template <>
     struct buffer_type<nlohmann::json>
     {
@@ -33,1111 +27,164 @@ namespace nil::xit
     };
 }
 
-namespace nil::xit::test
-{
-    namespace transparent
-    {
-        struct Hash
-        {
-            using is_transparent = void;
-
-            std::size_t operator()(std::string_view s) const
-            {
-                return std::hash<std::string_view>()(s);
-            }
-        };
-
-        struct Equal
-        {
-            using is_transparent = void;
-
-            bool operator()(std::string_view l, std::string_view r) const
-            {
-                return l == r;
-            }
-        };
-
-        template <typename T>
-        using hash_map = std::unordered_map<std::string, T, Hash, Equal>;
-    }
-
-    struct RerunTag
-    {
-        bool operator==(const RerunTag& /* o */) const
-        {
-            return false;
-        }
-    };
-
-    namespace frame
-    {
-        struct IInfo
-        {
-            IInfo() = default;
-            IInfo(IInfo&&) = delete;
-            IInfo(const IInfo&) = delete;
-            IInfo& operator=(IInfo&&) = delete;
-            IInfo& operator=(const IInfo&) = delete;
-            virtual ~IInfo() = default;
-        };
-
-        namespace input
-        {
-            template <typename T>
-            struct Info: IInfo
-            {
-                using type = T;
-
-                virtual nil::gate::edges::Compatible<T> get_input(std::string_view tag) = 0;
-                virtual void init_input(std::string_view tag) = 0;
-            };
-
-            namespace unique
-            {
-                template <typename T>
-                struct Info: input::Info<T>
-                {
-                    nil::xit::unique::Frame* frame = nullptr;
-                    nil::gate::Core* gate = nullptr;
-                    std::function<T()> initializer;
-
-                    struct
-                    {
-                        std::optional<T> data;
-                        nil::gate::edges::Mutable<T>* input = nullptr;
-                    } info;
-
-                    nil::gate::edges::Compatible<T> get_input(std::string_view /* tag */) override
-                    {
-                        return info.input;
-                    }
-
-                    void init_input(std::string_view /* tag */) override
-                    {
-                        if (info.input == nullptr)
-                        {
-                            info.input = gate->edge<T>();
-                        }
-                    }
-
-                    template <typename V, typename Getter, typename Setter>
-                        requires requires(Getter g, Setter s) {
-                            { g(std::declval<const T&>()) } -> std::same_as<V>;
-                            { s(std::declval<T&>(), std::declval<V>()) } -> std::same_as<void>;
-                        }
-                    void add_value(std::string id, Getter getter, Setter setter)
-                    {
-                        nil::xit::unique::add_value(
-                            *frame,
-                            id,
-                            [this, getter = std::move(getter)]()
-                            {
-                                if (!info.data.has_value())
-                                {
-                                    info.data = this->initializer();
-                                    info.input->set_value(info.data.value());
-                                    gate->commit();
-                                }
-                                return getter(info.data.value());
-                            },
-                            [this, setter = std::move(setter)](V new_data)
-                            {
-                                setter(info.data.value(), std::move(new_data));
-                                info.input->set_value(info.data.value());
-                                gate->commit();
-                            }
-                        );
-                    }
-                };
-            }
-
-            namespace tagged
-            {
-                template <typename T>
-                struct Info: input::Info<T>
-                {
-                    struct Entry
-                    {
-                        std::optional<T> data;
-                        nil::gate::edges::Mutable<T>* input = nullptr;
-                    };
-
-                    nil::xit::tagged::Frame* frame = nullptr;
-                    nil::gate::Core* gate = nullptr;
-                    std::function<T(std::string_view)> initializer;
-                    transparent::hash_map<Entry> info;
-
-                    nil::gate::edges::Compatible<T> get_input(std::string_view tag) override
-                    {
-                        if (const auto it = info.find(tag); it != info.end())
-                        {
-                            return it->second.input;
-                        }
-                        return nullptr;
-                    }
-
-                    void init_input(std::string_view tag) override
-                    {
-                        info.emplace(tag, typename Info<T>::Entry{std::nullopt, gate->edge<T>()});
-                    }
-
-                    template <typename V, typename Getter, typename Setter>
-                        requires requires(Getter g, Setter s) {
-                            { g(std::declval<const T&>()) } -> std::same_as<V>;
-                            { s(std::declval<T&>(), std::declval<V>()) } -> std::same_as<void>;
-                        }
-                    void add_value(std::string id, Getter getter, Setter setter)
-                    {
-                        nil::xit::tagged::add_value(
-                            *frame,
-                            id,
-                            [this, getter = std::move(getter)](std::string_view tag)
-                            {
-                                if (auto it = info.find(tag); it != info.end())
-                                {
-                                    auto& entry = it->second;
-                                    if (!entry.data.has_value())
-                                    {
-                                        entry.data = initializer(tag);
-                                        entry.input->set_value(entry.data.value());
-                                        gate->commit();
-                                    }
-                                    return getter(entry.data.value());
-                                }
-                                return V();
-                            },
-                            [this, setter = std::move(setter)](std::string_view tag, V new_data)
-                            {
-                                if (auto it = info.find(tag); it != info.end())
-                                {
-                                    auto& entry = it->second;
-                                    setter(entry.data.value(), std::move(new_data));
-                                    entry.input->set_value(entry.data.value());
-                                    gate->commit();
-                                }
-                            }
-                        );
-                    }
-                };
-            }
-        }
-
-        namespace output
-        {
-            template <typename T>
-            struct Info: IInfo
-            {
-                using type = T;
-                nil::xit::tagged::Frame* frame = nullptr;
-                transparent::hash_map<nil::gate::edges::Mutable<RerunTag>*> rerun;
-                std::vector<std::function<void(std::string_view, const T&)>> values;
-
-                template <typename V, typename Getter>
-                    requires requires(Getter g) {
-                        { g(std::declval<const T&>()) } -> std::same_as<V>;
-                    }
-                void add_value(std::string id, Getter getter)
-                {
-                    auto* value = &nil::xit::tagged::add_value(
-                        *frame,
-                        id,
-                        [](std::string_view /* tag */) { return V(); }
-                    );
-                    values.push_back( //
-                        [value, getter = std::move(getter)](std::string_view tag, const T& data)
-                        { nil::xit::tagged::post(tag, *value, getter(data)); }
-                    );
-                }
-            };
-        }
-    }
-
-    template <typename... T>
-        requires(std::is_same_v<T, std::remove_cvref_t<T>> && ...)
-    struct type
-    {
-    };
-
-    template <size_t N>
-    struct StringLiteral
-    {
-        // NOLINTNEXTLINE
-        constexpr StringLiteral(const char (&str)[N])
-        {
-            std::copy_n(&str[0], N, &value[0]);
-        }
-
-        // NOLINTNEXTLINE
-        char value[N];
-    };
-
-    template <typename T, StringLiteral S>
-        requires(std::is_same_v<T, std::remove_cvref_t<T>>)
-    struct Frame
-    {
-        using type = T;
-    };
-
-    struct App
-    {
-        explicit App(nil::service::S service, std::string_view app_name)
-            : xit(nil::xit::make_core(service))
-        {
-            gate.set_runner<nil::gate::runners::NonBlocking>();
-            on_ready(service, [this]() { gate.commit(); });
-            set_cache_directory(xit, std::filesystem::temp_directory_path() / app_name);
-        }
-
-        ~App() noexcept = default;
-        App(App&&) = delete;
-        App(const App&) = delete;
-        App& operator=(App&&) = delete;
-        App& operator=(const App&) = delete;
-
-        template <typename Callable, typename... Inputs>
-        void add_node(
-            std::string_view tag,
-            Callable callable,
-            std::tuple<Inputs...> inputs,
-            std::tuple<> /* outputs */
-        )
-        {
-            std::apply([&](auto*... input) { (input->add_tag(tag), ...); }, inputs);
-            gate.node(
-                std::move(callable),
-                std::apply(
-                    [&](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
-                    inputs
-                )
-            );
-        }
-
-        template <typename Callable, typename... Inputs, typename... Outputs>
-        void add_node(
-            std::string_view tag,
-            Callable callable,
-            std::tuple<Inputs...> inputs,
-            std::tuple<Outputs...> outputs
-        )
-        {
-            std::apply([&](auto*... input) { (input->init_input(tag), ...); }, inputs);
-            auto gate_outputs = gate.node(
-                std::move(callable),
-                std::apply(
-                    [&](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
-                    inputs
-                )
-            );
-            [&]<std::size_t... I>(std::index_sequence<I...>)
-            {
-                (([&](){
-                    auto* output = std::get<I>(outputs);
-                    using info_t = std::remove_cvref_t<decltype(*output)>;
-                    using output_t = info_t::type;
-                    const auto& [key, rerun]
-                        = *output->rerun.emplace(tag, gate.edge(RerunTag())).first;
-                    gate.node(
-                        [output, t = &key](RerunTag, const output_t& output_data)
-                        {
-                            for (const auto& value : output->values)
-                            {
-                                value(*t, output_data);
-                            }
-                        },
-                        {rerun, get<I>(gate_outputs)}
-                    );
-                    })(), ...);
-            }(std::make_index_sequence<sizeof...(Outputs)>());
-        }
-
-        template <typename T>
-        frame::input::tagged::Info<T>* add_tagged_input(
-            std::string id,
-            std::filesystem::path path,
-            std::function<T(std::string_view)> initializer
-        )
-        {
-            auto* s = make_frame<frame::input::tagged::Info<T>>(id, input_frames);
-            s->frame = &add_tagged_frame(xit, std::move(id), std::move(path));
-            s->gate = &gate;
-            s->initializer = std::move(initializer);
-            return s;
-        }
-
-        template <typename T>
-        frame::input::unique::Info<T>* add_unique_input(
-            std::string id,
-            std::filesystem::path path,
-            std::function<T()> initializer
-        )
-        {
-            auto* s = make_frame<frame::input::unique::Info<T>>(id, input_frames);
-            s->frame = &add_unique_frame(xit, std::move(id), std::move(path));
-            s->gate = &gate;
-            s->initializer = std::move(initializer);
-            return s;
-        }
-
-        template <typename T>
-        frame::output::Info<T>* add_output(std::string id, std::filesystem::path path)
-        {
-            auto* s = make_frame<frame::output::Info<T>>(id, output_frames);
-            s->frame = &add_tagged_frame(
-                xit,
-                std::move(id),
-                std::move(path),
-                [s, g = &this->gate](std::string_view tag)
-                {
-                    if (const auto it = s->rerun.find(tag); it != s->rerun.end())
-                    {
-                        it->second->set_value({});
-                        g->commit();
-                    }
-                }
-            );
-            return s;
-        }
-
-        template <typename T>
-        T* make_frame(std::string_view id, auto& frames)
-        {
-            auto t = std::make_unique<T>();
-            auto p = t.get();
-            frames.emplace(id, std::move(t));
-            return p;
-        }
-
-        template <typename T, StringLiteral S>
-        frame::input::Info<T>* get_input(type<Frame<T, S>> /* type */) const
-        {
-            if (auto it = input_frames.find(std::string_view(&S.value[0]));
-                it != input_frames.end())
-            {
-                return static_cast<frame::input::Info<T>*>(it->second.get());
-            }
-            return nullptr;
-        }
-
-        template <typename T, StringLiteral S>
-        frame::output::Info<T>* get_output(type<Frame<T, S>> /* type */) const
-        {
-            if (auto it = output_frames.find(std::string_view(&S.value[0]));
-                it != output_frames.end())
-            {
-                return static_cast<frame::output::Info<T>*>(it->second.get());
-            }
-            return nullptr;
-        }
-
-        // TODO: need to move out creation of demo/index frame, cache and relative path
-        nil::xit::C xit; // NOLINT
-
-    private:
-        nil::gate::Core gate;
-
-        transparent::hash_map<std::unique_ptr<frame::IInfo>> input_frames;
-        transparent::hash_map<std::unique_ptr<frame::IInfo>> output_frames;
-    };
-
-    template <typename... T>
-    struct InputFrames;
-    template <typename... T>
-    struct OutputFrames;
-
-    template <typename... T>
-    struct Inputs
-    {
-        std::tuple<const T* const...> data;
-    };
-
-    template <typename... T>
-    struct Outputs
-    {
-        std::tuple<T* const...> data;
-    };
-
-    template <std::size_t I, typename... T>
-        requires(I < sizeof...(T))
-    const auto& get(const Inputs<T...>& o)
-    {
-        return *std::get<I>(o.data);
-    }
-
-    template <std::size_t I, typename... T>
-        requires(I < sizeof...(T))
-    auto& get(Outputs<T...>& o)
-    {
-        return *std::get<I>(o.data);
-    }
-
-    template <typename P, typename I, typename O>
-    struct Test;
-
-    template <typename P, typename... I, typename... O>
-    struct Test<P, InputFrames<I...>, OutputFrames<O...>>
-    {
-        Test() = default;
-        virtual ~Test() noexcept = default;
-        Test(Test&&) = delete;
-        Test(const Test&) = delete;
-        Test& operator=(Test&&) = delete;
-        Test& operator=(const Test&) = delete;
-
-        using base_t = Test<P, InputFrames<I...>, OutputFrames<O...>>;
-        using inputs_t = Inputs<typename I::type...>;
-        using outputs_t = Outputs<typename O::type...>;
-
-        virtual void setup() {};
-        virtual void teardown() {};
-        virtual void run(const inputs_t& xit_inputs, outputs_t& xit_outputs) = 0;
-    };
-
-    template <typename P, typename... I, typename... O>
-    void install(
-        App& a,
-        std::string_view tag,
-        type<Test<P, InputFrames<I...>, OutputFrames<O...>>> /* type */
-    )
-    {
-        using base_t = Test<P, InputFrames<I...>, OutputFrames<O...>>;
-        a.add_node(
-            tag,
-            [](const typename I::type&... args) -> std::tuple<typename O::type...>
-            {
-                using inputs_t = typename base_t::inputs_t;
-                using outputs_t = typename base_t::outputs_t;
-                std::tuple<typename O::type...> result;
-                P p;
-                p.setup();
-                auto inputs = inputs_t{{&args...}};
-                auto outputs = std::apply([](auto&... o) { return outputs_t{{&o...}}; }, result);
-                p.run(inputs, outputs);
-                p.teardown();
-                return result;
-            },
-            std::make_tuple(a.get_input(type<I>())...), // NOLINT
-            std::make_tuple(a.get_output(type<O>())...) // NOLINT
-        );
-    }
-
-    namespace builders
-    {
-        template <typename Accessor, typename T>
-        concept is_compatible_accessor = requires(const Accessor& accessor) {
-            {
-                accessor.set(
-                    std::declval<T&>(),
-                    std::declval<decltype(accessor.get(std::declval<const T&>()))>()
-                )
-            } -> std::same_as<void>;
-        };
-        template <typename Getter, typename Setter, typename T>
-        concept is_compatible_getter_setter = requires(Getter getter, Setter setter) {
-            {
-                setter(
-                    std::declval<T&>(),
-                    std::declval<decltype(getter(std::declval<const T&>()))>()
-                )
-            } -> std::same_as<void>;
-        };
-
-        struct IFrame
-        {
-            virtual ~IFrame() = default;
-            IFrame() = default;
-            IFrame(IFrame&&) = delete;
-            IFrame(const IFrame&) = delete;
-            IFrame& operator=(IFrame&&) = delete;
-            IFrame& operator=(const IFrame&) = delete;
-            virtual void install(App& app) = 0;
-        };
-
-        namespace input
-        {
-            namespace tagged
-            {
-                template <typename T>
-                struct Frame final: IFrame
-                {
-                    Frame(
-                        std::string init_id,
-                        std::filesystem::path init_file,
-                        std::function<T(std::string_view)> init_initializer
-                    )
-                        : IFrame()
-                        , id(std::move(init_id))
-                        , file(std::move(init_file))
-                        , initializer(std::move(init_initializer))
-                    {
-                    }
-
-                    void install(App& app) override
-                    {
-                        auto* frame = app.add_tagged_input(id, file, initializer);
-                        for (const auto& value_installer : values)
-                        {
-                            value_installer(*frame);
-                        }
-                    }
-
-                    template <typename Getter, typename Setter>
-                        requires(is_compatible_getter_setter<Getter, Setter, T>)
-                    Frame<T>& value(std::string value_id, Getter getter, Setter setter)
-                    {
-                        using type
-                            = std::remove_cvref_t<decltype(getter(std::declval<const T&>()))>;
-                        values.emplace_back(
-                            [value_id = std::move(value_id),
-                             getter = std::move(getter),
-                             setter = std::move(setter)](frame::input::tagged::Info<T>& info) {
-                                info.template add_value<type>(
-                                    value_id,
-                                    std::move(getter),
-                                    std::move(setter)
-                                );
-                            }
-                        );
-                        return *this;
-                    }
-
-                    template <is_compatible_accessor<T> Accessor>
-                    Frame<T>& value(std::string value_id, Accessor accessor)
-                    {
-                        using type = decltype(accessor.get(std::declval<const T&>()));
-                        return value(
-                            std::move(value_id),
-                            [accessor](const T& value) { return accessor.get(value); },
-                            [accessor](T& value, type new_value)
-                            { return accessor.set(value, std::move(new_value)); }
-                        );
-                    }
-
-                    Frame<T>& value(std::string value_id)
-                    {
-                        return value(
-                            std::move(value_id),
-                            [](const T& value) { return value; },
-                            [](T& value, T new_value) { value = std::move(new_value); }
-                        );
-                    }
-
-                    std::string id;
-                    std::filesystem::path file;
-                    std::function<T(std::string_view)> initializer;
-                    std::vector<std::function<void(frame::input::tagged::Info<T>&)>> values;
-                };
-            }
-
-            namespace unique
-            {
-                template <typename T>
-                struct Frame final: IFrame
-                {
-                    Frame(
-                        std::string init_id,
-                        std::filesystem::path init_file,
-                        std::function<T()> init_initializer
-                    )
-                        : IFrame()
-                        , id(std::move(init_id))
-                        , file(std::move(init_file))
-                        , initializer(std::move(init_initializer))
-                    {
-                    }
-
-                    void install(App& app) override
-                    {
-                        auto* frame = app.add_unique_input(id, file, initializer);
-                        for (const auto& value_installer : values)
-                        {
-                            value_installer(*frame);
-                        }
-                    }
-
-                    template <typename Getter, typename Setter>
-                        requires(is_compatible_getter_setter<Getter, Setter, T>)
-                    Frame<T>& value(std::string value_id, Getter getter, Setter setter)
-                    {
-                        using type = decltype(getter(std::declval<const T&>()));
-                        values.emplace_back(
-                            [value_id = std::move(value_id),
-                             getter = std::move(getter),
-                             setter = std::move(setter)](frame::input::unique::Info<T>& info) {
-                                info.template add_value<type>(
-                                    value_id,
-                                    std::move(getter),
-                                    std::move(setter)
-                                );
-                            }
-                        );
-                        return *this;
-                    }
-
-                    template <is_compatible_accessor<T> Accessor>
-                    Frame<T>& value(std::string value_id, Accessor accessor)
-                    {
-                        using type = decltype(accessor.get(std::declval<const T&>()));
-                        return value(
-                            std::move(value_id),
-                            [accessor](const T& value) { return accessor.get(value); },
-                            [accessor](T& value, type new_value)
-                            { return accessor.set(value, std::move(new_value)); }
-                        );
-                    }
-
-                    Frame<T>& value(std::string value_id)
-                    {
-                        return value(
-                            std::move(value_id),
-                            [](const T& value) { return value; },
-                            [](T& value, T new_value) { value = std::move(new_value); }
-                        );
-                    }
-
-                    std::string id;
-                    std::filesystem::path file;
-                    std::function<T()> initializer;
-                    std::vector<std::function<void(frame::input::unique::Info<T>&)>> values;
-                };
-            }
-        }
-
-        namespace output
-        {
-            template <typename T>
-            struct Frame final: IFrame
-            {
-                Frame(std::string init_id, std::filesystem::path init_file)
-                    : IFrame()
-                    , id(std::move(init_id))
-                    , file(std::move(init_file))
-                {
-                }
-
-                void install(App& app) override
-                {
-                    auto* frame = app.add_output<T>(id, file);
-                    for (const auto& value_installer : values)
-                    {
-                        value_installer(*frame);
-                    }
-                }
-
-                template <typename Getter>
-                Frame<T>& value(std::string value_id, Getter getter)
-                {
-                    using type = std::remove_cvref_t<decltype(getter(std::declval<const T&>()))>;
-                    values.emplace_back(
-                        [value_id = std::move(value_id),
-                         getter = std::move(getter)](frame::output::Info<T>& info)
-                        { info.template add_value<type>(value_id, std::move(getter)); }
-                    );
-                    return *this;
-                }
-
-                template <is_compatible_accessor<T> Accessor>
-                Frame<T>& value(std::string value_id, Accessor accessor)
-                {
-                    return value(
-                        std::move(value_id),
-                        [accessor](const T& value) { return accessor.get(value); }
-                    );
-                }
-
-                Frame<T>& value(std::string value_id)
-                {
-                    return value(std::move(value_id), [](const T& value) { return value; });
-                }
-
-                std::string id;
-                std::filesystem::path file;
-                std::vector<std::function<void(frame::output::Info<T>&)>> values;
-            };
-        }
-
-        struct FrameBuilder
-        {
-            template <typename Initializer>
-                requires requires(Initializer initializer) {
-                    { initializer(std::declval<std::string_view>()) };
-                }
-            auto& create_tagged_input(
-                std::string id,
-                std::filesystem::path file,
-                Initializer initializer
-            )
-            {
-                using type = decltype(initializer(std::declval<std::string_view>()));
-                auto ptr = std::make_unique<input::tagged::Frame<type>>(
-                    std::move(id),
-                    file,
-                    std::move(initializer)
-                );
-
-                auto* raw_ptr = ptr.get();
-                frames.emplace_back(std::move(ptr));
-                return *raw_ptr;
-            }
-
-            template <typename Initializer>
-                requires requires(Initializer initializer) {
-                    { initializer() };
-                }
-            auto& create_unique_input(
-                std::string id,
-                std::filesystem::path file,
-                Initializer initializer
-            )
-            {
-                using type = decltype(initializer());
-                auto ptr = std::make_unique<input::unique::Frame<type>>(
-                    std::move(id),
-                    file,
-                    std::move(initializer)
-                );
-
-                auto* raw_ptr = ptr.get();
-                frames.emplace_back(std::move(ptr));
-                return *raw_ptr;
-            }
-
-            template <typename T>
-            auto& create_output(
-                std::string id,
-                std::filesystem::path file,
-                test::type<T> /* type */ = {}
-            )
-            {
-                auto ptr = std::make_unique<output::Frame<T>>(std::move(id), file);
-
-                auto* raw_ptr = ptr.get();
-                frames.emplace_back(std::move(ptr));
-                return *raw_ptr;
-            }
-
-            void install(App& app)
-            {
-                for (const auto& frame : frames)
-                {
-                    frame->install(app);
-                }
-            }
-
-            std::vector<std::unique_ptr<IFrame>> frames;
-        };
-
-        struct TestBuilder
-        {
-            template <typename T>
-            void add_test(std::string tag)
-            {
-                tests.emplace_back(
-                    [tag = std::move(tag)](App& app)
-                    { nil::xit::test::install(app, tag, type<typename T::base_t>()); }
-                );
-            }
-
-            void install(App& app)
-            {
-                for (const auto& t : tests)
-                {
-                    t(app);
-                }
-            }
-
-            std::vector<std::function<void(App&)>> tests;
-        };
-    }
-
-    template <typename Reader>
-        requires requires(Reader reader) {
-            { reader(std::declval<std::istream&>()) };
-        }
-    auto from_file(std::filesystem::path source_path, std::string file_name, Reader reader)
-    {
-        struct Loader final
-        {
-        public:
-            Loader(
-                std::filesystem::path init_source_path,
-                std::string init_file_name,
-                Reader init_reader
-            )
-                : source_path(std::move(init_source_path))
-                , file_name(std::move(init_file_name))
-                , reader(std::move(init_reader))
-            {
-            }
-
-            ~Loader() noexcept = default;
-            Loader(const Loader&) = default;
-            Loader(Loader&&) = default;
-            Loader& operator=(const Loader&) = default;
-            Loader& operator=(Loader&&) = default;
-
-            auto operator()(std::string_view tag) const
-            {
-                return load(source_path / tag / file_name);
-            }
-
-            auto operator()() const
-            {
-                return load(source_path / file_name);
-            }
-
-        private:
-            std::filesystem::path source_path;
-            std::string file_name;
-            Reader reader;
-
-            auto load(const std::filesystem::path& path) const
-            {
-                if (!std::filesystem::exists(path))
-                {
-                    throw std::runtime_error("not found: " + path.string());
-                }
-                std::ifstream file(path, std::ios::binary);
-                return reader(file);
-            }
-        };
-
-        return Loader{std::move(source_path), std::move(file_name), std::move(reader)};
-    }
-
-    template <typename T>
-    auto from_data(T data)
-    {
-        struct Loader final
-        {
-        public:
-            explicit Loader(T init_data)
-                : data(std::move(init_data))
-            {
-            }
-
-            ~Loader() noexcept = default;
-            Loader(const Loader&) = default;
-            Loader(Loader&&) = default;
-            Loader& operator=(const Loader&) = default;
-            Loader& operator=(Loader&&) = default;
-
-            auto operator()(std::string_view /* tag */) const
-            {
-                return data;
-            }
-
-            auto operator()() const
-            {
-                return data;
-            }
-
-        private:
-            T data;
-        };
-
-        return Loader{std::move(data)};
-    }
-
-    template <typename C, typename M>
-    auto from_member(M C::*member_ptr)
-    {
-        struct Accessor
-        {
-            M get(const C& data) const
-            {
-                return data.*member_ptr;
-            }
-
-            void set(C& data, M new_data) const
-            {
-                data.*member_ptr = std::move(new_data);
-            }
-
-            M C::*member_ptr;
-        };
-
-        return Accessor{member_ptr};
-    }
-
-    template <typename T>
-    auto from_json_ptr(const std::string& json_ptr)
-    {
-        struct Accessor
-        {
-            T get(const nlohmann::json& data) const
-            {
-                return data[json_ptr];
-            }
-
-            void set(nlohmann::json& data, T new_data) const
-            {
-                data[json_ptr] = std::move(new_data);
-            }
-
-            nlohmann::json::json_pointer json_ptr;
-        };
-
-        return Accessor{nlohmann::json::json_pointer(json_ptr)};
-    }
-}
-
-template <typename... T>
-struct std::tuple_size<nil::xit::test::Inputs<T...>>
-    : std::integral_constant<std::size_t, sizeof...(T)>
-{
-};
-
-template <typename... T>
-struct std::tuple_size<nil::xit::test::Outputs<T...>>
-    : std::integral_constant<std::size_t, sizeof...(T)>
-{
-};
-
-template <std::size_t I, typename... T>
-    requires(I < sizeof...(T))
-struct std::tuple_element<I, nil::xit::test::Inputs<T...>>
-{
-    using type = decltype(*std::get<I>(std::declval<nil::xit::test::Inputs<T...>>().data));
-};
-
-template <std::size_t I, typename... T>
-    requires(I < sizeof...(T))
-struct std::tuple_element<I, nil::xit::test::Outputs<T...>>
-{
-    using type = decltype(*std::get<I>(std::declval<nil::xit::test::Outputs<T...>>().data));
-};
-
 struct Ranges
 {
     std::int64_t v1;
     std::int64_t v2;
     std::int64_t v3;
 
+    // necessary for nil::gate edge dirty mechanism.
     bool operator==(const Ranges& o) const
     {
         return v1 == o.v1 && v2 == o.v2 && v3 == o.v3;
     }
 };
 
-namespace user_base
+nlohmann::json as_json(std::istream& iss)
 {
-    using namespace nil::xit::test;
-
-    using InputFrame = Frame<nlohmann::json, "input_frame">;
-    using SliderFrame = Frame<Ranges, "slider_frame">;
-    using ViewFrame = Frame<nlohmann::json, "view_frame">;
-
-    template <typename T>
-    using Test = Test<T, InputFrames<InputFrame, SliderFrame>, OutputFrames<ViewFrame>>;
-
-    struct Derived final: Test<Derived>
-    {
-        void run(const inputs_t& xit_inputs, outputs_t& xit_outputs) override;
-    };
-
-    void Derived::run(const inputs_t& xit_inputs, outputs_t& xit_outputs)
-    {
-        const auto& [input_data, ranges] = xit_inputs;
-        auto tag = std::string(input_data["x"][2]);
-        std::cout << "run (test) " << tag << std::endl;
-
-        auto& [view] = xit_outputs;
-        view = input_data;
-        view["y"][0] = input_data["y"][0].get<std::int64_t>() * ranges.v1;
-        view["y"][1] = input_data["y"][1].get<std::int64_t>() * ranges.v2;
-        view["y"][2] = input_data["y"][2].get<std::int64_t>() * ranges.v3;
-    }
-
-    nlohmann::json as_json(std::istream& iss)
-    {
-        return nlohmann::json::parse(iss);
-    }
-
-    Ranges as_range(std::istream& iss)
-    {
-        auto r = Ranges{};
-        auto c = char{};
-        iss >> c;
-        iss >> r.v1;
-        iss >> c;
-        iss >> r.v2;
-        iss >> c;
-        iss >> r.v3;
-        iss >> c;
-        return r;
-    }
+    return nlohmann::json::parse(iss);
 }
 
+Ranges as_range(std::istream& iss)
+{
+    auto r = Ranges{};
+    auto c = char{};
+    iss >> c;
+    iss >> r.v1;
+    iss >> c;
+    iss >> r.v2;
+    iss >> c;
+    iss >> r.v3;
+    iss >> c;
+    return r;
+}
+
+template <typename T = nlohmann::json>
+auto from_json_ptr(const std::string& json_ptr)
+{
+    struct Accessor
+    {
+        T get(const nlohmann::json& data) const
+        {
+            return data[json_ptr];
+        }
+
+        void set(nlohmann::json& data, T new_data) const
+        {
+            data[json_ptr] = std::move(new_data);
+        }
+
+        nlohmann::json::json_pointer json_ptr;
+    };
+
+    return Accessor{nlohmann::json::json_pointer(json_ptr)};
+}
+
+// temporary macro to set relative path
+XIT_USE_DIRECTORY(std::filesystem::path(__FILE__).parent_path());
+
+// This Frame Input is going to be independent for each test that requires it
+XIT_FRAME_TAGGED_INPUT(
+    "input_frame",                                               // frame id
+    "gui/InputFrame.svelte",                                     // ui file
+    nil::xit::test::from_file(                                   //
+        std::filesystem::path(__FILE__).parent_path() / "files", // file path
+        "input_frame.json",                                      // file to load
+        &as_json                                                 // how to interpret the file
+    )                                                            //
+)                                                                //
+    .value("value"); //  without additional information, the whole data owned by this frame is bound
+                     //  to "value" of the UI
+
+// This Frame Input is going to be common for all tests that requires it
+XIT_FRAME_UNIQUE_INPUT(
+    "slider_frame",                            // frame id
+    "gui/Slider.svelte",                       // ui file
+    nil::xit::test::from_data(Ranges{3, 2, 1}) // initializer
+)
+    // from_file(source_path / "files", "slider_frame.json", &as_range)
+    // value-1 is bound to v1 property of Ranges object that is owned by this frame
+    .value("value-1", nil::xit::test::from_member(&Ranges::v1))
+    .value("value-2", nil::xit::test::from_member(&Ranges::v2))
+    .value("value-3", nil::xit::test::from_member(&Ranges::v3));
+
+// This Frame Output is going to be specific for each test.
+XIT_FRAME_OUTPUT(
+    "view_frame",           // frame id
+    "gui/ViewFrame.svelte", // ui file
+    nlohmann::json          // type of the output
+)
+    // value-x is bound to the data referred by the json pointer below
+    .value("value-x", from_json_ptr("/x"))
+    .value("value-y", from_json_ptr("/y"));
+
+// These are frames available as registered above. There will be runtime check for type
+// matching/compatibility.
+// TODO: can this be done differently?
+using InputFrame = nil::xit::test::Frame<nlohmann::json, "input_frame">;
+using SliderFrame = nil::xit::test::Frame<Ranges, "slider_frame">;
+using ViewFrame = nil::xit::test::Frame<nlohmann::json, "view_frame">;
+
+// This would be the base class of the test and will be the test suite name
+using Sample = nil::xit::test::Test<
+    nil::xit::test::InputFrames<InputFrame, SliderFrame>,
+    nil::xit::test::OutputFrames<ViewFrame>>;
+
+XIT_TEST(Sample, Demo, "files")
+{
+    // destructure to get all of the inputs
+    // order is described by "Sample" type
+    const auto& [input_data, ranges] = xit_inputs;
+
+    auto tag = std::string(input_data["x"][2]);
+    std::cout << "run (test) " << tag << std::endl;
+
+    // destructure to get all of the outputs and modify accordingly
+    // these are defaultly initialized
+    // exception handling is not yet emplaced so don't throw from test
+    auto& [view] = xit_outputs;
+    view = input_data; // copy the data and mutate as necessary
+    view["y"][0] = input_data["y"][0].get<std::int64_t>() * ranges.v1;
+    view["y"][1] = input_data["y"][1].get<std::int64_t>() * ranges.v2;
+    view["y"][2] = input_data["y"][2].get<std::int64_t>() * ranges.v3;
+}
+
+// TODO: hide this main from user
 int main()
 {
-    using nil::xit::test::App;
-    using nil::xit::test::from_data;
-    using nil::xit::test::from_file;
-    using nil::xit::test::from_json_ptr;
-    using nil::xit::test::from_member;
-    using nil::xit::test::type;
-    using nil::xit::test::builders::FrameBuilder;
-    using nil::xit::test::builders::TestBuilder;
-
     const auto source_path = std::filesystem::path(__FILE__).parent_path();
     const auto http_server = nil::xit::make_server({
         .source_path = source_path.parent_path() / "node_modules/@nil-/xit",
         .port = 1101,
         .buffer_size = 1024ul * 1024ul * 100ul //
     });
+    nil::xit::test::App app(use_ws(http_server, "/ws"), "nil-xit-gtest");
 
-    App app(use_ws(http_server, "/ws"), "nil-xit-gtest");
-
-    set_relative_directory(app.xit, source_path);
-
-    // TODO: move somewhere else.
+    // TODO: make this dynamic so it can add tests on demand and modify the pane/view dependening on
+    // the test that is loaded.
+    //  This is going to be not visible to the end user
     {
         using j = nlohmann::json;
         auto& frame = add_unique_frame(app.xit, "demo", source_path / "gui/Main.svelte");
-        // each tag should include information about what frames are included so that when loaded
-        // it can display only the important frames
-        add_value(frame, "tags", []() { return j::parse(R"(["", "a", "b"])"); });
+        add_value(
+            frame,
+            "tags",
+            []() { return j::array({"", "Sample.Demo[a]", "Sample.Demo[b]"}); }
+        );
         add_value(frame, "view", []() { return j::parse(R"(["view_frame"])"); });
         add_value(frame, "pane", []() { return j::parse(R"(["slider_frame", "input_frame"])"); });
     }
 
+    // installation step. will not be visible to the end user.
     {
-        // TODO: move to static initialization (behind macro like TEST of gtest)
-        FrameBuilder frame_builder;
-        frame_builder
-            .create_tagged_input(
-                "input_frame",
-                "gui/InputFrame.svelte",
-                from_file(source_path / "files", "input_frame.json", &user_base::as_json)
-            )
-            .value("value");
-        frame_builder
-            .create_unique_input("slider_frame", "gui/Slider.svelte", from_data(Ranges{3, 2, 1}))
-            // from_file(source_path / "files", "slider_frame.json", &user_base::as_range)
-            .value("value-1", from_member(&Ranges::v1))
-            .value("value-2", from_member(&Ranges::v2))
-            .value("value-3", from_member(&Ranges::v3));
-        frame_builder.create_output("view_frame", "gui/ViewFrame.svelte", type<nlohmann::json>())
-            .value("value-x", from_json_ptr<nlohmann::json>("/x"))
-            .value("value-y", from_json_ptr<nlohmann::json>("/y"));
-
-        TestBuilder test_builder;
-        test_builder.add_test<user_base::Derived>("a");
-        test_builder.add_test<user_base::Derived>("b");
-
-        frame_builder.install(app);
-        test_builder.install(app);
+        auto& instance = nil::xit::gtest::get_instance();
+        instance.frame_builder.install(app, instance.relative_path);
+        instance.test_builder.install(app, instance.relative_path);
     }
 
     // TODO:
-    //  - test api for registering the input/output frames
-    //  - test api for registering the node (test)
     //  - type erasure due to runtime storage
     //      - resolve in runtime if the frame is compatible to the test
-    //  - value (binding) restructuring
-    //      - only 1 value per frame is going to be forwarded to the test
-    //      - how about having multiple value bindings?
-    //          - having json path or id to collect into one json/struct?
 
     start(http_server);
     return 0;
@@ -1145,6 +192,7 @@ int main()
 
 // ISSUES:
 //  -   loading an input is lazy but once loaded, any unique frame update will trigger rerun of
-//  nodes
+//  nodes those loaded frames
 //  -   where should be the "demo" frame defined? main? static like normal frames?
 //  -   do i need signals? for an editor, probably.
+//  -   a lot of namespaces including the utility methods like (from_file, from_data)
