@@ -6,6 +6,8 @@
 
 They are not interchangeable and must be used for their purpose
 
+---
+
 ### There are 2 different types of input Frames:
 - unique
     - maybe rename to common? or universal?
@@ -13,39 +15,21 @@ They are not interchangeable and must be used for their purpose
 - tagged
     - data it holds is specialized for each test
 
+---
+
 ### Registration of input Frames requires 3 things:
 - frame id
 - file name
 - initializer
-
-Frame initializer is a callable that returns the data that the frame will hold.
-#### Currently, there are two callable creators:
-- from_file
-    - will read the file and will require the user to provide a predicate how to interpret the file
-    - this is temporary. to be revamped later to not depend on full path.
+    - either the value to be owned by the frame or,
+    - a callable that receives tag and returns the value to be owned by the frame
 
 ```cpp
-XIT_FRAME_TAGGED_INPUT(
-    "input_frame",                                               // frame id
-    "gui/InputFrame.svelte",                                     // ui file
-    nil::xit::test::from_file(                                   //
-        std::filesystem::path(__FILE__).parent_path() / "files", // file path
-        "input_frame.json",                                      // file to load
-        &as_json                                                 // how to interpret the file
-    )                                                            //
-);
+XIT_FRAME_UNIQUE_INPUT(frame_id, "ui/file.svelte", Ranges(3, 2, 1));
+XIT_FRAME_UNIQUE_INPUT(frame_id, "ui/file.svelte", [](std::string_view tag){ return Ranges(3, 2, 1); });
 ```
 
-- from_data
-    - will just use the data provided to it
-
-```cpp
-XIT_FRAME_UNIQUE_INPUT(
-    "slider_frame",                            // frame id
-    "gui/Slider.svelte",                       // ui file
-    nil::xit::test::from_data(Ranges{3, 2, 1}) // initializer
-)
-```
+---
 
 ### Registration of output frames requries 3 things:
 - frame id
@@ -53,12 +37,10 @@ XIT_FRAME_UNIQUE_INPUT(
 - type
 
 ```cpp
-XIT_FRAME_OUTPUT(
-    "view_frame",           // frame id
-    "gui/ViewFrame.svelte", // ui file
-    nlohmann::json          // type of the output
-);
+XIT_FRAME_OUTPUT(frame_id, "ui/file.svelte", nlohmann::json);
 ```
+
+---
 
 ### FRAME macros above provides an method to "bind" a value to the UI
 
@@ -66,29 +48,27 @@ XIT_FRAME_OUTPUT(
     - this will bind the whole data owned by the frame to the value id from the UI
 
 ```cpp
-FRAME_MACRO(...)
-    .value("value");
+FRAME_MACRO(...) // assuming this Frame owns a data of type "std::string"
+    .value("value-id");
 ```
 
 ```html
 <script>
     import { xit } from "@nil-/xit";
     const { values } = xit();
-    const buf_value = values.json('value', {}, json_string);
+    const buf_value = values.string('value-id', "default_value");
 </script>
 ```
 
-- value with getter/setter or an accessor (struct with get/set)
-    - this will bind portiong of the data owned by the frame to the value id from the UI
+- value with getter/setter
+- value with pointer to member
+- value with an accessor type (struct with get/set)
+    - these will bind portion of the data owned by the frame to the value id from the UI
 
 ```cpp
 FRAME_MACRO(...) // assuming this Frame owns a data of type "Type"
-    .value(
-        "value-1",
-        Getter /* () => int64_t */,
-        Setter /* (Type&, int64_t) => void */
-    )
-    .value("value-2", nil::xit::test::from_member(&Type::v2));
+    .value("value-1", Getter, Setter)
+    .value("value-2", &Type::v2);
 ```
 
 ```html
@@ -99,8 +79,6 @@ FRAME_MACRO(...) // assuming this Frame owns a data of type "Type"
     const value_2 = values.number('value-2', 1);
 </script>
 ```
-
-`nil::xit::test::from_member` is an accessor creator to simplify mapping for class members.
 
 There is also `from_json_ptr` from the sandbox to demonstrate mapping for json_poitners
 

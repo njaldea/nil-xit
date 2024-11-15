@@ -5,6 +5,8 @@
 - Test Case name
 - Directory location to load test tags
 
+---
+
 ### Test id will follow this format
 
 ```cpp
@@ -15,6 +17,8 @@ XIT_TEST(Base, Case, "path/here"){}
 // - b      -> Base.Case[b]
 ```
 
+---
+
 ### Base Fixture will dictate the frames it depend on
 
 ```cpp
@@ -22,7 +26,7 @@ using nil::xit::test::Test;
 using nil::xit::test::InputFrames;
 using nil::xit::test::OutputFrames;
 using nil::xit::test::Frame;
-// This would be the base class of the test and will be the test suite name
+
 using Sample = Test<
     InputFrames<
         Frame<nlohmann::json, "input_frame">,
@@ -36,6 +40,8 @@ using Sample = Test<
 
 Where the Frame is the description of the Frame Type and the Frame ID
 See Frame Registration [doc](./FRAMES.md) for more detail.
+
+---
 
 ### `xit_inputs` and `xit_outputs`
 

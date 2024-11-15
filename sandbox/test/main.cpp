@@ -1,6 +1,7 @@
 #include <filesystem>
 
 #include "xit_gtest.hpp" // IWYU pragma: keep
+#include "xit_test.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -80,68 +81,46 @@ auto from_json_ptr(const std::string& json_ptr)
     return Accessor{nlohmann::json::json_pointer(json_ptr)};
 }
 
-// temporary macro to set relative path
+using nil::xit::gtest::from_file;
+
 XIT_USE_DIRECTORY(std::filesystem::path(__FILE__).parent_path());
 
-// This Frame Input is going to be independent for each test that requires it
 XIT_FRAME_TAGGED_INPUT(
-    "input_frame",                                               // frame id
-    "gui/InputFrame.svelte",                                     // ui file
-    nil::xit::test::from_file(                                   //
-        std::filesystem::path(__FILE__).parent_path() / "files", // file path
-        "input_frame.json",                                      // file to load
-        &as_json                                                 // how to interpret the file
-    )                                                            //
-)                                                                //
-    .value("value"); //  without additional information, the whole data owned by this frame is bound
-                     //  to "value" of the UI
-
-// This Frame Input is going to be common for all tests that requires it
-XIT_FRAME_UNIQUE_INPUT(
-    "slider_frame",                            // frame id
-    "gui/Slider.svelte",                       // ui file
-    nil::xit::test::from_data(Ranges{3, 2, 1}) // initializer
+    input_frame,
+    "gui/InputFrame.svelte",
+    from_file("files", "input_frame.json", &as_json)
 )
-    // from_file(source_path / "files", "slider_frame.json", &as_range)
-    // value-1 is bound to v1 property of Ranges object that is owned by this frame
-    .value("value-1", nil::xit::test::from_member(&Ranges::v1))
-    .value("value-2", nil::xit::test::from_member(&Ranges::v2))
-    .value("value-3", nil::xit::test::from_member(&Ranges::v3));
+    .value("value");
 
-// This Frame Output is going to be specific for each test.
-XIT_FRAME_OUTPUT(
-    "view_frame",           // frame id
-    "gui/ViewFrame.svelte", // ui file
-    nlohmann::json          // type of the output
-)
-    // value-x is bound to the data referred by the json pointer below
+XIT_FRAME_UNIQUE_INPUT(slider_frame, "gui/Slider.svelte", Ranges(3, 2, 1))
+    .value("value-1", &Ranges::v1)
+    .value("value-2", &Ranges::v2)
+    .value("value-3", &Ranges::v3);
+
+XIT_FRAME_OUTPUT(view_frame, "gui/ViewFrame.svelte", nlohmann::json)
     .value("value-x", from_json_ptr("/x"))
     .value("value-y", from_json_ptr("/y"));
 
-// These are frames available as registered above. There will be runtime check for type
-// matching/compatibility.
-// TODO: can this be done differently?
-using InputFrame = nil::xit::test::Frame<nlohmann::json, "input_frame">;
-using SliderFrame = nil::xit::test::Frame<Ranges, "slider_frame">;
-using ViewFrame = nil::xit::test::Frame<nlohmann::json, "view_frame">;
+// TODO: will this be enough? this will require that frame registration is visible to the test.
+// if there are multiple files, is inlining the registration enough? or are there other options?
+// NOLINTNEXTLINE
+#define FRAME(X) nil::xit::test::Frame<std::remove_cvref_t<decltype(xit_test_frame_##X)>::type, #X>
 
-// This would be the base class of the test and will be the test suite name
+using InputFrame = FRAME(input_frame);
+using SliderFrame = FRAME(slider_frame);
+using ViewFrame = FRAME(view_frame);
+
 using Sample = nil::xit::test::Test<
     nil::xit::test::InputFrames<InputFrame, SliderFrame>,
     nil::xit::test::OutputFrames<ViewFrame>>;
 
 XIT_TEST(Sample, Demo, "files")
 {
-    // destructure to get all of the inputs
-    // order is described by "Sample" type
     const auto& [input_data, ranges] = xit_inputs;
 
     auto tag = std::string(input_data["x"][2]);
     std::cout << "run (test) " << tag << std::endl;
 
-    // destructure to get all of the outputs and modify accordingly
-    // these are defaultly initialized
-    // exception handling is not yet emplaced so don't throw from test
     auto& [view] = xit_outputs;
     view = input_data; // copy the data and mutate as necessary
     view["y"][0] = input_data["y"][0].get<std::int64_t>() * ranges.v1;
@@ -160,26 +139,22 @@ int main()
     });
     nil::xit::test::App app(use_ws(http_server, "/ws"), "nil-xit-gtest");
 
-    // TODO: make this dynamic so it can add tests on demand and modify the pane/view dependening on
-    // the test that is loaded.
-    //  This is going to be not visible to the end user
-    {
-        using j = nlohmann::json;
-        auto& frame = add_unique_frame(app.xit, "demo", source_path / "gui/Main.svelte");
-        add_value(
-            frame,
-            "tags",
-            []() { return j::array({"", "Sample.Demo[a]", "Sample.Demo[b]"}); }
-        );
-        add_value(frame, "view", []() { return j::parse(R"(["view_frame"])"); });
-        add_value(frame, "pane", []() { return j::parse(R"(["slider_frame", "input_frame"])"); });
-    }
-
     // installation step. will not be visible to the end user.
     {
         auto& instance = nil::xit::gtest::get_instance();
         instance.frame_builder.install(app, instance.relative_path);
         instance.test_builder.install(app, instance.relative_path);
+    }
+
+    // TODO: install like others
+    {
+        using nil::xit::test::from_data;
+        using j = nlohmann::json;
+        auto& f = add_unique_frame(app.xit, "demo", source_path / "gui/Main.svelte");
+
+        add_value(f, "tags", from_data(j(app.installed_tags())));
+        add_value(f, "view", from_data(j::array({"view_frame"})));
+        add_value(f, "pane", from_data(j::array({"slider_frame", "input_frame"})));
     }
 
     // TODO:

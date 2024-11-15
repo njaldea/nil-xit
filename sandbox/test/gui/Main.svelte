@@ -8,7 +8,7 @@
     const views = values.json("view", [], json_string);
     /** @type import("@nil-/xit").Writable<string[]> */
     const pane = values.json("pane", [], json_string);
-    let selected = 0;
+    let selected = -1;
 </script>
 
 <svelte:head>
@@ -23,7 +23,7 @@
     </select>
 
     {#key selected}
-        {#if 0 < selected && selected < $tags.length}
+        {#if 0 <= selected && selected < $tags.length}
             {@const tag = $tags[selected]}
             {@const v_actions = Promise.all($views.map(v => loader.one(v, tag)))}
             {@const p_actions = Promise.all($pane.map(v => loader.one(v, tag)))}
