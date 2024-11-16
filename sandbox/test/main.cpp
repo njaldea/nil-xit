@@ -1,10 +1,8 @@
-#include <filesystem>
-
-#include "xit_gtest.hpp" // IWYU pragma: keep
-#include "xit_test.hpp"
+#include "xit_gtest.hpp"
 
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
 #include <iostream>
 #include <string_view>
 #include <utility>
@@ -86,33 +84,24 @@ using nil::xit::gtest::from_file;
 XIT_USE_DIRECTORY(std::filesystem::path(__FILE__).parent_path());
 
 XIT_FRAME_TAGGED_INPUT(
-    input_frame,
+    "input_frame",
     "gui/InputFrame.svelte",
     from_file("files", "input_frame.json", &as_json)
 )
     .value("value");
 
-XIT_FRAME_UNIQUE_INPUT(slider_frame, "gui/Slider.svelte", Ranges(3, 2, 1))
+XIT_FRAME_UNIQUE_INPUT("slider_frame", "gui/Slider.svelte", Ranges(3, 2, 1))
     .value("value-1", &Ranges::v1)
     .value("value-2", &Ranges::v2)
     .value("value-3", &Ranges::v3);
 
-XIT_FRAME_OUTPUT(view_frame, "gui/ViewFrame.svelte", nlohmann::json)
+XIT_FRAME_OUTPUT("view_frame", "gui/ViewFrame.svelte", nlohmann::json)
     .value("value-x", from_json_ptr("/x"))
     .value("value-y", from_json_ptr("/y"));
 
-// TODO: will this be enough? this will require that frame registration is visible to the test.
-// if there are multiple files, is inlining the registration enough? or are there other options?
-// NOLINTNEXTLINE
-#define FRAME(X) nil::xit::test::Frame<std::remove_cvref_t<decltype(xit_test_frame_##X)>::type, #X>
-
-using InputFrame = FRAME(input_frame);
-using SliderFrame = FRAME(slider_frame);
-using ViewFrame = FRAME(view_frame);
-
 using Sample = nil::xit::test::Test<
-    nil::xit::test::InputFrames<InputFrame, SliderFrame>,
-    nil::xit::test::OutputFrames<ViewFrame>>;
+    nil::xit::test::Input<"input_frame", "slider_frame">,
+    nil::xit::test::Output<"view_frame">>;
 
 XIT_TEST(Sample, Demo, "files")
 {

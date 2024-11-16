@@ -3,6 +3,7 @@
 #include "xit_test.hpp"
 
 #include <filesystem>
+#include <fstream>
 
 namespace nil::xit::gtest
 {
@@ -77,11 +78,14 @@ namespace nil::xit::gtest
 
         return Loader{std::move(source_path), std::move(file_name), std::move(reader)};
     }
-
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define XIT_WRAP(A) A
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define XIT_CONCAT_D(A, B) A##B
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define XIT_CONCAT(A, B) XIT_CONCAT_D(A, B)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define XIT_TEST(SUITE, CASE, DIRECTORY)                                                           \
     struct xit_test_##SUITE##_##CASE: XIT_WRAP(SUITE)                                              \
@@ -98,18 +102,40 @@ namespace nil::xit::gtest
 
 // NOLINTNEXTLINE
 #define XIT_FRAME_TAGGED_INPUT(ID, PATH, INITIALIZER)                                              \
-    const auto& xit_test_frame_##ID                                                                \
-        = nil::xit::gtest::get_instance()                                                          \
-              .frame_builder.create_tagged_input(#ID, PATH, INITIALIZER)
+    template <>                                                                                    \
+    struct nil::xit::test::Frame<ID>                                                               \
+        : nil::xit::test::Frame<                                                                   \
+              ID,                                                                                  \
+              std::remove_cvref_t<                                                                 \
+                  decltype(nil::xit::gtest::get_instance()                                         \
+                               .frame_builder.create_tagged_input(ID, PATH, INITIALIZER))>::type>  \
+    {                                                                                              \
+    };                                                                                             \
+    const auto& XIT_CONCAT(xit_test_frame_, __COUNTER__)                                           \
+        = nil::xit::gtest::get_instance().frame_builder.create_tagged_input(ID, PATH, INITIALIZER)
+
 // NOLINTNEXTLINE
 #define XIT_FRAME_UNIQUE_INPUT(ID, PATH, INITIALIZER)                                              \
-    const auto& xit_test_frame_##ID                                                                \
-        = nil::xit::gtest::get_instance()                                                          \
-              .frame_builder.create_unique_input(#ID, PATH, INITIALIZER)
+    template <>                                                                                    \
+    struct nil::xit::test::Frame<ID>                                                               \
+        : nil::xit::test::Frame<                                                                   \
+              ID,                                                                                  \
+              std::remove_cvref_t<                                                                 \
+                  decltype(nil::xit::gtest::get_instance()                                         \
+                               .frame_builder.create_unique_input(ID, PATH, INITIALIZER))>::type>  \
+    {                                                                                              \
+    };                                                                                             \
+    const auto& XIT_CONCAT(xit_test_frame_, __COUNTER__)                                           \
+        = nil::xit::gtest::get_instance().frame_builder.create_unique_input(ID, PATH, INITIALIZER)
+
 // NOLINTNEXTLINE
 #define XIT_FRAME_OUTPUT(ID, PATH, TYPE)                                                           \
-    const auto& xit_test_frame_##ID                                                                \
-        = nil::xit::gtest::get_instance().frame_builder.create_output<TYPE>(#ID, PATH)
+    template <>                                                                                    \
+    struct nil::xit::test::Frame<ID>: nil::xit::test::Frame<ID, TYPE>                              \
+    {                                                                                              \
+    };                                                                                             \
+    const auto& XIT_CONCAT(xit_test_frame_, __COUNTER__)                                           \
+        = nil::xit::gtest::get_instance().frame_builder.create_output<TYPE>(ID, PATH)
 
 // NOLINTNEXTLINE
 #define XIT_USE_DIRECTORY(PATH)                                                                    \

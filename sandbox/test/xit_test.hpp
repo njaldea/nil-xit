@@ -6,8 +6,6 @@
 #include <nil/gate/bias/nil.hpp>
 #include <nil/gate/runners/NonBlocking.hpp>
 
-#include <fstream>
-#include <iostream>
 #include <string_view>
 #include <unordered_map>
 
@@ -249,11 +247,14 @@ namespace nil::xit::test
         char value[N];
     };
 
-    template <typename T, StringLiteral S>
-        requires(std::is_same_v<T, std::remove_cvref_t<T>>)
-    struct Frame
+    template <StringLiteral S, typename... T>
+    struct Frame;
+
+    template <StringLiteral S, typename T>
+    struct Frame<S, T>
     {
         using type = T;
+        using decayed_t = Frame<S, T>;
     };
 
     template <typename... T>
@@ -262,27 +263,27 @@ namespace nil::xit::test
     struct OutputFrames;
 
     template <typename... T>
-    struct Inputs
+    struct InputData
     {
         std::tuple<const T* const...> data;
     };
 
     template <typename... T>
-    struct Outputs
+    struct OutputData
     {
         std::tuple<T* const...> data;
     };
 
     template <std::size_t I, typename... T>
         requires(I < sizeof...(T))
-    const auto& get(const Inputs<T...>& o)
+    const auto& get(const InputData<T...>& o)
     {
         return *std::get<I>(o.data);
     }
 
     template <std::size_t I, typename... T>
         requires(I < sizeof...(T))
-    auto& get(Outputs<T...>& o)
+    auto& get(OutputData<T...>& o)
     {
         return *std::get<I>(o.data);
     }
@@ -301,12 +302,23 @@ namespace nil::xit::test
         Test& operator=(const Test&) = delete;
 
         using base_t = Test<InputFrames<I...>, OutputFrames<O...>>;
-        using inputs_t = Inputs<typename I::type...>;
-        using outputs_t = Outputs<typename O::type...>;
+        using inputs_t = InputData<typename I::type...>;
+        using outputs_t = OutputData<typename O::type...>;
 
         virtual void setup() {};
         virtual void teardown() {};
         virtual void run(const inputs_t& xit_inputs, outputs_t& xit_outputs) = 0;
+    };
+
+    template <StringLiteral... T>
+    struct Input;
+    template <StringLiteral... T>
+    struct Output;
+
+    template <StringLiteral... I, StringLiteral... O>
+    struct Test<Input<I...>, Output<O...>>
+        : Test<InputFrames<Frame<I>...>, OutputFrames<Frame<O>...>>
+    {
     };
 
     class App
@@ -364,8 +376,8 @@ namespace nil::xit::test
                     }
                     return result;
                 },
-                std::make_tuple(get_input(type<I>())...), // NOLINT
-                std::make_tuple(get_output(type<O>())...) // NOLINT
+                std::make_tuple(get_input(type<typename I::decayed_t>())...), // NOLINT
+                std::make_tuple(get_output(type<typename O::decayed_t>())...) // NOLINT
             );
         }
 
@@ -484,7 +496,7 @@ namespace nil::xit::test
         }
 
         template <typename T, StringLiteral S>
-        frame::input::Info<T>* get_input(type<Frame<T, S>> /* type */) const
+        frame::input::Info<T>* get_input(type<Frame<S, T>> /* type */) const
         {
             if (auto it = input_frames.find(std::string_view(&S.value[0]));
                 it != input_frames.end())
@@ -495,7 +507,7 @@ namespace nil::xit::test
         }
 
         template <typename T, StringLiteral S>
-        frame::output::Info<T>* get_output(type<Frame<T, S>> /* type */) const
+        frame::output::Info<T>* get_output(type<Frame<S, T>> /* type */) const
         {
             if (auto it = output_frames.find(std::string_view(&S.value[0]));
                 it != output_frames.end())
@@ -983,27 +995,27 @@ namespace nil::xit::test
 }
 
 template <typename... T>
-struct std::tuple_size<nil::xit::test::Inputs<T...>>
+struct std::tuple_size<nil::xit::test::InputData<T...>>
     : std::integral_constant<std::size_t, sizeof...(T)>
 {
 };
 
 template <typename... T>
-struct std::tuple_size<nil::xit::test::Outputs<T...>>
+struct std::tuple_size<nil::xit::test::OutputData<T...>>
     : std::integral_constant<std::size_t, sizeof...(T)>
 {
 };
 
 template <std::size_t I, typename... T>
     requires(I < sizeof...(T))
-struct std::tuple_element<I, nil::xit::test::Inputs<T...>>
+struct std::tuple_element<I, nil::xit::test::InputData<T...>>
 {
-    using type = decltype(*std::get<I>(std::declval<nil::xit::test::Inputs<T...>>().data));
+    using type = decltype(*std::get<I>(std::declval<nil::xit::test::InputData<T...>>().data));
 };
 
 template <std::size_t I, typename... T>
     requires(I < sizeof...(T))
-struct std::tuple_element<I, nil::xit::test::Outputs<T...>>
+struct std::tuple_element<I, nil::xit::test::OutputData<T...>>
 {
-    using type = decltype(*std::get<I>(std::declval<nil::xit::test::Outputs<T...>>().data));
+    using type = decltype(*std::get<I>(std::declval<nil::xit::test::OutputData<T...>>().data));
 };
