@@ -476,24 +476,8 @@ namespace nil::xit::test
 
         std::vector<std::string> tags;
 
-        template <typename Callable, typename... Inputs>
-        void add_node(
-            std::string_view tag,
-            Callable callable,
-            std::tuple<Inputs...> inputs,
-            std::tuple<> /* outputs */
-        )
-        {
-            gate.node(
-                std::move(callable),
-                std::apply(
-                    [&](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
-                    inputs
-                )
-            );
-        }
-
         template <typename Callable, typename... Inputs, typename... Outputs>
+            requires(sizeof...(Outputs) > 0 && sizeof...(Inputs) > 0)
         void add_node(
             std::string_view tag,
             Callable callable,
