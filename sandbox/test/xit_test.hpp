@@ -324,7 +324,15 @@ namespace nil::xit::test
     class App
     {
     public:
-        explicit App(nil::service::S service, std::string_view app_name)
+        App(nil::service::S& service, std::string_view app_name)
+            : xit(nil::xit::make_core(service))
+        {
+            gate.set_runner<nil::gate::runners::NonBlocking>();
+            on_ready(service, [this]() { gate.commit(); });
+            set_cache_directory(xit, std::filesystem::temp_directory_path() / app_name);
+        }
+
+        App(nil::service::HTTPService& service, std::string_view app_name)
             : xit(nil::xit::make_core(service))
         {
             gate.set_runner<nil::gate::runners::NonBlocking>();
@@ -850,9 +858,59 @@ namespace nil::xit::test
             };
         }
 
+        namespace main
+        {
+            template <typename T>
+            struct Frame final: IFrame
+            {
+                explicit Frame(std::filesystem::path init_file, T init_converter)
+                    : IFrame()
+                    , file(std::move(init_file))
+                    , converter(std::move(init_converter))
+                {
+                }
+
+                void install(App& app, const std::filesystem::path& path) override
+                {
+                    auto& f = add_unique_frame(app.xit, "demo", path / file);
+                    add_value(f, "tags", from_data(converter(app.installed_tags())));
+                    add_value(f, "outputs", from_data(converter({"view_frame"})));
+                    add_value(f, "inputs", from_data(converter({"slider_frame", "input_frame"})));
+                }
+
+                std::filesystem::path file;
+                T converter;
+            };
+        }
+
         template <typename T, typename... Args>
         concept is_initializer = requires(T initializer) {
             { initializer(std::declval<Args>()...) };
+        };
+
+        struct MainBuilder
+        {
+            template <typename FromVS>
+                requires requires(FromVS converter) {
+                    { converter(std::declval<std::vector<std::string>>()) };
+                }
+            void create_main(std::filesystem::path file, FromVS converter)
+            {
+                frame = std::make_unique<main::Frame<FromVS>>(
+                    std::move(file),
+                    std::move(std::move(converter))
+                );
+            }
+
+            void install(App& app, const std::filesystem::path& path) const
+            {
+                if (frame)
+                {
+                    frame->install(app, path);
+                }
+            }
+
+            std::unique_ptr<IFrame> frame;
         };
 
         struct FrameBuilder
@@ -941,7 +999,7 @@ namespace nil::xit::test
                 return *raw_ptr;
             }
 
-            void install(App& app, const std::filesystem::path& path)
+            void install(App& app, const std::filesystem::path& path) const
             {
                 for (const auto& frame : frames)
                 {
@@ -981,7 +1039,7 @@ namespace nil::xit::test
                 );
             }
 
-            void install(App& app, const std::filesystem::path& path)
+            void install(App& app, const std::filesystem::path& path) const
             {
                 for (const auto& t : tests)
                 {

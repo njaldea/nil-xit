@@ -5,9 +5,9 @@
     /** @type import("@nil-/xit").Writable<string[]> */
     const tags = values.json("tags", [], json_string);
     /** @type import("@nil-/xit").Writable<string[]> */
-    const views = values.json("view", [], json_string);
+    const inputs = values.json("inputs", [], json_string);
     /** @type import("@nil-/xit").Writable<string[]> */
-    const pane = values.json("pane", [], json_string);
+    const outputs = values.json("outputs", [], json_string);
     let selected = -1;
 </script>
 
@@ -25,21 +25,21 @@
     {#key selected}
         {#if 0 <= selected && selected < $tags.length}
             {@const tag = $tags[selected]}
-            {@const v_actions = Promise.all($views.map(v => loader.one(v, tag)))}
-            {@const p_actions = Promise.all($pane.map(v => loader.one(v, tag)))}
-            {#await Promise.all([ v_actions, p_actions ])}
+            {@const i_actions = Promise.all($inputs.map(v => loader.one(v, tag)))}
+            {@const o_actions = Promise.all($outputs.map(v => loader.one(v, tag)))}
+            {#await Promise.all([ i_actions, o_actions ])}
                 <div>Loading...</div>
-            {:then [ view_actions, pane_actions ]}
+            {:then [ input_actions, output_actions ]}
                 <div class="root-content">
-                    <div class="view">
-                        {#await view_actions then a}
+                    <div class="outputs">
+                        {#await output_actions then a}
                             {#each a as action}
                                 <div style="display: contents" use:action></div>
                             {/each}
                         {/await}
                     </div>
-                    <div class="pane">
-                        {#await pane_actions then a}
+                    <div class="inputs">
+                        {#await input_actions then a}
                             {#each a as action}
                                 <div style="display: contents" use:action></div>
                             {/each}
@@ -67,11 +67,11 @@
         height: 100%;
     }
 
-    .view {
+    .outputs {
         width: calc(100% - 350px);
     }
 
-    .pane {
+    .inputs {
         position: absolute;
         left: calc(100% - 350px);
         right: 0;

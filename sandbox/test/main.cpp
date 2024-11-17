@@ -1,87 +1,47 @@
+#include "userland_utils.hpp"
 #include "xit_gtest.hpp"
-
-#include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <iostream>
-#include <string_view>
-#include <utility>
-
-namespace nil::xit
-{
-    // this is necessary when publishing a custom data through the network going to the UI
-    template <>
-    struct buffer_type<nlohmann::json>
-    {
-        static nlohmann::json deserialize(const void* data, std::uint64_t size)
-        {
-            return nlohmann::json::parse(std::string_view(static_cast<const char*>(data), size));
-        }
-
-        static std::vector<std::uint8_t> serialize(const nlohmann::json& value)
-        {
-            auto s = value.dump();
-            return {s.begin(), s.end()};
-        }
-    };
-}
-
-struct Ranges
-{
-    std::int64_t v1;
-    std::int64_t v2;
-    std::int64_t v3;
-
-    // necessary for nil::gate edge dirty mechanism.
-    bool operator==(const Ranges& o) const
-    {
-        return v1 == o.v1 && v2 == o.v2 && v3 == o.v3;
-    }
-};
-
-nlohmann::json as_json(std::istream& iss)
-{
-    return nlohmann::json::parse(iss);
-}
-
-Ranges as_range(std::istream& iss)
-{
-    auto r = Ranges{};
-    auto c = char{};
-    iss >> c;
-    iss >> r.v1;
-    iss >> c;
-    iss >> r.v2;
-    iss >> c;
-    iss >> r.v3;
-    iss >> c;
-    return r;
-}
-
-template <typename T = nlohmann::json>
-auto from_json_ptr(const std::string& json_ptr)
-{
-    struct Accessor
-    {
-        T get(const nlohmann::json& data) const
-        {
-            return data[json_ptr];
-        }
-
-        void set(nlohmann::json& data, T new_data) const
-        {
-            data[json_ptr] = std::move(new_data);
-        }
-
-        nlohmann::json::json_pointer json_ptr;
-    };
-
-    return Accessor{nlohmann::json::json_pointer(json_ptr)};
-}
 
 using nil::xit::gtest::from_file;
 
-XIT_USE_DIRECTORY(std::filesystem::path(__FILE__).parent_path());
+// TODO: move to command line arguments or env var?
+const auto source_path = std::filesystem::path(__FILE__).parent_path();
+XIT_PATH_MAIN_UI_DIRECTORY(source_path);
+XIT_PATH_UI_DIRECTORY(source_path);
+XIT_PATH_TEST_DIRECTORY(source_path);
+XIT_PATH_SERVER_DIRECTORY(source_path.parent_path() / "node_modules/@nil-/xit");
+
+XIT_FRAME_MAIN("gui/Main.svelte", nlohmann::json);
+// also accepts callable types (nlohamnn::json is a class/struct)
+// [](const std::vector<std::string>& v) { return nlohmann::json(v); }
+
+// -  Frame == Panel
+//     -  Each Frame represents one single data
+// -  FRAME MACRO signature
+//     -  1ST argument is the FRAME ID
+//     -  2ND argument is the path to the UI file
+//     -  3RD argument of FRAME MACROS dictates the type it will hold
+//           -  can either be a instance of an object (ex Ranges(3, 2, 1))
+//           -  or a callable that can provide the data (ex from_file)
+// -  `value()` signature
+//     -  only value id
+//           -  the whole data owned by the frame will be bound to the value id
+//     -  value id with a getter/setter, accessor, or pointer to member
+//           -  portion of the data owned by the frame will be bound the the specified value id
+// - Test
+//     -  see Sample below to define what the inputs and outputs of a test
+//     -  Input Frames are accessible from the test via `xit_inputs`
+//     -  Output Frames are accessible from the test via `xit_outputs`
+//     -  destructuring `xit_inputs` and `xit_outputs` are the way to access each frame
+//     -  You can also use `get<N>(xit_inputs)` or `get<N>(xit_inputs)`
+// -  To be able to use strings(frame id) in defining the inputs/outputs, the definition
+// (like Sample) should have visibility of the FRAME MACRO usage.
+// -  Use XIT_PATH MACROS to modify where to access the files
+//     -  XIT_PATH_TEST_DIRECTORY    -- from_file and XIT_TEST files
+//     -  XIT_PATH_MAIN_UI_DIRECTORY -- main ui file
+//     -  XIT_PATH_UI_DIRECTORY      -- ui files
 
 XIT_FRAME_TAGGED_INPUT(
     "input_frame",
@@ -106,57 +66,24 @@ using Sample = nil::xit::test::Test<
 XIT_TEST(Sample, Demo, "files")
 {
     const auto& [input_data, ranges] = xit_inputs;
+    //           ┃           ┃         ┗━━━ from Input<"input_frame", "slider_frame">
+    //           ┃           ┗━━━ type == Ranges
+    //           ┗━━━ type == nlohmann::json
 
+    // TODO: add xit_metadata containing the test path and other important things
     auto tag = std::string(input_data["x"][2]);
     std::cout << "run (test) " << tag << std::endl;
 
     auto& [view] = xit_outputs;
+    //     ┃       ┗━━━ from Output<"view_frame">
+    //     ┗━━━ type == nlohmann::json
     view = input_data; // copy the data and mutate as necessary
     view["y"][0] = input_data["y"][0].get<std::int64_t>() * ranges.v1;
     view["y"][1] = input_data["y"][1].get<std::int64_t>() * ranges.v2;
     view["y"][2] = input_data["y"][2].get<std::int64_t>() * ranges.v3;
 }
 
-// TODO: hide this main from user
-int main()
+int main(int argc, const char** argv)
 {
-    const auto source_path = std::filesystem::path(__FILE__).parent_path();
-    const auto http_server = nil::xit::make_server({
-        .source_path = source_path.parent_path() / "node_modules/@nil-/xit",
-        .port = 1101,
-        .buffer_size = 1024ul * 1024ul * 100ul //
-    });
-    nil::xit::test::App app(use_ws(http_server, "/ws"), "nil-xit-gtest");
-
-    // installation step. will not be visible to the end user.
-    {
-        auto& instance = nil::xit::gtest::get_instance();
-        instance.frame_builder.install(app, instance.relative_path);
-        instance.test_builder.install(app, instance.relative_path);
-    }
-
-    // TODO: install like others
-    {
-        using nil::xit::test::from_data;
-        using j = nlohmann::json;
-        auto& f = add_unique_frame(app.xit, "demo", source_path / "gui/Main.svelte");
-
-        add_value(f, "tags", from_data(j(app.installed_tags())));
-        add_value(f, "view", from_data(j::array({"view_frame"})));
-        add_value(f, "pane", from_data(j::array({"slider_frame", "input_frame"})));
-    }
-
-    // TODO:
-    //  - type erasure due to runtime storage
-    //      - resolve in runtime if the frame is compatible to the test
-
-    start(http_server);
-    return 0;
+    return nil::xit::gtest::main(argc, argv);
 }
-
-// ISSUES:
-//  -   loading an input is lazy but once loaded, any unique frame update will trigger rerun of
-//  nodes those loaded frames
-//  -   where should be the "demo" frame defined? main? static like normal frames?
-//  -   do i need signals? for an editor, probably.
-//  -   a lot of namespaces including the utility methods like (from_file, from_data)

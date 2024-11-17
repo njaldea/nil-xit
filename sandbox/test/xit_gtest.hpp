@@ -9,14 +9,22 @@ namespace nil::xit::gtest
 {
     struct Instances
     {
-        std::filesystem::path relative_path;
+        struct
+        {
+            std::filesystem::path test;
+            std::filesystem::path ui;
+            std::filesystem::path main_ui;
+            std::filesystem::path server;
+        } paths;
+
+        nil::xit::test::builders::MainBuilder main_builder;
         nil::xit::test::builders::FrameBuilder frame_builder;
         nil::xit::test::builders::TestBuilder test_builder;
     };
 
     inline Instances& get_instance()
     {
-        static auto instance = Instances{std::filesystem::current_path(), {}, {}};
+        static auto instance = Instances{};
         return instance;
     }
 
@@ -51,13 +59,13 @@ namespace nil::xit::gtest
                 const auto i1 = tag.find_last_of('[') + 1;
                 const auto i2 = tag.find_last_of(']');
                 return load(
-                    get_instance().relative_path / source_path / tag.substr(i1, i2 - i1) / file_name
+                    get_instance().paths.test / source_path / tag.substr(i1, i2 - i1) / file_name
                 );
             }
 
             auto operator()() const
             {
-                return load(get_instance().relative_path / source_path / file_name);
+                return load(get_instance().paths.test / source_path / file_name);
             }
 
         private:
@@ -77,6 +85,28 @@ namespace nil::xit::gtest
         };
 
         return Loader{std::move(source_path), std::move(file_name), std::move(reader)};
+    }
+
+    inline int main(int argc, const char** argv)
+    {
+        // TODO: headless option. use nil/clix
+        (void)argc;
+        (void)argv;
+        auto& instance = nil::xit::gtest::get_instance();
+
+        const auto http_server = nil::xit::make_server({
+            .source_path = instance.paths.server,
+            .port = 1101,
+            .buffer_size = 1024ul * 1024ul * 100ul //
+        });
+
+        nil::xit::test::App app(http_server, "nil-xit-gtest");
+        instance.frame_builder.install(app, instance.paths.ui);
+        instance.test_builder.install(app, instance.paths.test);
+        instance.main_builder.install(app, instance.paths.main_ui);
+
+        start(http_server);
+        return 0;
     }
 }
 
@@ -129,6 +159,17 @@ namespace nil::xit::gtest
         = nil::xit::gtest::get_instance().frame_builder.create_unique_input(ID, PATH, INITIALIZER)
 
 // NOLINTNEXTLINE
+#define XIT_FRAME_MAIN(PATH, CONVERTER)                                                            \
+    const auto& XIT_CONCAT(xit_test_frame_, __COUNTER__) = []()                                    \
+    {                                                                                              \
+        nil::xit::gtest::get_instance().main_builder.create_main(                                  \
+            PATH,                                                                                  \
+            [](const std::vector<std::string>& v) { return CONVERTER(v); }                         \
+        );                                                                                         \
+        return 0;                                                                                  \
+    }()
+
+// NOLINTNEXTLINE
 #define XIT_FRAME_OUTPUT(ID, PATH, TYPE)                                                           \
     template <>                                                                                    \
     struct nil::xit::test::Frame<ID>: nil::xit::test::Frame<ID, TYPE>                              \
@@ -138,9 +179,33 @@ namespace nil::xit::gtest
         = nil::xit::gtest::get_instance().frame_builder.create_output<TYPE>(ID, PATH)
 
 // NOLINTNEXTLINE
-#define XIT_USE_DIRECTORY(PATH)                                                                    \
-    const auto v_xit_rel_path = []()                                                               \
+#define XIT_PATH_TEST_DIRECTORY(PATH)                                                              \
+    const auto v_xit_path_test = []()                                                              \
     {                                                                                              \
-        nil::xit::gtest::get_instance().relative_path = PATH;                                      \
+        nil::xit::gtest::get_instance().paths.test = PATH;                                         \
         return 0;                                                                                  \
-    }();
+    }()
+
+// NOLINTNEXTLINE
+#define XIT_PATH_UI_DIRECTORY(PATH)                                                                \
+    const auto v_xit_path_ui = []()                                                                \
+    {                                                                                              \
+        nil::xit::gtest::get_instance().paths.ui = PATH;                                           \
+        return 0;                                                                                  \
+    }()
+
+// NOLINTNEXTLINE
+#define XIT_PATH_MAIN_UI_DIRECTORY(PATH)                                                           \
+    const auto v_xit_path_main_ui = []()                                                           \
+    {                                                                                              \
+        nil::xit::gtest::get_instance().paths.main_ui = PATH;                                      \
+        return 0;                                                                                  \
+    }()
+
+// NOLINTNEXTLINE
+#define XIT_PATH_SERVER_DIRECTORY(PATH)                                                            \
+    const auto v_xit_path_server = []()                                                            \
+    {                                                                                              \
+        nil::xit::gtest::get_instance().paths.server = PATH;                                       \
+        return 0;                                                                                  \
+    }()
