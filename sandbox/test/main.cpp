@@ -1,10 +1,6 @@
 #include "userland_utils.hpp"
-#include "xit_gtest.hpp"
 
 #include <filesystem>
-#include <iostream>
-
-using nil::xit::gtest::from_file;
 
 // TODO: move to command line arguments or env var?
 const auto source_path = std::filesystem::path(__FILE__).parent_path();
@@ -70,20 +66,12 @@ XIT_TEST(Sample, Demo, "files")
     //           ┃           ┗━━━ type == Ranges
     //           ┗━━━ type == nlohmann::json
 
-    // TODO: add xit_metadata containing the test path and other important things
-    auto tag = std::string(input_data["x"][2]);
-    std::cout << "run (test) " << tag << std::endl;
-
     auto& [view] = xit_outputs;
     //     ┃       ┗━━━ from Output<"view_frame">
     //     ┗━━━ type == nlohmann::json
-    view = input_data; // copy the data and mutate as necessary
-    view["y"][0] = input_data["y"][0].get<std::int64_t>() * ranges.v1;
-    view["y"][1] = input_data["y"][1].get<std::int64_t>() * ranges.v2;
-    view["y"][2] = input_data["y"][2].get<std::int64_t>() * ranges.v3;
-}
 
-int main(int argc, const char** argv)
-{
-    return nil::xit::gtest::main(argc, argv);
+    view = input_data;
+    view["y"][0] = std::int64_t(input_data["y"][0]) * ranges.v1;
+    view["y"][1] = std::int64_t(input_data["y"][1]) * ranges.v2;
+    view["y"][2] = std::int64_t(input_data["y"][2]) * ranges.v3;
 }

@@ -22,11 +22,7 @@ namespace nil::xit::gtest
         nil::xit::test::builders::TestBuilder test_builder;
     };
 
-    inline Instances& get_instance()
-    {
-        static auto instance = Instances{};
-        return instance;
-    }
+    Instances& get_instance();
 
     template <typename Reader>
         requires requires(Reader reader) {
@@ -87,27 +83,7 @@ namespace nil::xit::gtest
         return Loader{std::move(source_path), std::move(file_name), std::move(reader)};
     }
 
-    inline int main(int argc, const char** argv)
-    {
-        // TODO: headless option. use nil/clix
-        (void)argc;
-        (void)argv;
-        auto& instance = nil::xit::gtest::get_instance();
-
-        const auto http_server = nil::xit::make_server({
-            .source_path = instance.paths.server,
-            .port = 1101,
-            .buffer_size = 1024ul * 1024ul * 100ul //
-        });
-
-        nil::xit::test::App app(http_server, "nil-xit-gtest");
-        instance.frame_builder.install(app, instance.paths.ui);
-        instance.test_builder.install(app, instance.paths.test);
-        instance.main_builder.install(app, instance.paths.main_ui);
-
-        start(http_server);
-        return 0;
-    }
+    int main(int argc, const char** argv);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)

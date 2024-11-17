@@ -23,18 +23,13 @@ XIT_TEST(Base, Case, "path/here"){}
 
 ```cpp
 using nil::xit::test::Test;
-using nil::xit::test::InputFrames;
-using nil::xit::test::OutputFrames;
+using nil::xit::test::Input
+using nil::xit::test::Output;
 using nil::xit::test::Frame;
 
 using Sample = Test<
-    InputFrames<
-        Frame<nlohmann::json, "input_frame">,
-        Frame<Ranges, "slider_frame">
-    >,
-    OutputFrames<
-        Frame<nlohmann::json, "view_frame">
-    >
+    Input<"input_frame", "slider_frame">,
+    Output<"view_frame">
 >;
 ```
 

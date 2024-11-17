@@ -4,10 +4,10 @@
 
 #include <nil/gate.hpp>
 #include <nil/gate/bias/nil.hpp>
-#include <nil/gate/runners/NonBlocking.hpp>
 
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace nil::xit::test
 {
@@ -17,20 +17,14 @@ namespace nil::xit::test
         {
             using is_transparent = void;
 
-            std::size_t operator()(std::string_view s) const
-            {
-                return std::hash<std::string_view>()(s);
-            }
+            std::size_t operator()(std::string_view s) const;
         };
 
         struct Equal
         {
             using is_transparent = void;
 
-            bool operator()(std::string_view l, std::string_view r) const
-            {
-                return l == r;
-            }
+            bool operator()(std::string_view l, std::string_view r) const;
         };
 
         template <typename T>
@@ -39,10 +33,7 @@ namespace nil::xit::test
 
     struct RerunTag
     {
-        bool operator==(const RerunTag& /* o */) const
-        {
-            return false;
-        }
+        bool operator==(const RerunTag& /* o */) const;
     };
 
     namespace frame
@@ -321,24 +312,66 @@ namespace nil::xit::test
     {
     };
 
+    template <typename T>
+    auto from_data(T data)
+    {
+        struct Loader final
+        {
+        public:
+            explicit Loader(T init_data)
+                : data(std::move(init_data))
+            {
+            }
+
+            ~Loader() noexcept = default;
+            Loader(const Loader&) = default;
+            Loader(Loader&&) = default;
+            Loader& operator=(const Loader&) = default;
+            Loader& operator=(Loader&&) = default;
+
+            auto operator()(std::string_view /* tag */) const
+            {
+                return data;
+            }
+
+            auto operator()() const
+            {
+                return data;
+            }
+
+        private:
+            T data;
+        };
+
+        return Loader{std::move(data)};
+    }
+
+    template <typename C, typename M>
+    auto from_member(M C::*member_ptr)
+    {
+        struct Accessor
+        {
+            M get(const C& data) const
+            {
+                return data.*member_ptr;
+            }
+
+            void set(C& data, M new_data) const
+            {
+                data.*member_ptr = std::move(new_data);
+            }
+
+            M C::*member_ptr;
+        };
+
+        return Accessor{member_ptr};
+    }
+
     class App
     {
     public:
-        App(nil::service::S& service, std::string_view app_name)
-            : xit(nil::xit::make_core(service))
-        {
-            gate.set_runner<nil::gate::runners::NonBlocking>();
-            on_ready(service, [this]() { gate.commit(); });
-            set_cache_directory(xit, std::filesystem::temp_directory_path() / app_name);
-        }
-
-        App(nil::service::HTTPService& service, std::string_view app_name)
-            : xit(nil::xit::make_core(service))
-        {
-            gate.set_runner<nil::gate::runners::NonBlocking>();
-            on_ready(service, [this]() { gate.commit(); });
-            set_cache_directory(xit, std::filesystem::temp_directory_path() / app_name);
-        }
+        App(nil::service::S& service, std::string_view app_name);
+        App(nil::service::HTTPService& service, std::string_view app_name);
 
         ~App() noexcept = default;
         App(App&&) = delete;
@@ -346,10 +379,7 @@ namespace nil::xit::test
         App& operator=(App&&) = delete;
         App& operator=(const App&) = delete;
 
-        const std::vector<std::string>& installed_tags() const
-        {
-            return tags;
-        }
+        const std::vector<std::string>& installed_tags() const;
 
         template <typename P, typename... I, typename... O>
         void install(
@@ -361,7 +391,8 @@ namespace nil::xit::test
             using base_t = Test<InputFrames<I...>, OutputFrames<O...>>;
             add_node(
                 tag,
-                [](const typename I::type&... args) -> std::tuple<typename O::type...>
+                [t = std::string(tag)] //
+                (const typename I::type&... args) -> std::tuple<typename O::type...>
                 {
                     using inputs_t = typename base_t::inputs_t;
                     using outputs_t = typename base_t::outputs_t;
@@ -387,6 +418,18 @@ namespace nil::xit::test
                 std::make_tuple(get_input(type<typename I::decayed_t>())...), // NOLINT
                 std::make_tuple(get_output(type<typename O::decayed_t>())...) // NOLINT
             );
+        }
+
+        template <typename FromVS>
+            requires requires(FromVS converter) {
+                { converter(std::declval<std::vector<std::string>>()) };
+            }
+        void add_main(const std::filesystem::path& path, FromVS converter)
+        {
+            auto& f = add_unique_frame(xit, "demo", path);
+            add_value(f, "tags", from_data(converter(installed_tags())));
+            add_value(f, "outputs", from_data(converter({"view_frame"})));
+            add_value(f, "inputs", from_data(converter({"slider_frame", "input_frame"})));
         }
 
         template <typename T>
@@ -438,6 +481,14 @@ namespace nil::xit::test
         }
 
     private:
+        nil::xit::C xit;
+        nil::gate::Core gate;
+
+        transparent::hash_map<std::unique_ptr<frame::IInfo>> input_frames;
+        transparent::hash_map<std::unique_ptr<frame::IInfo>> output_frames;
+
+        std::vector<std::string> tags;
+
         template <typename Callable, typename... Inputs>
         void add_node(
             std::string_view tag,
@@ -446,11 +497,14 @@ namespace nil::xit::test
             std::tuple<> /* outputs */
         )
         {
-            std::apply([&](auto*... input) { (input->add_tag(tag), ...); }, inputs);
             gate.node(
                 std::move(callable),
                 std::apply(
-                    [&](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
+                    [&](auto*... i)
+                    {
+                        (i->add_tag(tag), ...);
+                        return std::make_tuple(i->get_input(tag)...);
+                    },
                     inputs
                 )
             );
@@ -524,73 +578,7 @@ namespace nil::xit::test
             }
             return nullptr;
         }
-
-    public:
-        nil::xit::C xit; // NOLINT
-
-    private:
-        nil::gate::Core gate;
-
-        transparent::hash_map<std::unique_ptr<frame::IInfo>> input_frames;
-        transparent::hash_map<std::unique_ptr<frame::IInfo>> output_frames;
-
-        std::vector<std::string> tags;
     };
-
-    template <typename T>
-    auto from_data(T data)
-    {
-        struct Loader final
-        {
-        public:
-            explicit Loader(T init_data)
-                : data(std::move(init_data))
-            {
-            }
-
-            ~Loader() noexcept = default;
-            Loader(const Loader&) = default;
-            Loader(Loader&&) = default;
-            Loader& operator=(const Loader&) = default;
-            Loader& operator=(Loader&&) = default;
-
-            auto operator()(std::string_view /* tag */) const
-            {
-                return data;
-            }
-
-            auto operator()() const
-            {
-                return data;
-            }
-
-        private:
-            T data;
-        };
-
-        return Loader{std::move(data)};
-    }
-
-    template <typename C, typename M>
-    auto from_member(M C::*member_ptr)
-    {
-        struct Accessor
-        {
-            M get(const C& data) const
-            {
-                return data.*member_ptr;
-            }
-
-            void set(C& data, M new_data) const
-            {
-                data.*member_ptr = std::move(new_data);
-            }
-
-            M C::*member_ptr;
-        };
-
-        return Accessor{member_ptr};
-    }
 
     namespace builders
     {
@@ -861,6 +849,9 @@ namespace nil::xit::test
         namespace main
         {
             template <typename T>
+                requires requires(T converter) {
+                    { converter(std::declval<std::vector<std::string>>()) };
+                }
             struct Frame final: IFrame
             {
                 explicit Frame(std::filesystem::path init_file, T init_converter)
@@ -872,10 +863,7 @@ namespace nil::xit::test
 
                 void install(App& app, const std::filesystem::path& path) override
                 {
-                    auto& f = add_unique_frame(app.xit, "demo", path / file);
-                    add_value(f, "tags", from_data(converter(app.installed_tags())));
-                    add_value(f, "outputs", from_data(converter({"view_frame"})));
-                    add_value(f, "inputs", from_data(converter({"slider_frame", "input_frame"})));
+                    app.add_main(path / file, converter);
                 }
 
                 std::filesystem::path file;
@@ -888,8 +876,9 @@ namespace nil::xit::test
             { initializer(std::declval<Args>()...) };
         };
 
-        struct MainBuilder
+        class MainBuilder
         {
+        public:
             template <typename FromVS>
                 requires requires(FromVS converter) {
                     { converter(std::declval<std::vector<std::string>>()) };
@@ -902,19 +891,15 @@ namespace nil::xit::test
                 );
             }
 
-            void install(App& app, const std::filesystem::path& path) const
-            {
-                if (frame)
-                {
-                    frame->install(app, path);
-                }
-            }
+            void install(App& app, const std::filesystem::path& path) const;
 
+        private:
             std::unique_ptr<IFrame> frame;
         };
 
-        struct FrameBuilder
+        class FrameBuilder
         {
+        public:
             template <typename Initializer>
                 requires(!is_initializer<Initializer, std::string_view>)
             auto& create_tagged_input(
@@ -999,19 +984,15 @@ namespace nil::xit::test
                 return *raw_ptr;
             }
 
-            void install(App& app, const std::filesystem::path& path) const
-            {
-                for (const auto& frame : frames)
-                {
-                    frame->install(app, path);
-                }
-            }
+            void install(App& app, const std::filesystem::path& path) const;
 
+        private:
             std::vector<std::unique_ptr<IFrame>> frames;
         };
 
-        struct TestBuilder
+        class TestBuilder
         {
+        public:
             template <typename T>
             void add_test(std::string suite_id, std::string test_id, std::filesystem::path path)
             {
@@ -1039,14 +1020,9 @@ namespace nil::xit::test
                 );
             }
 
-            void install(App& app, const std::filesystem::path& path) const
-            {
-                for (const auto& t : tests)
-                {
-                    t(app, path);
-                }
-            }
+            void install(App& app, const std::filesystem::path& path) const;
 
+        private:
             std::vector<std::function<void(App&, const std::filesystem::path&)>> tests;
         };
     }

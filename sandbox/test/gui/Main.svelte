@@ -1,3 +1,5 @@
+<svelte:options runes/>
+
 <script>
     import { xit, json_string } from "@nil-/xit";
 
@@ -8,7 +10,10 @@
     const inputs = values.json("inputs", [], json_string);
     /** @type import("@nil-/xit").Writable<string[]> */
     const outputs = values.json("outputs", [], json_string);
-    let selected = -1;
+    let selected = $state(-1);
+
+    let sorted_tags = $state($tags.sort());
+    tags.subscribe(v => sorted_tags = v.sort());
 </script>
 
 <svelte:head>
@@ -17,7 +22,7 @@
 
 <div class="root">
     <select bind:value={selected}>
-        {#each $tags as id, i}
+        {#each sorted_tags as id, i}
             <option value={i}>{id}</option>
         {/each}
     </select>
