@@ -2,6 +2,33 @@
 
 namespace nil::xit::gtest
 {
+    namespace builders
+    {
+        void MainBuilder::install(App& app, const std::filesystem::path& path) const
+        {
+            if (frame)
+            {
+                frame->install(app, path);
+            }
+        }
+
+        void FrameBuilder::install(App& app, const std::filesystem::path& path) const
+        {
+            for (const auto& frame : frames)
+            {
+                frame->install(app, path);
+            }
+        }
+
+        void TestBuilder::install(App& app, const std::filesystem::path& path) const
+        {
+            for (const auto& t : tests)
+            {
+                t(app, path);
+            }
+        }
+    }
+
     inline Instances& get_instance()
     {
         static auto instance = Instances{};
@@ -31,7 +58,7 @@ namespace nil::xit::gtest
     }
 }
 
-int main(int argc, const char** argv)
+__attribute__((weak)) int main(int argc, const char** argv)
 {
     return nil::xit::gtest::main(argc, argv);
 }

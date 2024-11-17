@@ -9,22 +9,21 @@ XIT_PATH_UI_DIRECTORY(source_path);
 XIT_PATH_TEST_DIRECTORY(source_path);
 XIT_PATH_SERVER_DIRECTORY(source_path.parent_path() / "node_modules/@nil-/xit");
 
-XIT_FRAME_MAIN("gui/Main.svelte", nlohmann::json);
-// also accepts callable types (nlohamnn::json is a class/struct)
-// [](const std::vector<std::string>& v) { return nlohmann::json(v); }
-
 // -  Frame == Panel
 //     -  Each Frame represents one single data
 // -  FRAME MACRO signature
 //     -  1ST argument is the FRAME ID
 //     -  2ND argument is the path to the UI file
 //     -  3RD argument of FRAME MACROS dictates the type it will hold
-//           -  can either be a instance of an object (ex Ranges(3, 2, 1))
-//           -  or a callable that can provide the data (ex from_file)
+//         -  for input frames:
+//             -  can either be a instance of an object (ex Ranges(3, 2, 1))
+//             -  or a callable that can provide the data (ex from_file)
+//         -  for output frames:
+//             -  just a type
 // -  `value()` signature
 //     -  only value id
 //           -  the whole data owned by the frame will be bound to the value id
-//     -  value id with a getter/setter, accessor, or pointer to member
+//     -  value id with getter/setter, accessor, or pointer to member
 //           -  portion of the data owned by the frame will be bound the the specified value id
 // - Test
 //     -  see Sample below to define what the inputs and outputs of a test
@@ -38,6 +37,10 @@ XIT_FRAME_MAIN("gui/Main.svelte", nlohmann::json);
 //     -  XIT_PATH_TEST_DIRECTORY    -- from_file and XIT_TEST files
 //     -  XIT_PATH_MAIN_UI_DIRECTORY -- main ui file
 //     -  XIT_PATH_UI_DIRECTORY      -- ui files
+
+XIT_FRAME_MAIN("gui/Main.svelte", nlohmann::json);
+// also accepts callable types (nlohamnn::json is a class/struct)
+// [](const std::vector<std::string>& v) { return nlohmann::json(v); }
 
 XIT_FRAME_TAGGED_INPUT(
     "input_frame",
@@ -75,3 +78,9 @@ XIT_TEST(Sample, Demo, "files")
     view["y"][1] = std::int64_t(input_data["y"][1]) * ranges.v2;
     view["y"][2] = std::int64_t(input_data["y"][2]) * ranges.v3;
 }
+
+// TODO:
+//  -   another frame to represent the "page" containing input/output frame list
+//  -   headless mode
+//  -   builders are in xit_gtest...
+//  -   how about runtime configured tests (scripting languages)

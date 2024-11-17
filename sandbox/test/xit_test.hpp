@@ -54,15 +54,13 @@ namespace nil::xit::test
             struct Info: IInfo
             {
                 using type = T;
-
                 virtual nil::gate::edges::Compatible<T> get_input(std::string_view tag) = 0;
-                virtual void init_input(std::string_view tag) = 0;
             };
 
             namespace unique
             {
                 template <typename T>
-                struct Info: input::Info<T>
+                struct Info final: input::Info<T>
                 {
                     nil::xit::unique::Frame* frame = nullptr;
                     nil::gate::Core* gate = nullptr;
@@ -76,15 +74,11 @@ namespace nil::xit::test
 
                     nil::gate::edges::Compatible<T> get_input(std::string_view /* tag */) override
                     {
-                        return info.input;
-                    }
-
-                    void init_input(std::string_view /* tag */) override
-                    {
                         if (info.input == nullptr)
                         {
                             info.input = gate->edge<T>();
                         }
+                        return info.input;
                     }
 
                     template <typename V, typename Getter, typename Setter>
@@ -121,7 +115,7 @@ namespace nil::xit::test
             namespace tagged
             {
                 template <typename T>
-                struct Info: input::Info<T>
+                struct Info final: input::Info<T>
                 {
                     struct Entry
                     {
@@ -140,12 +134,9 @@ namespace nil::xit::test
                         {
                             return it->second.input;
                         }
-                        return nullptr;
-                    }
-
-                    void init_input(std::string_view tag) override
-                    {
-                        info.emplace(tag, typename Info<T>::Entry{std::nullopt, gate->edge<T>()});
+                        return info
+                            .emplace(tag, typename Info<T>::Entry{std::nullopt, gate->edge<T>()})
+                            .first->second.input;
                     }
 
                     template <typename V, typename Getter, typename Setter>
@@ -245,8 +236,18 @@ namespace nil::xit::test
     struct Frame<S, T>
     {
         using type = T;
-        using decayed_t = Frame<S, T>;
+        static constexpr auto* value = &S.value[0];
     };
+
+    /**
+     *  InputFrames/OutputFrames expect `Frame<StringLiteral, T>...` as arguments
+     *  InputData/OutputData == argument of run
+     *  Input/Output expect only `StringLiteral...` as arguments
+     *      then expands to InputFrames/OutputFrames via Test's specialization
+     *
+     *  This works for compile time definitions. This is not applicable for runtime defined tests
+     * (for example, in scripting languages)
+     */
 
     template <typename... T>
     struct InputFrames;
@@ -317,18 +318,6 @@ namespace nil::xit::test
     {
         struct Loader final
         {
-        public:
-            explicit Loader(T init_data)
-                : data(std::move(init_data))
-            {
-            }
-
-            ~Loader() noexcept = default;
-            Loader(const Loader&) = default;
-            Loader(Loader&&) = default;
-            Loader& operator=(const Loader&) = default;
-            Loader& operator=(Loader&&) = default;
-
             auto operator()(std::string_view /* tag */) const
             {
                 return data;
@@ -339,7 +328,6 @@ namespace nil::xit::test
                 return data;
             }
 
-        private:
             T data;
         };
 
@@ -391,8 +379,7 @@ namespace nil::xit::test
             using base_t = Test<InputFrames<I...>, OutputFrames<O...>>;
             add_node(
                 tag,
-                [t = std::string(tag)] //
-                (const typename I::type&... args) -> std::tuple<typename O::type...>
+                [](const typename I::type&... args) -> std::tuple<typename O::type...>
                 {
                     using inputs_t = typename base_t::inputs_t;
                     using outputs_t = typename base_t::outputs_t;
@@ -415,8 +402,8 @@ namespace nil::xit::test
                     }
                     return result;
                 },
-                std::make_tuple(get_input(type<typename I::decayed_t>())...), // NOLINT
-                std::make_tuple(get_output(type<typename O::decayed_t>())...) // NOLINT
+                std::make_tuple(get_input<typename I::type>(I::value)...), // NOLINT
+                std::make_tuple(get_output<typename O::type>(O::value)...) // NOLINT
             );
         }
 
@@ -500,11 +487,7 @@ namespace nil::xit::test
             gate.node(
                 std::move(callable),
                 std::apply(
-                    [&](auto*... i)
-                    {
-                        (i->add_tag(tag), ...);
-                        return std::make_tuple(i->get_input(tag)...);
-                    },
+                    [&](auto*... i) { return std::make_tuple(i->get_input(tag)...); },
                     inputs
                 )
             );
@@ -518,7 +501,6 @@ namespace nil::xit::test
             std::tuple<Outputs...> outputs
         )
         {
-            std::apply([&](auto*... input) { (input->init_input(tag), ...); }, inputs);
             auto gate_outputs = gate.node(
                 std::move(callable),
                 std::apply(
@@ -557,475 +539,26 @@ namespace nil::xit::test
             return p;
         }
 
-        template <typename T, StringLiteral S>
-        frame::input::Info<T>* get_input(type<Frame<S, T>> /* type */) const
+        template <typename T>
+        frame::input::Info<T>* get_input(std::string_view id) const
         {
-            if (auto it = input_frames.find(std::string_view(&S.value[0]));
-                it != input_frames.end())
+            if (auto it = input_frames.find(id); it != input_frames.end())
             {
                 return static_cast<frame::input::Info<T>*>(it->second.get());
             }
             return nullptr;
         }
 
-        template <typename T, StringLiteral S>
-        frame::output::Info<T>* get_output(type<Frame<S, T>> /* type */) const
+        template <typename T>
+        frame::output::Info<T>* get_output(std::string_view id) const
         {
-            if (auto it = output_frames.find(std::string_view(&S.value[0]));
-                it != output_frames.end())
+            if (auto it = output_frames.find(id); it != output_frames.end())
             {
                 return static_cast<frame::output::Info<T>*>(it->second.get());
             }
             return nullptr;
         }
     };
-
-    namespace builders
-    {
-        template <typename Accessor, typename T>
-        concept is_compatible_accessor = requires(const Accessor& accessor) {
-            {
-                accessor.set(
-                    std::declval<T&>(),
-                    std::declval<decltype(accessor.get(std::declval<const T&>()))>()
-                )
-            } -> std::same_as<void>;
-        };
-        template <typename Getter, typename Setter, typename T>
-        concept is_compatible_getter_setter = requires(Getter getter, Setter setter) {
-            {
-                setter(
-                    std::declval<T&>(),
-                    std::declval<decltype(getter(std::declval<const T&>()))>()
-                )
-            } -> std::same_as<void>;
-        };
-
-        struct IFrame
-        {
-            virtual ~IFrame() = default;
-            IFrame() = default;
-            IFrame(IFrame&&) = delete;
-            IFrame(const IFrame&) = delete;
-            IFrame& operator=(IFrame&&) = delete;
-            IFrame& operator=(const IFrame&) = delete;
-            virtual void install(App& app, const std::filesystem::path& path) = 0;
-        };
-
-        namespace input
-        {
-            namespace tagged
-            {
-                template <typename T>
-                struct Frame final: IFrame
-                {
-                    using type = T;
-
-                    Frame(
-                        std::string init_id,
-                        std::filesystem::path init_file,
-                        std::function<T(std::string_view)> init_initializer
-                    )
-                        : IFrame()
-                        , id(std::move(init_id))
-                        , file(std::move(init_file))
-                        , initializer(std::move(init_initializer))
-                    {
-                    }
-
-                    void install(App& app, const std::filesystem::path& path) override
-                    {
-                        auto* frame = app.add_tagged_input(id, path / file, initializer);
-                        for (const auto& value_installer : values)
-                        {
-                            value_installer(*frame);
-                        }
-                    }
-
-                    template <typename Getter, typename Setter>
-                        requires(is_compatible_getter_setter<Getter, Setter, T>)
-                    Frame<T>& value(std::string value_id, Getter getter, Setter setter)
-                    {
-                        using getter_return_t
-                            = std::remove_cvref_t<decltype(getter(std::declval<const T&>()))>;
-                        values.emplace_back(
-                            [value_id = std::move(value_id),
-                             getter = std::move(getter),
-                             setter = std::move(setter)](frame::input::tagged::Info<T>& info) {
-                                info.template add_value<getter_return_t>(
-                                    value_id,
-                                    std::move(getter),
-                                    std::move(setter)
-                                );
-                            }
-                        );
-                        return *this;
-                    }
-
-                    template <is_compatible_accessor<T> Accessor>
-                    Frame<T>& value(std::string value_id, Accessor accessor)
-                    {
-                        using getter_return_t = decltype(accessor.get(std::declval<const T&>()));
-                        return value(
-                            std::move(value_id),
-                            [accessor](const T& value) { return accessor.get(value); },
-                            [accessor](T& value, getter_return_t new_value)
-                            { return accessor.set(value, std::move(new_value)); }
-                        );
-                    }
-
-                    template <typename U>
-                    Frame<T>& value(std::string value_id, U T::*member)
-                    {
-                        return value(std::move(value_id), from_member(member));
-                    }
-
-                    Frame<T>& value(std::string value_id)
-                    {
-                        return value(
-                            std::move(value_id),
-                            [](const T& value) { return value; },
-                            [](T& value, T new_value) { value = std::move(new_value); }
-                        );
-                    }
-
-                    std::string id;
-                    std::filesystem::path file;
-                    std::function<T(std::string_view)> initializer;
-                    std::vector<std::function<void(frame::input::tagged::Info<T>&)>> values;
-                };
-            }
-
-            namespace unique
-            {
-                template <typename T>
-                struct Frame final: IFrame
-                {
-                    using type = T;
-
-                    Frame(
-                        std::string init_id,
-                        std::filesystem::path init_file,
-                        std::function<T()> init_initializer
-                    )
-                        : IFrame()
-                        , id(std::move(init_id))
-                        , file(std::move(init_file))
-                        , initializer(std::move(init_initializer))
-                    {
-                    }
-
-                    void install(App& app, const std::filesystem::path& path) override
-                    {
-                        auto* frame = app.add_unique_input(id, path / file, initializer);
-                        for (const auto& value_installer : values)
-                        {
-                            value_installer(*frame);
-                        }
-                    }
-
-                    template <typename Getter, typename Setter>
-                        requires(is_compatible_getter_setter<Getter, Setter, T>)
-                    Frame<T>& value(std::string value_id, Getter getter, Setter setter)
-                    {
-                        using getter_return_t = decltype(getter(std::declval<const T&>()));
-                        values.emplace_back(
-                            [value_id = std::move(value_id),
-                             getter = std::move(getter),
-                             setter = std::move(setter)](frame::input::unique::Info<T>& info) {
-                                info.template add_value<getter_return_t>(
-                                    value_id,
-                                    std::move(getter),
-                                    std::move(setter)
-                                );
-                            }
-                        );
-                        return *this;
-                    }
-
-                    template <is_compatible_accessor<T> Accessor>
-                    Frame<T>& value(std::string value_id, Accessor accessor)
-                    {
-                        using getter_return_t = decltype(accessor.get(std::declval<const T&>()));
-                        return value(
-                            std::move(value_id),
-                            [accessor](const T& value) { return accessor.get(value); },
-                            [accessor](T& value, getter_return_t new_value)
-                            { return accessor.set(value, std::move(new_value)); }
-                        );
-                    }
-
-                    template <typename U>
-                    Frame<T>& value(std::string value_id, U T::*member)
-                    {
-                        return value(std::move(value_id), from_member(member));
-                    }
-
-                    Frame<T>& value(std::string value_id)
-                    {
-                        return value(
-                            std::move(value_id),
-                            [](const T& value) { return value; },
-                            [](T& value, T new_value) { value = std::move(new_value); }
-                        );
-                    }
-
-                    std::string id;
-                    std::filesystem::path file;
-                    std::function<T()> initializer;
-                    std::vector<std::function<void(frame::input::unique::Info<T>&)>> values;
-                };
-            }
-        }
-
-        namespace output
-        {
-            template <typename T>
-            struct Frame final: IFrame
-            {
-                using type = T;
-
-                Frame(std::string init_id, std::filesystem::path init_file)
-                    : IFrame()
-                    , id(std::move(init_id))
-                    , file(std::move(init_file))
-                {
-                }
-
-                void install(App& app, const std::filesystem::path& path) override
-                {
-                    auto* frame = app.add_output<T>(id, path / file);
-                    for (const auto& value_installer : values)
-                    {
-                        value_installer(*frame);
-                    }
-                }
-
-                template <typename Getter>
-                    requires requires(Getter getter) {
-                        { getter(std::declval<T>()) };
-                    }
-                Frame<T>& value(std::string value_id, Getter getter)
-                {
-                    using getter_return_t
-                        = std::remove_cvref_t<decltype(getter(std::declval<const T&>()))>;
-                    values.emplace_back(
-                        [value_id = std::move(value_id),
-                         getter = std::move(getter)](frame::output::Info<T>& info)
-                        { info.template add_value<getter_return_t>(value_id, std::move(getter)); }
-                    );
-                    return *this;
-                }
-
-                template <typename Accessor>
-                    requires requires(Accessor accessor) {
-                        { accessor.get(std::declval<T>()) };
-                    }
-                Frame<T>& value(std::string value_id, Accessor accessor)
-                {
-                    return value(
-                        std::move(value_id),
-                        [accessor](const T& value) { return accessor.get(value); }
-                    );
-                }
-
-                template <typename U>
-                Frame<T>& value(std::string value_id, U T::*member)
-                {
-                    return value(std::move(value_id), from_member(member));
-                }
-
-                Frame<T>& value(std::string value_id)
-                {
-                    return value(std::move(value_id), [](const T& value) { return value; });
-                }
-
-                std::string id;
-                std::filesystem::path file;
-                std::vector<std::function<void(frame::output::Info<T>&)>> values;
-            };
-        }
-
-        namespace main
-        {
-            template <typename T>
-                requires requires(T converter) {
-                    { converter(std::declval<std::vector<std::string>>()) };
-                }
-            struct Frame final: IFrame
-            {
-                explicit Frame(std::filesystem::path init_file, T init_converter)
-                    : IFrame()
-                    , file(std::move(init_file))
-                    , converter(std::move(init_converter))
-                {
-                }
-
-                void install(App& app, const std::filesystem::path& path) override
-                {
-                    app.add_main(path / file, converter);
-                }
-
-                std::filesystem::path file;
-                T converter;
-            };
-        }
-
-        template <typename T, typename... Args>
-        concept is_initializer = requires(T initializer) {
-            { initializer(std::declval<Args>()...) };
-        };
-
-        class MainBuilder
-        {
-        public:
-            template <typename FromVS>
-                requires requires(FromVS converter) {
-                    { converter(std::declval<std::vector<std::string>>()) };
-                }
-            void create_main(std::filesystem::path file, FromVS converter)
-            {
-                frame = std::make_unique<main::Frame<FromVS>>(
-                    std::move(file),
-                    std::move(std::move(converter))
-                );
-            }
-
-            void install(App& app, const std::filesystem::path& path) const;
-
-        private:
-            std::unique_ptr<IFrame> frame;
-        };
-
-        class FrameBuilder
-        {
-        public:
-            template <typename Initializer>
-                requires(!is_initializer<Initializer, std::string_view>)
-            auto& create_tagged_input(
-                std::string id,
-                std::filesystem::path file,
-                Initializer initializer
-            )
-            {
-                return create_tagged_input(
-                    std::move(id),
-                    std::move(file),
-                    from_data(std::move(initializer))
-                );
-            }
-
-            template <typename Initializer>
-                requires(is_initializer<Initializer, std::string_view>)
-            auto& create_tagged_input(
-                std::string id,
-                std::filesystem::path file,
-                Initializer initializer
-            )
-            {
-                using type = decltype(initializer(std::declval<std::string_view>()));
-                auto ptr = std::make_unique<input::tagged::Frame<type>>(
-                    std::move(id),
-                    std::move(file),
-                    std::move(initializer)
-                );
-
-                auto* raw_ptr = ptr.get();
-                frames.emplace_back(std::move(ptr));
-                return *raw_ptr;
-            }
-
-            template <typename Initializer>
-                requires(!is_initializer<Initializer>)
-            auto& create_unique_input(
-                std::string id,
-                std::filesystem::path file,
-                Initializer initializer
-            )
-            {
-                return create_unique_input(
-                    std::move(id),
-                    std::move(file),
-                    from_data(std::move(initializer))
-                );
-            }
-
-            template <typename Initializer>
-                requires(is_initializer<Initializer>)
-            auto& create_unique_input(
-                std::string id,
-                std::filesystem::path file,
-                Initializer initializer
-            )
-            {
-                using type = decltype(initializer());
-                auto ptr = std::make_unique<input::unique::Frame<type>>(
-                    std::move(id),
-                    std::move(file),
-                    std::move(initializer)
-                );
-
-                auto* raw_ptr = ptr.get();
-                frames.emplace_back(std::move(ptr));
-                return *raw_ptr;
-            }
-
-            template <typename T>
-            auto& create_output(
-                std::string id,
-                std::filesystem::path file,
-                test::type<T> /* type */ = {}
-            )
-            {
-                auto ptr = std::make_unique<output::Frame<T>>(std::move(id), std::move(file));
-
-                auto* raw_ptr = ptr.get();
-                frames.emplace_back(std::move(ptr));
-                return *raw_ptr;
-            }
-
-            void install(App& app, const std::filesystem::path& path) const;
-
-        private:
-            std::vector<std::unique_ptr<IFrame>> frames;
-        };
-
-        class TestBuilder
-        {
-        public:
-            template <typename T>
-            void add_test(std::string suite_id, std::string test_id, std::filesystem::path path)
-            {
-                tests.emplace_back(
-                    [suite_id = std::move(suite_id),
-                     test_id = std::move(test_id),
-                     path = std::move(path)](App& app, const std::filesystem::path& relative_path)
-                    {
-                        for (const auto& dir :
-                             std::filesystem::directory_iterator(relative_path / path))
-                        {
-                            if (dir.is_directory())
-                            {
-                                auto tag                             //
-                                    = suite_id                       //
-                                    + '.'                            //
-                                    + test_id                        // NOLINT
-                                    + '['                            //
-                                    + dir.path().filename().string() //
-                                    + ']';
-                                app.install<T>(tag, type<typename T::base_t>());
-                            }
-                        }
-                    }
-                );
-            }
-
-            void install(App& app, const std::filesystem::path& path) const;
-
-        private:
-            std::vector<std::function<void(App&, const std::filesystem::path&)>> tests;
-        };
-    }
 }
 
 template <typename... T>

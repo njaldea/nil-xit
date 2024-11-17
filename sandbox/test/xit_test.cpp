@@ -42,31 +42,4 @@ namespace nil::xit::test
     {
         return tags;
     }
-
-    namespace builders
-    {
-        void MainBuilder::install(App& app, const std::filesystem::path& path) const
-        {
-            if (frame)
-            {
-                frame->install(app, path);
-            }
-        }
-
-        void FrameBuilder::install(App& app, const std::filesystem::path& path) const
-        {
-            for (const auto& frame : frames)
-            {
-                frame->install(app, path);
-            }
-        }
-
-        void TestBuilder::install(App& app, const std::filesystem::path& path) const
-        {
-            for (const auto& t : tests)
-            {
-                t(app, path);
-            }
-        }
-    }
 }
