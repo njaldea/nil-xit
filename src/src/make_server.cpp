@@ -13,11 +13,6 @@ namespace nil::xit
             {.port = options.port, .buffer = options.buffer_size}
         );
 
-        on_ready(
-            http_server,
-            [p = options.port]() { std::cout << "http://localhost:" << p << std::endl; }
-        );
-
         on_get(
             http_server,
             [source_path = options.source_path](const auto& transaction)

@@ -6,6 +6,7 @@
 #include <nil/gate/bias/nil.hpp>
 
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -561,12 +562,14 @@ template <std::size_t I, typename... T>
     requires(I < sizeof...(T))
 struct std::tuple_element<I, nil::xit::test::InputData<T...>>
 {
-    using type = decltype(*std::get<I>(std::declval<nil::xit::test::InputData<T...>>().data));
+    using type = std::remove_cvref_t<
+        decltype(*std::get<I>(std::declval<nil::xit::test::InputData<T...>>().data))>;
 };
 
 template <std::size_t I, typename... T>
     requires(I < sizeof...(T))
 struct std::tuple_element<I, nil::xit::test::OutputData<T...>>
 {
-    using type = decltype(*std::get<I>(std::declval<nil::xit::test::OutputData<T...>>().data));
+    using type = std::remove_cvref_t<
+        decltype(*std::get<I>(std::declval<nil::xit::test::OutputData<T...>>().data))>;
 };
