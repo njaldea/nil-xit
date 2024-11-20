@@ -27,6 +27,7 @@ int main()
 
     auto http_server = nil::xit::make_server({
         .source_path = source_path.parent_path() / "node_modules/@nil-/xit",
+        .host = "127.0.0.1",
         .port = 1101,
         .buffer_size = 1024ul * 1024ul * 100ul //
     });

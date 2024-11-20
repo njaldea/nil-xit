@@ -44,6 +44,7 @@ namespace nil::xit::gtest
 
         const auto http_server = nil::xit::make_server({
             .source_path = instance.paths.server,
+            .host = "127.0.0.1",
             .port = 1101,
             .buffer_size = 1024ul * 1024ul * 100ul //
         });

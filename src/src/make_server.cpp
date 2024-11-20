@@ -10,7 +10,7 @@ namespace nil::xit
     nil::service::H make_server(const HTTPServerOptions& options)
     {
         auto http_server = nil::service::http::server::create(
-            {.port = options.port, .buffer = options.buffer_size}
+            {.host = options.host, .port = options.port, .buffer = options.buffer_size}
         );
 
         on_get(

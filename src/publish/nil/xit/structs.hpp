@@ -24,6 +24,7 @@ namespace nil::xit
     struct HTTPServerOptions
     {
         std::filesystem::path source_path;
+        std::string host;
         std::uint16_t port = 0;
         std::uint64_t buffer_size = 4ul * 1024ul;
     };
