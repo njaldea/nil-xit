@@ -26,26 +26,7 @@ namespace nil::xit::unique
     {
         Frame* frame;
         std::string id;
-        std::function<T()> getter;
-        std::function<void(const T&)> setter;
-    };
-
-    template <>
-    struct Value<std::string>
-    {
-        Frame* frame;
-        std::string id;
-        std::function<std::string()> getter;
-        std::function<void(std::string_view)> setter;
-    };
-
-    template <>
-    struct Value<std::vector<std::uint8_t>>
-    {
-        Frame* frame;
-        std::string id;
-        std::function<std::vector<std::uint8_t>()> getter;
-        std::function<void(std::span<const std::uint8_t>)> setter;
+        std::unique_ptr<IAccessor<T>> accessor;
     };
 
     template <typename T>

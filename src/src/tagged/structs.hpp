@@ -26,26 +26,7 @@ namespace nil::xit::tagged
     {
         Frame* frame;
         std::string id;
-        std::function<T(std::string_view)> getter;
-        std::function<void(std::string_view, const T&)> setter;
-    };
-
-    template <>
-    struct Value<std::string>
-    {
-        Frame* frame;
-        std::string id;
-        std::function<std::string(std::string_view)> getter;
-        std::function<void(std::string_view, std::string_view)> setter;
-    };
-
-    template <>
-    struct Value<std::vector<std::uint8_t>>
-    {
-        Frame* frame;
-        std::string id;
-        std::function<std::vector<std::uint8_t>(std::string_view)> getter;
-        std::function<void(std::string_view, std::span<const std::uint8_t>)> setter;
+        std::unique_ptr<IAccessor<T>> accessor;
     };
 
     template <typename T>

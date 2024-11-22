@@ -49,11 +49,11 @@ namespace nil::xit::unique
         );
     }
 
-    void post(const Value<std::string>& value, std::string new_value)
+    void post(const Value<std::string>& value, std::string_view new_value)
     {
         post_impl(
             value,
-            std::move(new_value),
+            new_value,
             [&]()
             {
                 auto _ = std::lock_guard(value.frame->core->mutex);
@@ -62,11 +62,14 @@ namespace nil::xit::unique
         );
     }
 
-    void post(const Value<std::vector<std::uint8_t>>& value, std::vector<std::uint8_t> new_value)
+    void post(
+        const Value<std::vector<std::uint8_t>>& value,
+        std::span<const std::uint8_t> new_value
+    )
     {
         post_impl(
             value,
-            std::move(new_value),
+            new_value,
             [&]()
             {
                 auto _ = std::lock_guard(value.frame->core->mutex);

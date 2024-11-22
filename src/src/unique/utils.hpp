@@ -13,7 +13,11 @@
 namespace nil::xit::unique
 {
     template <typename T>
-    void post_impl(const Value<T>& value, T v, const std::vector<nil::service::ID>& ids)
+    void post_impl(
+        const Value<T>& value,
+        const setter_t<T>& v,
+        const std::vector<nil::service::ID>& ids
+    )
     {
         proto::ValueUpdate msg;
         msg.set_id(value.frame->id);
@@ -54,7 +58,7 @@ namespace nil::xit::unique
     template <typename T>
     void msg_set(const Value<T>& value, proto::Value& msg, std::string_view /* tag */)
     {
-        nil::xit::utils::msg_set(value.getter(), msg);
+        nil::xit::utils::msg_set(setter_t<T>(value.accessor->get()), msg);
     }
 
     template <typename T>
@@ -75,10 +79,7 @@ namespace nil::xit::unique
         };
         if constexpr (std::is_same_v<T, bool>)
         {
-            if (value.setter)
-            {
-                value.setter(msg.value_boolean());
-            }
+            value.accessor->set(msg.value_boolean());
             if (const auto ids = get_fid(value, id); !ids.empty())
             {
                 post_impl(value, msg.value_boolean(), ids);
@@ -86,10 +87,7 @@ namespace nil::xit::unique
         }
         else if constexpr (std::is_same_v<T, double>)
         {
-            if (value.setter)
-            {
-                value.setter(msg.value_double());
-            }
+            value.accessor->set(msg.value_double());
             if (auto ids = get_fid(value, id); !ids.empty())
             {
                 post_impl(value, msg.value_double(), ids);
@@ -97,10 +95,7 @@ namespace nil::xit::unique
         }
         else if constexpr (std::is_same_v<T, std::int64_t>)
         {
-            if (value.setter)
-            {
-                value.setter(msg.value_number());
-            }
+            value.accessor->set(msg.value_number());
             if (auto ids = get_fid(value, id); !ids.empty())
             {
                 post_impl(value, msg.value_number(), ids);
@@ -108,10 +103,7 @@ namespace nil::xit::unique
         }
         else if constexpr (std::is_same_v<T, std::string>)
         {
-            if (value.setter)
-            {
-                value.setter(msg.value_string());
-            }
+            value.accessor->set(msg.value_string());
             if (auto ids = get_fid(value, id); !ids.empty())
             {
                 post_impl(value, msg.value_string(), ids);
@@ -125,13 +117,10 @@ namespace nil::xit::unique
                 reinterpret_cast<const std::uint8_t*>(buffer.data()),
                 buffer.size()
             );
-            if (value.setter)
-            {
-                value.setter(span);
-            }
+            value.accessor->set(span);
             if (auto ids = get_fid(value, id); !ids.empty())
             {
-                post_impl(value, std::vector<std::uint8_t>(span.begin(), span.end()), ids);
+                post_impl(value, span, ids);
             }
         }
         else

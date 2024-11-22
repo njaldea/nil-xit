@@ -46,13 +46,6 @@ namespace nil::xit::tagged
         template <typename T>
         concept arg_none = std::invocable<T, std::string_view>;
 
-        template <typename T>
-        concept has_deserialize = requires(T arg) {
-            {
-                buffer_type<first_arg_t<T>>::deserialize(nullptr, 0)
-            } -> std::same_as<first_arg_t<T>>;
-        };
-
         // clang-format off
         void add_signal(Frame& frame, std::string id, std::function<void(std::string_view)> callback);
         void add_signal(Frame& frame, std::string id, std::function<void(std::string_view, bool)> callback);
@@ -74,7 +67,7 @@ namespace nil::xit::tagged
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && !impl::has_deserialize<CB>)
+        requires(!impl::arg_none<CB> && !has_deserialize<impl::first_arg_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
         using type = impl::first_arg_t<CB>;
@@ -86,7 +79,7 @@ namespace nil::xit::tagged
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && impl::has_deserialize<CB>)
+        requires(!impl::arg_none<CB> && has_deserialize<impl::first_arg_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
         using type = impl::first_arg_t<CB>;

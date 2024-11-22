@@ -15,7 +15,7 @@ namespace nil::xit::tagged
     void post_impl(
         std::string_view tag,
         const Value<T>& value,
-        T new_value,
+        const setter_t<T>& new_value,
         const std::vector<nil::service::ID>& ids
     )
     {
@@ -25,7 +25,7 @@ namespace nil::xit::tagged
 
         auto* msg_value = msg.mutable_value();
         msg_value->set_id(value.id);
-        nil::xit::utils::msg_set(std::move(new_value), *msg_value);
+        nil::xit::utils::msg_set(new_value, *msg_value);
 
         constexpr auto header = proto::MessageType_ValueUpdate;
         send(*value.frame->core->service, ids, nil::service::concat(header, msg));
@@ -83,7 +83,7 @@ namespace nil::xit::tagged
     template <typename T>
     void msg_set(const Value<T>& value, proto::Value& msg, std::string_view tag)
     {
-        nil::xit::utils::msg_set(value.getter(tag), msg);
+        nil::xit::utils::msg_set(setter_t<T>(value.accessor->get(tag)), msg);
     }
 
     template <typename T>
@@ -104,10 +104,7 @@ namespace nil::xit::tagged
         };
         if constexpr (std::is_same_v<T, bool>)
         {
-            if (value.setter)
-            {
-                value.setter(tag, msg.value_boolean());
-            }
+            value.accessor->set(tag, msg.value_boolean());
             if (const auto ids = get_fid(value, tag, id); !ids.empty())
             {
                 post_impl(tag, value, msg.value_boolean(), ids);
@@ -115,10 +112,7 @@ namespace nil::xit::tagged
         }
         else if constexpr (std::is_same_v<T, double>)
         {
-            if (value.setter)
-            {
-                value.setter(tag, msg.value_double());
-            }
+            value.accessor->set(tag, msg.value_double());
             if (auto ids = get_fid(value, tag, id); !ids.empty())
             {
                 post_impl(tag, value, msg.value_double(), ids);
@@ -126,10 +120,7 @@ namespace nil::xit::tagged
         }
         else if constexpr (std::is_same_v<T, std::int64_t>)
         {
-            if (value.setter)
-            {
-                value.setter(tag, msg.value_number());
-            }
+            value.accessor->set(tag, msg.value_number());
             if (auto ids = get_fid(value, tag, id); !ids.empty())
             {
                 post_impl(tag, value, msg.value_number(), ids);
@@ -137,10 +128,7 @@ namespace nil::xit::tagged
         }
         else if constexpr (std::is_same_v<T, std::string>)
         {
-            if (value.setter)
-            {
-                value.setter(tag, msg.value_string());
-            }
+            value.accessor->set(tag, msg.value_string());
             if (auto ids = get_fid(value, tag, id); !ids.empty())
             {
                 post_impl(tag, value, msg.value_string(), ids);
@@ -154,13 +142,10 @@ namespace nil::xit::tagged
                 reinterpret_cast<const std::uint8_t*>(buffer.data()),
                 buffer.size()
             );
-            if (value.setter)
-            {
-                value.setter(tag, span);
-            }
+            value.accessor->set(tag, span);
             if (auto ids = get_fid(value, tag, id); !ids.empty())
             {
-                post_impl(tag, value, std::vector<std::uint8_t>(span.begin(), span.end()), ids);
+                post_impl(tag, value, span, ids);
             }
         }
         else

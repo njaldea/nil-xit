@@ -36,7 +36,7 @@ namespace nil::xit::utils
     }
 
     template <typename T>
-    void msg_set(T value, proto::Value& msg)
+    void msg_set(const T& value, proto::Value& msg)
     {
         if constexpr (std::is_same_v<T, bool>)
         {
@@ -50,11 +50,11 @@ namespace nil::xit::utils
         {
             msg.set_value_number(value);
         }
-        else if constexpr (std::is_same_v<T, std::string>)
+        else if constexpr (std::is_same_v<T, std::string_view>)
         {
-            msg.set_value_string(std::move(value));
+            msg.set_value_string(value);
         }
-        else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
+        else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
         {
             msg.set_value_buffer(value.data(), value.size());
         }

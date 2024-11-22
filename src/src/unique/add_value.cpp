@@ -2,81 +2,52 @@
 
 #include "structs.hpp"
 
-namespace nil::xit::unique::impl
+namespace nil::xit::unique
 {
+    template <typename T>
+    using accessor_t = std::unique_ptr<IAccessor<T>>;
+
     namespace impl
     {
-        template <typename T, typename Getter, typename Setter>
-        Value<T>& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
+        template <typename T>
+        Value<T>& add_value(Frame& frame, std::string id, accessor_t<T> accessor)
         {
             using type = Value<T>;
-            auto value = type{&frame, id, std::move(getter), std::move(setter)};
+            auto value = type{&frame, id, std::move(accessor)};
             return std::get<type>(frame.values.emplace(id, std::move(value)).first->second);
         }
     }
 
-    Value<bool>& add_value(
-        Frame& frame,
-        std::string id,
-        std::function<bool()> getter,
-        std::function<void(bool)> setter
-    )
+    Value<bool>& add_value(Frame& frame, std::string id, accessor_t<bool> accessor)
     {
-        return impl::add_value<bool>(frame, std::move(id), std::move(getter), std::move(setter));
+        return impl::add_value<bool>(frame, std::move(id), std::move(accessor));
     }
 
-    Value<double>& add_value(
-        Frame& frame,
-        std::string id,
-        std::function<double()> getter,
-        std::function<void(double)> setter
-    )
+    Value<double>& add_value(Frame& frame, std::string id, accessor_t<double> accessor)
     {
-        return impl::add_value<double>(frame, std::move(id), std::move(getter), std::move(setter));
+        return impl::add_value<double>(frame, std::move(id), std::move(accessor));
     }
 
-    Value<std::int64_t>& add_value(
-        Frame& frame,
-        std::string id,
-        std::function<std::int64_t()> getter,
-        std::function<void(std::int64_t)> setter
-    )
+    Value<std::int64_t>& add_value(Frame& frame, std::string id, accessor_t<std::int64_t> accessor)
     {
-        return impl::add_value<std::int64_t>(
-            frame,
-            std::move(id),
-            std::move(getter),
-            std::move(setter)
-        );
+        return impl::add_value<std::int64_t>(frame, std::move(id), std::move(accessor));
     }
 
-    Value<std::string>& add_value(
-        Frame& frame,
-        std::string id,
-        std::function<std::string()> getter,
-        std::function<void(std::string_view)> setter
-    )
+    Value<std::string>& add_value(Frame& frame, std::string id, accessor_t<std::string> accessor)
     {
-        return impl::add_value<std::string>(
-            frame,
-            std::move(id),
-            std::move(getter),
-            std::move(setter)
-        );
+        return impl::add_value<std::string>(frame, std::move(id), std::move(accessor));
     }
 
     Value<std::vector<std::uint8_t>>& add_value(
         Frame& frame,
         std::string id,
-        std::function<std::vector<std::uint8_t>()> getter,
-        std::function<void(std::span<const std::uint8_t>)> setter
+        accessor_t<std::vector<std::uint8_t>> accessor
     )
     {
         return impl::add_value<std::vector<std::uint8_t>>(
             frame,
             std::move(id),
-            std::move(getter),
-            std::move(setter)
+            std::move(accessor)
         );
     }
 }

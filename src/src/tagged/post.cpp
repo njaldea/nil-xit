@@ -50,12 +50,12 @@ namespace nil::xit::tagged
         );
     }
 
-    void post(std::string_view tag, const Value<std::string>& value, std::string new_value)
+    void post(std::string_view tag, const Value<std::string>& value, std::string_view new_value)
     {
         post_impl(
             tag,
             value,
-            std::move(new_value),
+            new_value,
             [&]()
             {
                 auto _ = std::lock_guard(value.frame->core->mutex);
@@ -67,13 +67,13 @@ namespace nil::xit::tagged
     void post(
         std::string_view tag,
         const Value<std::vector<std::uint8_t>>& value,
-        std::vector<std::uint8_t> new_value
+        std::span<const std::uint8_t> new_value
     )
     {
         post_impl(
             tag,
             value,
-            std::move(new_value),
+            new_value,
             [&]()
             {
                 auto _ = std::lock_guard(value.frame->core->mutex);

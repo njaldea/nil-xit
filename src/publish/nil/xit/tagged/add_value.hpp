@@ -5,8 +5,7 @@
 #include "../buffer_type.hpp"
 
 #include <cstdint>
-#include <functional>
-#include <span>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,132 +14,166 @@ namespace nil::xit::tagged
 {
     namespace impl
     {
-        Value<bool>& add_value(
-            Frame& frame,
-            std::string id,
-            std::function<bool(std::string_view)> getter,
-            std::function<void(std::string_view, bool)> setter
-        );
-
-        Value<double>& add_value(
-            Frame& frame,
-            std::string id,
-            std::function<double(std::string_view)> getter,
-            std::function<void(std::string_view, double)> setter
-        );
-
-        Value<std::int64_t>& add_value(
-            Frame& frame,
-            std::string id,
-            std::function<std::int64_t(std::string_view)> getter,
-            std::function<void(std::string_view, std::int64_t)> setter
-        );
-
-        Value<std::string>& add_value(
-            Frame& frame,
-            std::string id,
-            std::function<std::string(std::string_view)> getter,
-            std::function<void(std::string_view, std::string_view)> setter
-        );
-
-        Value<std::vector<std::uint8_t>>& add_value(
-            Frame& frame,
-            std::string id,
-            std::function<std::vector<std::uint8_t>(std::string_view)> getter,
-            std::function<void(std::string_view, std::span<const std::uint8_t>)> setter
-        );
-
-        template <typename T>
-        concept has_codec = requires(T value) {
-            { buffer_type<T>::serialize(value) } -> std::same_as<std::vector<std::uint8_t>>;
-            { buffer_type<T>::deserialize(nullptr, 0) } -> std::same_as<T>;
-        };
-
         template <typename T>
         using return_t = decltype(std::declval<T>().operator()(std::declval<std::string_view>()));
     }
 
+    Value<bool>& add_value(
+        Frame& frame,
+        std::string id,
+        std::unique_ptr<IAccessor<bool>> accessor //
+    );
+
+    Value<double>& add_value(
+        Frame& frame,
+        std::string id,
+        std::unique_ptr<IAccessor<double>> accessor
+    );
+
+    Value<std::int64_t>& add_value(
+        Frame& frame,
+        std::string id,
+        std::unique_ptr<IAccessor<std::int64_t>> accessor
+    );
+
+    Value<std::string>& add_value(
+        Frame& frame,
+        std::string id,
+        std::unique_ptr<IAccessor<std::string>> accessor
+    );
+
+    Value<std::vector<std::uint8_t>>& add_value(
+        Frame& frame,
+        std::string id,
+        std::unique_ptr<IAccessor<std::vector<std::uint8_t>>> accessor
+    );
+
     template <typename Getter>
-        requires(!impl::has_codec<impl::return_t<Getter>>)
+        requires(!has_codec<impl::return_t<Getter>>)
     auto& add_value(Frame& frame, std::string id, Getter getter)
     {
         using type = decltype(std::declval<Getter>().operator()(std::declval<std::string_view>()));
-        return impl::add_value(
-            frame,
-            std::move(id),
-            std::function<type(std::string_view)>(std::move(getter)),
-            std::function<void(std::string_view, type)>()
-        );
+
+        struct Accessor: IAccessor<type>
+        {
+            explicit Accessor(Getter init_getter)
+                : getter(std::move(init_getter))
+            {
+            }
+
+            type get(std::string_view tag) const override
+            {
+                return getter(tag);
+            }
+
+            void set(std::string_view /* tag */, setter<type>::type /* value */) const override
+            {
+            }
+
+            Getter getter;
+        };
+
+        return add_value(frame, std::move(id), std::make_unique<Accessor>(std::move(getter)));
     }
 
     template <typename Getter, typename Setter>
-        requires(!impl::has_codec<impl::return_t<Getter>>)
+        requires(!has_codec<impl::return_t<Getter>>)
     auto& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
     {
         using type = impl::return_t<Getter>;
-        if constexpr (std::is_same_v<type, std::string>)
+
+        struct Accessor: IAccessor<type>
         {
-            return impl::add_value(
-                frame,
-                std::move(id),
-                std::function<std::string(std::string_view)>(std::move(getter)),
-                std::function<void(std::string_view, std::string_view)>(std::move(setter))
-            );
-        }
-        else if constexpr (std::is_same_v<type, std::vector<std::uint8_t>>)
-        {
-            return impl::add_value(
-                frame,
-                std::move(id),
-                std::function<std::vector<std::uint8_t>(std::string_view)>(std::move(getter)),
-                std::function<void(std::string_view, std::span<const std::uint8_t>)>(
-                    std::move(setter)
-                )
-            );
-        }
-        else
-        {
-            return impl::add_value(
-                frame,
-                std::move(id),
-                std::function<type(std::string_view)>(std::move(getter)),
-                std::function<void(std::string_view, type)>(std::move(setter))
-            );
-        }
+            Accessor(Getter init_getter, Setter init_setter)
+                : getter(std::move(init_getter))
+                , setter(std::move(init_setter))
+            {
+            }
+
+            type get(std::string_view tag) const override
+            {
+                return getter(tag);
+            }
+
+            void set(std::string_view tag, setter_t<type> value) const override
+            {
+                setter(tag, value);
+            }
+
+            Getter getter;
+            Setter setter;
+        };
+
+        return add_value(
+            frame,
+            std::move(id),
+            std::make_unique<Accessor>(std::move(getter), std::move(setter))
+        );
     }
 
     template <typename Getter>
-        requires(impl::has_codec<impl::return_t<Getter>>)
+        requires(has_codec<impl::return_t<Getter>>)
     auto& add_value(Frame& frame, std::string id, Getter getter)
     {
         using type = impl::return_t<Getter>;
-        auto& obj = impl::add_value(
-            frame,
-            std::move(id),
-            std::function<std::vector<std::uint8_t>(std::string_view)>(
-                [getter](std::string_view i) { return buffer_type<type>::serialize(getter(i)); }
-            ),
-            std::function<void(std::string_view, std::span<const std::uint8_t>)>()
-        );
+
+        struct Accessor: IAccessor<std::vector<std::uint8_t>>
+        {
+            explicit Accessor(Getter init_getter)
+                : getter(std::move(init_getter))
+            {
+            }
+
+            std::vector<std::uint8_t> get(std::string_view tag) const override
+            {
+                return buffer_type<type>::serialize(getter(tag));
+            }
+
+            void set(std::string_view /* tag */, std::span<const std::uint8_t> /* value */)
+                const override
+            {
+            }
+
+            Getter getter;
+        };
+
+        auto& obj = add_value(frame, std::move(id), std::make_unique<Accessor>(std::move(getter)));
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<Value<type>&>(obj);
     }
 
     template <typename Getter, typename Setter>
-        requires(impl::has_codec<impl::return_t<Getter>>)
+        requires(has_codec<impl::return_t<Getter>>)
     auto& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
     {
         using type = impl::return_t<Getter>;
-        auto& obj = impl::add_value(
+
+        struct Accessor: IAccessor<std::vector<std::uint8_t>>
+        {
+            Accessor(Getter init_getter, Setter init_setter)
+                : getter(std::move(init_getter))
+                , setter(std::move(init_setter))
+            {
+            }
+
+            std::vector<std::uint8_t> get(std::string_view tag) const override
+            {
+                return buffer_type<type>::serialize(getter(tag));
+            }
+
+            void set(std::string_view tag, std::span<const std::uint8_t> value) const override
+            {
+                setter(tag, buffer_type<type>::deserialize(value.data(), value.size()));
+            }
+
+            Getter getter;
+            Setter setter;
+        };
+
+        auto& obj = add_value(
             frame,
             std::move(id),
-            std::function<std::vector<std::uint8_t>(std::string_view)>(
-                [getter](std::string_view i) { return buffer_type<type>::serialize(getter(i)); }
-            ),
-            std::function<void(std::string_view, std::span<const std::uint8_t>)>(
-                [setter = std::move(setter)](std::string_view i, std::span<const std::uint8_t> v)
-                { setter(i, buffer_type<type>::deserialize(v.data(), v.size())); }
-            )
+            std::make_unique<Accessor>(std::move(getter), std::move(setter))
         );
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<Value<type>&>(obj);

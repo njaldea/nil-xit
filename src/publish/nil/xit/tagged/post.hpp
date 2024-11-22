@@ -12,14 +12,14 @@ namespace nil::xit::tagged
     void post(std::string_view, const Value<bool>& value, bool new_value);
     void post(std::string_view, const Value<double>& value, double new_value);
     void post(std::string_view, const Value<std::int64_t>& value, std::int64_t new_value);
-    void post(std::string_view, const Value<std::string>& value, std::string new_value);
+    void post(std::string_view, const Value<std::string>& value, std::string_view new_value);
     void post(
         std::string_view,
         const Value<std::vector<std::uint8_t>>& value,
-        std::vector<std::uint8_t> new_value
+        std::span<const std::uint8_t> new_value
     );
 
-    template <typename T>
+    template <has_serialize T>
     void post(std::string_view tag, const Value<T>& value, const T& new_value)
     {
         post(
