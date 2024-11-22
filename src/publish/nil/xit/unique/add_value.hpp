@@ -15,6 +15,14 @@ namespace nil::xit::unique
     {
         template <typename T>
         using return_t = decltype(std::declval<T>()());
+        template <typename Getter>
+        concept is_valid_getter = requires(Getter getter) {
+            { getter() };
+        };
+        template <typename Getter, typename Setter>
+        concept is_valid_setter = requires(Getter getter, Setter setter) {
+            { setter(std::declval<setter_t<decltype(getter())>>()) } -> std::same_as<void>;
+        };
     }
 
     Value<bool>& add_value(
@@ -77,8 +85,7 @@ namespace nil::xit::unique
         return reinterpret_cast<Value<T>&>(obj);
     }
 
-    template <typename Getter>
-        requires(!has_codec<impl::return_t<Getter>>)
+    template <impl::is_valid_getter Getter>
     auto& add_value(Frame& frame, std::string id, Getter getter)
     {
         using type = decltype(std::declval<Getter>()());
@@ -106,7 +113,7 @@ namespace nil::xit::unique
     }
 
     template <typename Getter, typename Setter>
-        requires(!has_codec<impl::return_t<Getter>>)
+        requires(impl::is_valid_setter<Getter, Setter>)
     auto& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
     {
         using type = impl::return_t<Getter>;
@@ -138,73 +145,6 @@ namespace nil::xit::unique
             std::move(id),
             std::make_unique<Accessor>(std::move(getter), std::move(setter))
         );
-    }
-
-    template <typename Getter, typename Setter>
-        requires(has_codec<impl::return_t<Getter>>)
-    auto& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
-    {
-        using type = impl::return_t<Getter>;
-
-        struct Accessor: IAccessor<type>
-        {
-            Accessor(Getter init_getter, Setter init_setter)
-                : getter(std::move(init_getter))
-                , setter(std::move(init_setter))
-            {
-            }
-
-            type get() const override
-            {
-                return getter();
-            }
-
-            void set(setter_t<type> value) const override
-            {
-                setter(value);
-            }
-
-            Getter getter;
-            Setter setter;
-        };
-
-        auto& obj = add_value(
-            frame,
-            std::move(id),
-            std::make_unique<Accessor>(std::move(getter), std::move(setter))
-        );
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return reinterpret_cast<Value<type>&>(obj);
-    }
-
-    template <typename Getter>
-        requires(has_codec<impl::return_t<Getter>>)
-    auto& add_value(Frame& frame, std::string id, Getter getter)
-    {
-        using type = impl::return_t<Getter>;
-
-        struct Accessor: IAccessor<type>
-        {
-            explicit Accessor(Getter init_getter)
-                : getter(std::move(init_getter))
-            {
-            }
-
-            type get() const override
-            {
-                return getter();
-            }
-
-            void set(setter_t<type> /* value */) const override
-            {
-            }
-
-            Getter getter;
-        };
-
-        auto& obj = add_value(frame, std::move(id), std::make_unique<Accessor>(std::move(getter)));
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return reinterpret_cast<Value<type>&>(obj);
     }
 
     template <typename T>
