@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace nil::xit::tagged
@@ -47,6 +48,36 @@ namespace nil::xit::tagged
         std::string id,
         std::unique_ptr<IAccessor<std::vector<std::uint8_t>>> accessor
     );
+
+    template <typename T>
+        requires(has_codec<T>)
+    Value<T>& add_value(Frame& frame, std::string id, std::unique_ptr<IAccessor<T>> accessor)
+    {
+        struct Accessor: IAccessor<std::vector<std::uint8_t>>
+        {
+            explicit Accessor(std::unique_ptr<IAccessor<T>> init_accessor)
+                : accessor(std::move(init_accessor))
+            {
+            }
+
+            std::vector<std::uint8_t> get(std::string_view tag) const override
+            {
+                return buffer_type<T>::serialize(accessor->get(tag));
+            }
+
+            void set(std::string_view tag, std::span<const std::uint8_t> value) const override
+            {
+                accessor->set(tag, buffer_type<T>::deserialize(value.data(), value.size()));
+            }
+
+            std::unique_ptr<IAccessor<T>> accessor;
+        };
+
+        auto& obj
+            = add_value(frame, std::move(id), std::make_unique<Accessor>(std::move(accessor)));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        return reinterpret_cast<Value<T>&>(obj);
+    }
 
     template <typename Getter>
         requires(!has_codec<impl::return_t<Getter>>)
@@ -117,20 +148,19 @@ namespace nil::xit::tagged
     {
         using type = impl::return_t<Getter>;
 
-        struct Accessor: IAccessor<std::vector<std::uint8_t>>
+        struct Accessor: IAccessor<type>
         {
             explicit Accessor(Getter init_getter)
                 : getter(std::move(init_getter))
             {
             }
 
-            std::vector<std::uint8_t> get(std::string_view tag) const override
+            type get(std::string_view tag) const override
             {
                 return buffer_type<type>::serialize(getter(tag));
             }
 
-            void set(std::string_view /* tag */, std::span<const std::uint8_t> /* value */)
-                const override
+            void set(std::string_view /* tag */, setter_t<type> /* value */) const override
             {
             }
 
@@ -148,7 +178,7 @@ namespace nil::xit::tagged
     {
         using type = impl::return_t<Getter>;
 
-        struct Accessor: IAccessor<std::vector<std::uint8_t>>
+        struct Accessor: IAccessor<type>
         {
             Accessor(Getter init_getter, Setter init_setter)
                 : getter(std::move(init_getter))
@@ -156,14 +186,14 @@ namespace nil::xit::tagged
             {
             }
 
-            std::vector<std::uint8_t> get(std::string_view tag) const override
+            type get(std::string_view tag) const override
             {
-                return buffer_type<type>::serialize(getter(tag));
+                return getter(tag);
             }
 
-            void set(std::string_view tag, std::span<const std::uint8_t> value) const override
+            void set(std::string_view tag, setter_t<type> value) const override
             {
-                setter(tag, buffer_type<type>::deserialize(value.data(), value.size()));
+                setter(tag, value);
             }
 
             Getter getter;
@@ -177,5 +207,16 @@ namespace nil::xit::tagged
         );
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<Value<type>&>(obj);
+    }
+
+    template <typename T>
+        requires(std::is_base_of_v<IAccessor<typename T::type>, T>)
+    Value<typename T::type>& add_value(Frame& frame, std::string id, std::unique_ptr<T> accessor)
+    {
+        return add_value(
+            frame,
+            std::move(id),
+            std::unique_ptr<IAccessor<typename T::type>>(std::move(accessor))
+        );
     }
 }

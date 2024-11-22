@@ -7,6 +7,8 @@ namespace nil::xit::unique
     template <typename T>
     struct IAccessor
     {
+        using type = T;
+
         IAccessor() = default;
         virtual ~IAccessor() = default;
         IAccessor(IAccessor&&) = delete;
