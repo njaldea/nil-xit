@@ -89,13 +89,16 @@ namespace nil::xit
             std::visit(
                 [&core, &response](const auto& f)
                 {
-                    if (core.directory.has_value())
+                    if (f.path.has_value())
                     {
-                        response.set_file((*core.directory / f.path).string());
-                    }
-                    else
-                    {
-                        response.set_file(f.path.string());
+                        if (core.directory.has_value())
+                        {
+                            response.set_file((*core.directory / f.path.value()).string());
+                        }
+                        else
+                        {
+                            response.set_file(f.path->string());
+                        }
                     }
                 },
                 frame

@@ -45,7 +45,7 @@ namespace nil::xit::tagged
     {
         Core* core;
         std::string id;
-        std::filesystem::path path;
+        std::optional<std::filesystem::path> path;
         std::function<void(std::string_view)> on_load;
         utils::transparent::hash_map<std::vector<nil::service::ID>> subscribers;
 

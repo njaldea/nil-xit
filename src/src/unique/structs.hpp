@@ -45,7 +45,7 @@ namespace nil::xit::unique
     {
         Core* core;
         std::string id;
-        std::filesystem::path path;
+        std::optional<std::filesystem::path> path;
         std::function<void()> on_load;
         std::vector<nil::service::ID> subscribers;
 
