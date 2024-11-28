@@ -63,9 +63,11 @@ namespace nil::xit::tagged
     );
 
     template <typename T>
-        requires(has_codec<T>)
+        requires(!is_built_in<T>)
     Value<T>& add_value(Frame& frame, std::string id, std::unique_ptr<IAccessor<T>> accessor)
     {
+        static_assert(has_codec<T>, "requires buffer_type<T> serialize/deserialize");
+
         struct Accessor: IAccessor<std::vector<std::uint8_t>>
         {
             explicit Accessor(std::unique_ptr<IAccessor<T>> init_accessor)

@@ -19,9 +19,11 @@ namespace nil::xit::tagged
         std::span<const std::uint8_t> new_value
     );
 
-    template <has_serialize T>
+    template <typename T>
+        requires(!is_built_in<T>)
     void post(std::string_view tag, const Value<T>& value, const T& new_value)
     {
+        static_assert(has_serialize<T>, "requires buffer_type<T>::serialize");
         post(
             tag,
             // NOLINTNEXTLINE
