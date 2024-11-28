@@ -80,7 +80,7 @@ namespace nil::xit::tagged
                 return buffer_type<T>::serialize(accessor->get(tag));
             }
 
-            void set(std::string_view tag, std::span<const std::uint8_t> value) const override
+            void set(std::string_view tag, std::span<const std::uint8_t> value) override
             {
                 accessor->set(tag, buffer_type<T>::deserialize(value.data(), value.size()));
             }
@@ -111,7 +111,7 @@ namespace nil::xit::tagged
                 return getter(tag);
             }
 
-            void set(std::string_view /* tag */, setter<type>::type /* value */) const override
+            void set(std::string_view /* tag */, setter<type>::type /* value */) override
             {
             }
 
@@ -140,9 +140,9 @@ namespace nil::xit::tagged
                 return getter(tag);
             }
 
-            void set(std::string_view tag, setter_t<type> value) const override
+            void set(std::string_view tag, setter_t<type> value) override
             {
-                setter(tag, value);
+                setter(tag, std::move(value));
             }
 
             Getter getter;

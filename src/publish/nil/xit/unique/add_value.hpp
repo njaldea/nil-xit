@@ -73,7 +73,7 @@ namespace nil::xit::unique
                 return buffer_type<T>::serialize(accessor->get());
             }
 
-            void set(std::span<const std::uint8_t> value) const override
+            void set(std::span<const std::uint8_t> value) override
             {
                 accessor->set(buffer_type<T>::deserialize(value.data(), value.size()));
             }
@@ -104,7 +104,7 @@ namespace nil::xit::unique
                 return getter();
             }
 
-            void set(setter<type>::type /* value */) const override
+            void set(setter<type>::type /* value */) override
             {
             }
 
@@ -133,9 +133,9 @@ namespace nil::xit::unique
                 return getter();
             }
 
-            void set(setter_t<type> value) const override
+            void set(setter_t<type> value) override
             {
-                setter(value);
+                setter(std::move(value));
             }
 
             Getter getter;

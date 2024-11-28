@@ -17,7 +17,7 @@ namespace nil::xit::unique
         IAccessor& operator=(const IAccessor&) = delete;
 
         virtual T get() const = 0;
-        virtual void set(setter_t<T>) const = 0;
+        virtual void set(setter_t<T>) = 0;
     };
     template <typename T>
     struct Value;

@@ -1,9 +1,9 @@
 <script>
     import { xit } from "@nil-/xit";
 
-    const { loader } = xit();
+    const { frame_ui } = xit();
 
-    /** @type import('@nil-/xit').FrameInfo[] */
+    /** @type {{ frame: string; tag?: string }[]} */
     const frames = [
         {frame: "base"},
         {frame: "json_editor"},
@@ -13,15 +13,8 @@
 </script>
 
 <div class="wrapper">
-    <!-- {#if frames.length > 0}
-        {#await loader.all(frames)}
-            <div>Loading...</div>
-        {:then f}
-            <div style="display: contents" use:f></div>
-        {/await}
-    {/if} -->
     {#each frames as ff}
-        {#await loader.one(ff.frame, ff.tag)}
+        {#await frame_ui(ff.frame, ff.tag)}
             <div>Loading {ff.tag ? `${ff.frame}-${ff.tag}` : ff.frame}...</div>
         {:then f}
             <div style="display: contents" use:f></div>
