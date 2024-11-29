@@ -47,6 +47,7 @@ namespace nil::xit::unique
         std::string id;
         std::optional<std::filesystem::path> path;
         std::function<void()> on_load;
+        std::function<void(std::size_t)> on_sub;
         std::vector<nil::service::ID> subscribers;
 
         using Value_t = std::variant<

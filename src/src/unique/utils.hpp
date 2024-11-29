@@ -33,18 +33,30 @@ namespace nil::xit::unique
     inline void subscribe(Frame& frame, std::string_view /* tag */, const nil::service::ID& id)
     {
         frame.subscribers.push_back(id);
+        if (frame.on_sub)
+        {
+            frame.on_sub(frame.subscribers.size());
+        }
     }
 
     inline void unsubscribe(Frame& frame, std::string_view /* tag */, const nil::service::ID& id)
     {
         auto& subs = frame.subscribers;
         subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
+        if (frame.on_sub)
+        {
+            frame.on_sub(frame.subscribers.size());
+        }
     }
 
     inline void unsubscribe(Frame& frame, const nil::service::ID& id)
     {
         auto& subs = frame.subscribers;
         subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
+        if (frame.on_sub)
+        {
+            frame.on_sub(frame.subscribers.size());
+        }
     }
 
     inline void load(const Frame& frame, std::string_view /* tag */)

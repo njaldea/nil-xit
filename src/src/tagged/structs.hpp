@@ -47,6 +47,7 @@ namespace nil::xit::tagged
         std::string id;
         std::optional<std::filesystem::path> path;
         std::function<void(std::string_view)> on_load;
+        std::function<void(std::string_view, std::size_t)> on_sub;
         utils::transparent::hash_map<std::vector<nil::service::ID>> subscribers;
 
         using Value_t = std::variant<

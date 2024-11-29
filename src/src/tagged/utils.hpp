@@ -38,6 +38,10 @@ namespace nil::xit::tagged
         {
             it = frame.subscribers.emplace(tag, std::vector<nil::service::ID>()).first;
         }
+        if (frame.on_sub)
+        {
+            frame.on_sub(tag, it->second.size() + 1);
+        }
         it->second.push_back(std::move(id));
     }
 
@@ -51,6 +55,17 @@ namespace nil::xit::tagged
             if (subs.empty())
             {
                 frame.subscribers.erase(it);
+                if (frame.on_sub)
+                {
+                    frame.on_sub(tag, 0);
+                }
+            }
+            else
+            {
+                if (frame.on_sub)
+                {
+                    frame.on_sub(tag, subs.size());
+                }
             }
         }
     }
