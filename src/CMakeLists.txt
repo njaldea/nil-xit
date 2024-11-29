@@ -16,12 +16,14 @@ set(
         src/unique/structs.hpp
         src/unique/add_value.cpp
         src/unique/add_signal.cpp
+        src/unique/has_subscribers.cpp
         src/unique/post.cpp
         src/unique/utils.hpp
 
         src/tagged/structs.hpp
         src/tagged/add_value.cpp
         src/tagged/add_signal.cpp
+        src/tagged/has_subscribers.cpp
         src/tagged/post.cpp
         src/tagged/utils.hpp
 )
