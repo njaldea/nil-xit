@@ -19,6 +19,7 @@ set(
         src/unique/on_load.cpp
         src/unique/on_sub.cpp
         src/unique/post.cpp
+        src/unique/utils.cpp
         src/unique/utils.hpp
 
         src/tagged/structs.hpp
@@ -27,6 +28,7 @@ set(
         src/tagged/on_load.cpp
         src/tagged/on_sub.cpp
         src/tagged/post.cpp
+        src/tagged/utils.cpp
         src/tagged/utils.hpp
 )
 

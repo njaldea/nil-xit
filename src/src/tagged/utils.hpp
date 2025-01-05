@@ -31,77 +31,10 @@ namespace nil::xit::tagged
         send(*value.frame->core->service, ids, nil::service::concat(header, msg));
     }
 
-    inline void subscribe(Frame& frame, std::string_view tag, nil::service::ID id)
-    {
-        auto it = frame.subscribers.find(tag);
-        if (it == frame.subscribers.end())
-        {
-            it = frame.subscribers.emplace(tag, std::vector<nil::service::ID>()).first;
-        }
-        if (frame.on_sub)
-        {
-            frame.on_sub(tag, it->second.size() + 1);
-        }
-        it->second.push_back(std::move(id));
-    }
-
-    inline void unsubscribe(Frame& frame, std::string_view tag, const nil::service::ID& id)
-    {
-        auto it = frame.subscribers.find(tag);
-        if (it != frame.subscribers.end())
-        {
-            auto& subs = it->second;
-            subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
-            if (subs.empty())
-            {
-                frame.subscribers.erase(it);
-                if (frame.on_sub)
-                {
-                    frame.on_sub(tag, 0);
-                }
-            }
-            else
-            {
-                if (frame.on_sub)
-                {
-                    frame.on_sub(tag, subs.size());
-                }
-            }
-        }
-    }
-
-    inline void unsubscribe(Frame& frame, const nil::service::ID& id)
-    {
-        for (auto it = frame.subscribers.begin(); it != frame.subscribers.end();)
-        {
-            auto& subs = it->second;
-            subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
-            if (subs.empty())
-            {
-                if (frame.on_sub)
-                {
-                    frame.on_sub(it->first, 0);
-                }
-                it = frame.subscribers.erase(it);
-            }
-            else
-            {
-                if (frame.on_sub)
-                {
-                    frame.on_sub(it->first, it->second.size());
-                }
-                ++it;
-            }
-        }
-    }
-
-    inline void load(const Frame& frame, std::string_view tag)
-    {
-        if (frame.on_load)
-        {
-            frame.on_load(tag);
-        }
-    }
+    void subscribe(Frame& frame, std::string_view tag, const nil::service::ID& id);
+    void unsubscribe(Frame& frame, std::string_view tag, const nil::service::ID& id);
+    void unsubscribe(Frame& frame, const nil::service::ID& id);
+    void load(const Frame& frame, std::string_view tag);
 
     template <typename T>
     void msg_set(const Value<T>& value, proto::Value& msg, std::string_view tag)
@@ -119,7 +52,7 @@ namespace nil::xit::tagged
     {
         constexpr auto get_fid = [](auto& x_value, auto i_tag, auto& ex_tag)
         {
-            const auto not_ex_tag = [ex_tag](const auto& sub_id) { return ex_tag != sub_id; };
+            const auto not_ex_tag = [&ex_tag](const auto& sub_id) { return ex_tag != sub_id; };
             auto _ = std::lock_guard(x_value.frame->core->mutex);
             auto& subscribers = x_value.frame->subscribers[std::string(i_tag)];
             auto view = subscribers | std::ranges::views::filter(not_ex_tag);

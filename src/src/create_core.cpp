@@ -112,10 +112,8 @@ namespace nil::xit
 
     void handle(Core& core, const nil::service::ID& id, const proto::FrameSubscribe& msg)
     {
-        const auto it = core.frames.find(msg.id());
-        if (it != core.frames.end())
+        if (const auto it = core.frames.find(msg.id()); it != core.frames.end())
         {
-            auto _ = std::lock_guard(core.mutex);
             std::visit(
                 [&msg, &id](auto& frame) { subscribe(frame, get_tag(msg), id); },
                 it->second
@@ -125,10 +123,8 @@ namespace nil::xit
 
     void handle(Core& core, const nil::service::ID& id, const proto::FrameUnsubscribe& msg)
     {
-        const auto it = core.frames.find(msg.id());
-        if (it != core.frames.end())
+        if (const auto it = core.frames.find(msg.id()); it != core.frames.end())
         {
-            auto _ = std::lock_guard(core.mutex);
             std::visit(
                 [&msg, &id](auto& frame) { unsubscribe(frame, get_tag(msg), id); },
                 it->second
@@ -330,7 +326,6 @@ namespace nil::xit
             service,
             [ptr](const auto& id)
             {
-                auto _ = std::lock_guard(ptr->mutex);
                 for (auto& frame : ptr->frames)
                 {
                     std::visit([&id](auto& f) { unsubscribe(f, id); }, frame.second);

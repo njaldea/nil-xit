@@ -8,60 +8,30 @@
 
 namespace nil::xit::tagged
 {
+    auto get_fid(const auto& value, std::string_view tag)
+    {
+        auto _ = std::lock_guard(value.frame->core->mutex);
+        return value.frame->subscribers[std::string(tag)];
+    }
+
     void post(std::string_view tag, const Value<bool>& value, bool new_value)
     {
-        post_impl(
-            tag,
-            value,
-            new_value,
-            [&]()
-            {
-                auto _ = std::lock_guard(value.frame->core->mutex);
-                return value.frame->subscribers[std::string(tag)];
-            }()
-        );
+        post_impl(tag, value, new_value, get_fid(value, tag));
     }
 
     void post(std::string_view tag, const Value<double>& value, double new_value)
     {
-        post_impl(
-            tag,
-            value,
-            new_value,
-            [&]()
-            {
-                auto _ = std::lock_guard(value.frame->core->mutex);
-                return value.frame->subscribers[std::string(tag)];
-            }()
-        );
+        post_impl(tag, value, new_value, get_fid(value, tag));
     }
 
     void post(std::string_view tag, const Value<std::int64_t>& value, std::int64_t new_value)
     {
-        post_impl(
-            tag,
-            value,
-            new_value,
-            [&]()
-            {
-                auto _ = std::lock_guard(value.frame->core->mutex);
-                return value.frame->subscribers[std::string(tag)];
-            }()
-        );
+        post_impl(tag, value, new_value, get_fid(value, tag));
     }
 
     void post(std::string_view tag, const Value<std::string>& value, std::string_view new_value)
     {
-        post_impl(
-            tag,
-            value,
-            new_value,
-            [&]()
-            {
-                auto _ = std::lock_guard(value.frame->core->mutex);
-                return value.frame->subscribers[std::string(tag)];
-            }()
-        );
+        post_impl(tag, value, new_value, get_fid(value, tag));
     }
 
     void post(
@@ -70,15 +40,6 @@ namespace nil::xit::tagged
         std::span<const std::uint8_t> new_value
     )
     {
-        post_impl(
-            tag,
-            value,
-            new_value,
-            [&]()
-            {
-                auto _ = std::lock_guard(value.frame->core->mutex);
-                return value.frame->subscribers[std::string(tag)];
-            }()
-        );
+        post_impl(tag, value, new_value, get_fid(value, tag));
     }
 }
