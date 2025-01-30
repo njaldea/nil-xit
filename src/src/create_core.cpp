@@ -1,5 +1,5 @@
 #include "codec.hpp"
-#include "proto/message.pb.h"
+#include "messages/message.pb.h"
 #include "structs.hpp"
 
 #include "tagged/utils.hpp" // IWYU pragma: keep

@@ -1,6 +1,6 @@
 #include <nil/service/codec.hpp>
 
-#include "proto/message.pb.h"
+#include "messages/message.pb.h"
 
 namespace nil::service
 {

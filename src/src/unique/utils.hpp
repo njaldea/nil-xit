@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../proto/message.pb.h"
+#include "../messages/message.pb.h"
 #include "../utils.hpp"
 #include "structs.hpp"
 

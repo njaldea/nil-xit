@@ -1,0 +1,168 @@
+namespace nil.xit.fbs;
+
+enum MessageType: int {
+    // InfoRequest
+    Client_FrameInfo_Request = 0,
+    // FrameInfoResponse
+    Server_FrameInfo_File_Response = 1,
+    // FrameInfoResponse
+    Server_FrameInfo_Content_Response = 2,
+    // FileRequest
+    Client_File_Request = 3,
+    // FileResponse
+    Server_File_Response = 4,
+    // FrameCache
+    Client_FrameCache = 5, 
+    // UniqueFrameNotify
+    Client_Frame_Loaded_Unique = 6,
+    // TaggedFrameNotify
+    Client_Frame_Loaded_Tagged = 7,
+    // UniqueFrameNotify
+    Client_Frame_Subscribe_Unique = 8,
+    // TaggedFrameNotify
+    Client_Frame_Subscribe_Tagged = 9,
+    // UniqueFrameNotify
+    Client_Frame_Unsubscribe_Unique = 10,
+    // TaggedFrameNotify
+    Client_Frame_Unsubscribe_Tagged = 11,
+    // UniqueFrameNotify
+    Client_Value_Request_Unique = 12,
+    // TaggedFrameNotify
+    Client_Value_Request_Tagged = 13,
+    // UniqueValueResponse
+    Client_Value_Response_Unique = 14,
+    // TaggedValueResponse
+    Client_Value_Response_Tagged = 15,
+    // UniqueValueUpdate
+    Client_Value_Update_Unique = 16,
+    // TaggedValueUpdate
+    Client_Value_Update_Tagged = 17,
+    // UniqueFrameNotify
+    Client_Signal_Request_Unique = 18,
+    // TaggedFrameNotify
+    Client_Signal_Request_Tagged = 19,
+    // UniqueSignalResponse
+    Server_Signal_Response_Unique = 20,
+    // TaggedSignalResponse
+    Server_Signal_Response_Tagged = 21,
+    // UniqueSignalNotify
+    Client_Signal_Notify_Unique = 22,
+    // TaggedSignalNotify
+    Client_Signal_Notify_Tagged = 23
+}
+
+enum ValueType: int {
+  Boolean = 0,
+  Number = 1,
+  Double = 2,
+  String = 3,
+  Buffer = 4
+}
+
+enum SignalType: int {
+    None = 0,
+    Boolean = 1,
+    Number = 2,
+    Double = 3,
+    String = 4,
+    Buffer = 5
+}
+
+table InfoRequest {
+    id: string; // target or frame id
+}
+
+table FrameInfoResponse {
+    id: string;
+    value: [ubyte];
+}
+
+table FileInfo {
+    target: string;
+    metadata: [ubyte];
+}
+
+table FileResponse {
+    target: string;
+    content: string;
+    metadata: [ubyte];
+}
+
+table FrameCache {
+    id: string;
+    content: string;
+    files: [FileInfo];
+}
+
+table UniqueFrameNotify {
+    id: string;
+}
+
+table TaggedFrameNotify {
+    id: string;
+    tag: string;
+}
+
+table Value {
+    id: string;
+    type: ValueType;
+    value_boolean: bool = false;
+    value_number: long = 0;
+    value_double: double = 0.0;
+    value_string: string;
+    value_buffer: [ubyte];
+}
+
+table UniqueValueResponse {
+    id: string;
+    values: [Value];
+}
+
+table TaggedValueResponse {
+    id: string;
+    tag: string;
+    values: [Value];
+}
+
+table UniqueValueUpdate {
+    id: string;
+    value: Value;
+}
+
+table TaggedValueUpdate {
+    id: string;
+    tag: string;
+    value: Value;
+}
+
+table Signal {
+    id: string;
+    type: SignalType;
+}
+
+table UniqueSignalResponse {
+    id: string;
+    signals: [Signal];
+}
+
+table TaggedSignalResponse {
+    id: string;
+    tag: string;
+    signals: [Signal];
+}
+
+table UniqueSignalNotify {
+    frame_id: string;
+    signal_id: string;
+    type: SignalType;
+    arg_boolean: bool = false;
+    arg_number: long = 0;
+    arg_double: double = 0.0;
+    arg_string: string;
+    arg_buffer: [ubyte];
+}
+
+table Message {
+    type: MessageType;
+    payload: [ubyte];
+}

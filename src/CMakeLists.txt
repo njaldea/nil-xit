@@ -1,6 +1,6 @@
 project(xit)
 
-add_subdirectory(src/proto)
+add_subdirectory(src/messages)
 
 find_package(nil-service CONFIG REQUIRED)
 
