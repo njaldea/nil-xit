@@ -3,8 +3,8 @@
 include(CMakeFindDependencyMacro)
 
 find_package(nil-service CONFIG REQUIRED)
-find_package(Protobuf CONFIG REQUIRED)
-include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@-proto-targets.cmake)
+find_package(flatbuffers CONFIG REQUIRED)
+include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@-fbs-targets.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@-targets.cmake)
 
 check_required_components(@CMAKE_PROJECT_NAME@)

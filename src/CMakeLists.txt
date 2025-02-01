@@ -54,7 +54,7 @@ set(
 )
 
 add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME} PRIVATE xit-proto)
+target_link_libraries(${PROJECT_NAME} PRIVATE xit-fbs)
 target_link_libraries(${PROJECT_NAME} PUBLIC nil::service)
 
 target_include_directories(

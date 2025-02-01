@@ -1,6 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "dependencies": [ "nil-service", "protobuf", "flatbuffers" ],
+    "dependencies": [ "nil-service", "flatbuffers" ],
     "features": {
         "test": {
             "description": "Enable tests",

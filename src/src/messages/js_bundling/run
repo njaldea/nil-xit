@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [[ $0 != $BASH_SOURCE ]]; then
+    echo "do not source this script"
+    return 1
+fi
+
+SCRIPT_PATH=`(dirname $BASH_SOURCE)`
+cd $SCRIPT_PATH
+
+
+rm -rf dist
+rm -rf out_flatc
+rm -rf index.fbs
+
+FLATC="../../../../.build/vcpkg_installed/x64-linux/tools/flatbuffers/flatc"
+
+tail -c +25 ../message.fbs > index.fbs
+$FLATC                  \
+    --ts                \
+    --gen-object-api    \
+    --schema            \
+    -o out_flatc        \
+    index.fbs
+pnpx rollup -c

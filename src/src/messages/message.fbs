@@ -1,62 +1,34 @@
 namespace nil.xit.fbs;
 
 enum MessageType: int {
-    // InfoRequest
-    Client_FrameInfo_Request = 0,
-    // FrameInfoResponse
-    Server_FrameInfo_File_Response = 1,
-    // FrameInfoResponse
-    Server_FrameInfo_Content_Response = 2,
-    // FileRequest
-    Client_File_Request = 3,
-    // FileResponse
-    Server_File_Response = 4,
-    // FrameCache
-    Client_FrameCache = 5, 
-    // UniqueFrameNotify
-    Client_Frame_Loaded_Unique = 6,
-    // TaggedFrameNotify
-    Client_Frame_Loaded_Tagged = 7,
-    // UniqueFrameNotify
-    Client_Frame_Subscribe_Unique = 8,
-    // TaggedFrameNotify
-    Client_Frame_Subscribe_Tagged = 9,
-    // UniqueFrameNotify
-    Client_Frame_Unsubscribe_Unique = 10,
-    // TaggedFrameNotify
-    Client_Frame_Unsubscribe_Tagged = 11,
-    // UniqueFrameNotify
-    Client_Value_Request_Unique = 12,
-    // TaggedFrameNotify
-    Client_Value_Request_Tagged = 13,
-    // UniqueValueResponse
-    Client_Value_Response_Unique = 14,
-    // TaggedValueResponse
-    Client_Value_Response_Tagged = 15,
-    // UniqueValueUpdate
-    Client_Value_Update_Unique = 16,
-    // TaggedValueUpdate
-    Client_Value_Update_Tagged = 17,
-    // UniqueFrameNotify
-    Client_Signal_Request_Unique = 18,
-    // TaggedFrameNotify
-    Client_Signal_Request_Tagged = 19,
-    // UniqueSignalResponse
-    Server_Signal_Response_Unique = 20,
-    // TaggedSignalResponse
-    Server_Signal_Response_Tagged = 21,
-    // UniqueSignalNotify
-    Client_Signal_Notify_Unique = 22,
-    // TaggedSignalNotify
-    Client_Signal_Notify_Tagged = 23
-}
-
-enum ValueType: int {
-  Boolean = 0,
-  Number = 1,
-  Double = 2,
-  String = 3,
-  Buffer = 4
+    Client_Unique_FrameInfo_Request = 0,
+    Client_Tagged_FrameInfo_Request = 1,
+    Server_Unique_FrameInfo_File_Response = 2,
+    Server_Tagged_FrameInfo_File_Response = 3,
+    Server_Unique_FrameInfo_Content_Response = 4,
+    Server_Tagged_FrameInfo_Content_Response = 5,
+    Client_File_Request = 6,
+    Server_File_Response = 7,
+    Client_Unique_FrameCache = 8, 
+    Client_Tagged_FrameCache = 9, 
+    Client_Unique_Frame_Loaded = 10,
+    Client_Tagged_Frame_Loaded = 11,
+    Client_Unique_Frame_Subscribe = 12,
+    Client_Tagged_Frame_Subscribe = 13,
+    Client_Unique_Frame_Unsubscribe = 14,
+    Client_Tagged_Frame_Unsubscribe = 15,
+    Client_Unique_Value_Request = 16,
+    Client_Tagged_Value_Request = 17,
+    Server_Unique_Value_Response = 18,
+    Server_Tagged_Value_Response = 19,
+    Unique_Value_Update = 20,
+    Tagged_Value_Update = 21,
+    Client_Unique_Signal_Request = 22,
+    Client_Tagged_Signal_Request = 23,
+    Server_Unique_Signal_Response = 24,
+    Server_Tagged_Signal_Response = 25,
+    Client_Unique_Signal_Notify = 26,
+    Client_Tagged_Signal_Notify = 27
 }
 
 enum SignalType: int {
@@ -68,101 +40,188 @@ enum SignalType: int {
     Buffer = 5
 }
 
-table InfoRequest {
-    id: string; // target or frame id
+table UniqueFrameInfoRequest {
+    id: string (required);
 }
 
-table FrameInfoResponse {
-    id: string;
-    value: [ubyte];
+table TaggedFrameInfoRequest {
+    id: string (required);
+    tag: string (required);
+}
+
+table UniqueFrameInfoResponse {
+    id: string (required);
+    value: string (required);
+}
+
+table TaggedFrameInfoResponse {
+    id: string (required);
+    tag: string (required);
+    value: string (required);
+}
+
+table FileRequest {
+    target: string (required);
 }
 
 table FileInfo {
-    target: string;
-    metadata: [ubyte];
+    target: string (required);
+    metadata: [ubyte] (required);
 }
 
 table FileResponse {
-    target: string;
-    content: string;
-    metadata: [ubyte];
+    target: string (required);
+    content: string (required);
+    metadata: [ubyte] (required);
 }
 
-table FrameCache {
-    id: string;
-    content: string;
-    files: [FileInfo];
+table UniqueFrameCache {
+    id: string (required);
+    content: string (required);
+    files: [FileInfo] (required);
+}
+
+table TaggedFrameCache {
+    id: string (required);
+    tag: string (required);
+    content: string (required);
+    files: [FileInfo] (required);
+}
+
+table UniqueFrameLoaded {
+    id: string (required);
+}
+
+table TaggedFrameLoaded {
+    id: string (required);
+    tag: string (required);
+}
+
+table UniqueFrameSubscribe {
+    id: string (required);
+}
+
+table TaggedFrameSubscribe {
+    id: string (required);
+    tag: string (required);
+}
+
+table UniqueFrameUnsubscribe {
+    id: string (required);
+}
+
+table TaggedFrameUnsubscribe {
+    id: string (required);
+    tag: string (required);
 }
 
 table UniqueFrameNotify {
-    id: string;
+    id: string (required);
 }
 
 table TaggedFrameNotify {
-    id: string;
-    tag: string;
+    id: string (required);
+    tag: string (required);
+}
+
+table ValueBoolean {
+    value: bool;
+}
+
+table ValueNumber {
+    value: long;
+}
+
+table ValueDouble {
+    value: double;
+}
+
+table ValueString {
+    value: string;
+}
+
+table ValueBuffer {
+    value: [ubyte];
+}
+
+union ValueUnion {
+    ValueBoolean,
+    ValueNumber,
+    ValueDouble,
+    ValueString,
+    ValueBuffer
 }
 
 table Value {
-    id: string;
-    type: ValueType;
-    value_boolean: bool = false;
-    value_number: long = 0;
-    value_double: double = 0.0;
-    value_string: string;
-    value_buffer: [ubyte];
+    id: string (required);
+    value: ValueUnion (required);
+}
+
+table UniqueValueRequest {
+    id: string (required);
+}
+
+table TaggedValueRequest {
+    id: string (required);
+    tag: string (required);
 }
 
 table UniqueValueResponse {
-    id: string;
-    values: [Value];
+    id: string (required);
+    values: [Value] (required);
 }
 
 table TaggedValueResponse {
-    id: string;
-    tag: string;
-    values: [Value];
+    id: string (required);
+    tag: string (required);
+    values: [Value] (required);
 }
 
 table UniqueValueUpdate {
-    id: string;
-    value: Value;
+    id: string (required);
+    value: Value (required);
 }
 
 table TaggedValueUpdate {
-    id: string;
-    tag: string;
-    value: Value;
+    id: string (required);
+    tag: string (required);
+    value: Value (required);
 }
 
 table Signal {
-    id: string;
+    id: string (required);
     type: SignalType;
+}
+
+table UniqueSignalRequest {
+    id: string (required);
+}
+
+table TaggedSignalRequest {
+    id: string (required);
+    tag: string (required);
 }
 
 table UniqueSignalResponse {
-    id: string;
-    signals: [Signal];
+    id: string (required);
+    signals: [Signal] (required);
 }
 
 table TaggedSignalResponse {
-    id: string;
-    tag: string;
-    signals: [Signal];
+    id: string (required);
+    tag: string (required);
+    signals: [Signal] (required);
 }
 
 table UniqueSignalNotify {
-    frame_id: string;
-    signal_id: string;
-    type: SignalType;
-    arg_boolean: bool = false;
-    arg_number: long = 0;
-    arg_double: double = 0.0;
-    arg_string: string;
-    arg_buffer: [ubyte];
+    frame_id: string (required);
+    signal_id: string (required);
+    value: ValueUnion;
 }
 
-table Message {
-    type: MessageType;
-    payload: [ubyte];
+table TaggedSignalNotify {
+    frame_id: string (required);
+    tag: string (required);
+    signal_id: string (required);
+    value: ValueUnion;
 }
