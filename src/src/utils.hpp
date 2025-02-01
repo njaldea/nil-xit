@@ -1,6 +1,6 @@
 #pragma once
 
-#include "messages/message.pb.h"
+#include "messages/message.fbs.h"
 
 #include <type_traits>
 
@@ -36,27 +36,37 @@ namespace nil::xit::utils
     }
 
     template <typename T>
-    void msg_set(const T& value, proto::Value& msg)
+    auto msg_set(const T& value, fbs::ValueT& msg, flatbuffers::FlatBufferBuilder& builder)
     {
         if constexpr (std::is_same_v<T, bool>)
         {
-            msg.set_value_boolean(value);
+            msg.value.Set(fbs::ValueBooleanT());
+            msg.value.AsValueBoolean()->value = value;
+            return fbs::ValueBoolean::Pack(builder, msg.value.AsValueBoolean());
         }
         else if constexpr (std::is_same_v<T, double>)
         {
-            msg.set_value_double(value);
+            msg.value.Set(fbs::ValueDoubleT());
+            msg.value.AsValueDouble()->value = value;
+            return fbs::ValueDouble::Pack(builder, msg.value.AsValueDouble());
         }
         else if constexpr (std::is_same_v<T, std::int64_t>)
         {
-            msg.set_value_number(value);
+            msg.value.Set(fbs::ValueNumberT());
+            msg.value.AsValueNumber()->value = value;
+            return fbs::ValueNumber::Pack(builder, msg.value.AsValueNumber());
         }
         else if constexpr (std::is_same_v<T, std::string_view>)
         {
-            msg.set_value_string(value);
+            msg.value.Set(fbs::ValueStringT());
+            msg.value.AsValueString()->value = value;
+            return fbs::ValueString::Pack(builder, msg.value.AsValueString());
         }
         else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
         {
-            msg.set_value_buffer(value.data(), value.size());
+            msg.value.Set(fbs::ValueBufferT());
+            msg.value.AsValueBuffer()->value = {value.begin(), value.end()};
+            return fbs::ValueBuffer::Pack(builder, msg.value.AsValueBuffer());
         }
         else
         {
@@ -65,31 +75,31 @@ namespace nil::xit::utils
     }
 
     template <template <class> class Signal, typename T>
-    void msg_set(const Signal<T>& /* signal */, proto::Signal& msg)
+    void msg_set(const Signal<T>& /* signal */, fbs::SignalT& msg)
     {
         if constexpr (std::is_same_v<T, void>)
         {
-            (void)msg;
+            msg.type = fbs::SignalType_None;
         }
         else if constexpr (std::is_same_v<T, bool>)
         {
-            msg.set_type("arg_boolean");
+            msg.type = fbs::SignalType_Boolean;
         }
         else if constexpr (std::is_same_v<T, double>)
         {
-            msg.set_type("arg_double");
+            msg.type = fbs::SignalType_Double;
         }
         else if constexpr (std::is_same_v<T, std::int64_t>)
         {
-            msg.set_type("arg_number");
+            msg.type = fbs::SignalType_Number;
         }
         else if constexpr (std::is_same_v<T, std::string_view>)
         {
-            msg.set_type("arg_string");
+            msg.type = fbs::SignalType_String;
         }
         else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
         {
-            msg.set_type("arg_buffer");
+            msg.type = fbs::SignalType_Buffer;
         }
         else
         {

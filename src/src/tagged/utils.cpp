@@ -47,20 +47,17 @@ namespace nil::xit::tagged
         {
             auto& subs = it->second;
             subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
+
+            if (frame.on_sub)
+            {
+                frame.on_sub(it->first, it->second.size());
+            }
             if (subs.empty())
             {
-                if (frame.on_sub)
-                {
-                    frame.on_sub(it->first, 0);
-                }
                 it = frame.subscribers.erase(it);
             }
             else
             {
-                if (frame.on_sub)
-                {
-                    frame.on_sub(it->first, it->second.size());
-                }
                 ++it;
             }
         }

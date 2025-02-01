@@ -12,7 +12,6 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <variant>
 
 namespace nil::xit
 {
@@ -21,7 +20,8 @@ namespace nil::xit
         nil::service::MessagingService* service;
         std::filesystem::path cache_location;
         std::optional<std::filesystem::path> directory;
-        std::unordered_map<std::string, std::variant<unique::Frame, tagged::Frame>> frames;
+        std::unordered_map<std::string, unique::Frame> unique_frames;
+        std::unordered_map<std::string, tagged::Frame> tagged_frames;
 
         // This mutex is to be used to protect the subscribers inside each frames.
         // Currently, there are two locations/threads where the subscribers are accessed:

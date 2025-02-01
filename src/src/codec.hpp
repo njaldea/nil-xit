@@ -1,42 +1,35 @@
+#include "messages/message.fbs.h"
+
 #include <nil/service/codec.hpp>
 
-#include "messages/message.pb.h"
+#include <flatbuffers/flatbuffer_builder.h>
 
 namespace nil::service
 {
-    template <typename Message>
-    constexpr auto is_message_lite = std::is_base_of_v<google::protobuf::MessageLite, Message>;
-
-    template <typename Message>
-    struct codec<Message, std::enable_if_t<is_message_lite<Message>>>
+    template <>
+    struct codec<flatbuffers::FlatBufferBuilder>
     {
-        static std::vector<std::uint8_t> serialize(const Message& message)
-        {
-            return codec<std::string>::serialize(message.SerializeAsString());
-        }
+        using type = nil::xit::fbs::MessageType;
 
-        static Message deserialize(const void* data, std::uint64_t& size)
+        static std::vector<std::uint8_t> serialize(const flatbuffers::FlatBufferBuilder& message)
         {
-            Message m;
-            m.ParseFromArray(data, int(size));
-            size = 0;
-            return m;
+            return {message.GetBufferPointer(), message.GetBufferPointer() + message.GetSize()};
         }
     };
 
     template <>
-    struct codec<nil::xit::proto::MessageType>
+    struct codec<nil::xit::fbs::MessageType>
     {
-        using type = nil::xit::proto::MessageType;
+        using type = nil::xit::fbs::MessageType;
 
         static std::vector<std::uint8_t> serialize(const type& message)
         {
-            return codec<std::uint32_t>::serialize(std::uint32_t(message));
+            return codec<std::int32_t>::serialize(std::int32_t(message));
         }
 
         static type deserialize(const void* data, std::uint64_t& size)
         {
-            return type(codec<std::uint32_t>::deserialize(data, size));
+            return type(codec<std::int32_t>::deserialize(data, size));
         }
     };
 }
