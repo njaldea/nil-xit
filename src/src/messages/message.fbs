@@ -75,15 +75,8 @@ table FileResponse {
     metadata: [ubyte] (required);
 }
 
-table UniqueFrameCache {
+table FrameCache {
     id: string (required);
-    content: string (required);
-    files: [FileInfo] (required);
-}
-
-table TaggedFrameCache {
-    id: string (required);
-    tag: string (required);
     content: string (required);
     files: [FileInfo] (required);
 }
