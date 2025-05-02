@@ -2,13 +2,12 @@
 
 #include "messages/message.fbs.h"
 
+#include <nil/xalt/errors.hpp>
+
 #include <type_traits>
 
 namespace nil::xit::utils
 {
-    template <typename T>
-    void unreachable();
-
     namespace transparent
     {
         struct Hash
@@ -70,7 +69,7 @@ namespace nil::xit::utils
         }
         else
         {
-            unreachable<T>();
+            nil::xalt::undefined<T>();
         }
     }
 
@@ -103,7 +102,7 @@ namespace nil::xit::utils
         }
         else
         {
-            unreachable<T>();
+            nil::xalt::undefined<T>();
         }
     }
 }

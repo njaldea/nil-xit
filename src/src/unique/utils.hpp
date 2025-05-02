@@ -4,8 +4,11 @@
 #include "../utils.hpp"
 #include "structs.hpp"
 
-#include <flatbuffers/flatbuffer_builder.h>
 #include <nil/service/concat.hpp>
+#include <nil/xalt/errors.hpp>
+
+#include <flatbuffers/flatbuffer_builder.h>
+
 #include <ranges>
 
 namespace nil::xit::unique
@@ -111,7 +114,7 @@ namespace nil::xit::unique
         }
         else
         {
-            nil::xit::utils::unreachable<T>();
+            nil::xalt::undefined<T>();
         }
     }
 
@@ -157,7 +160,7 @@ namespace nil::xit::unique
             }
             else
             {
-                nil::xit::utils::unreachable<T>();
+                nil::xalt::undefined<T>();
             }
         }
     }
