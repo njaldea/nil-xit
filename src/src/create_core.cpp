@@ -8,9 +8,9 @@
 
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
-
 #include <flatbuffers/flatbuffers.h>
 #include <flatbuffers/verifier.h>
+
 #include <nil/service/codec.hpp>
 #include <nil/service/concat.hpp>
 #include <nil/service/consume.hpp>
@@ -22,8 +22,6 @@
 #include <ios>
 #include <optional>
 #include <type_traits>
-
-#include <iostream>
 
 namespace nil::xit::fbs
 {
