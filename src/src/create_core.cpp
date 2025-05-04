@@ -6,16 +6,16 @@
 #include "unique/utils.hpp" // IWYU pragma: keep
 #include "utils.hpp"        // IWYU pragma: keep
 
-#include <flatbuffers/buffer.h>
-#include <flatbuffers/flatbuffer_builder.h>
-#include <flatbuffers/flatbuffers.h>
-#include <flatbuffers/verifier.h>
-
 #include <nil/service/codec.hpp>
 #include <nil/service/concat.hpp>
 #include <nil/service/consume.hpp>
 #include <nil/service/map.hpp>
 #include <nil/service/structs.hpp>
+
+#include <flatbuffers/buffer.h>
+#include <flatbuffers/flatbuffer_builder.h>
+#include <flatbuffers/flatbuffers.h>
+#include <flatbuffers/verifier.h>
 
 #include <filesystem>
 #include <fstream>
@@ -178,8 +178,7 @@ namespace nil::xit::fbs
 
         const auto target_time
             = std::filesystem::last_write_time(target).time_since_epoch().count();
-        using target_time_t = std::decay_t<decltype(target_time)>;
-        const auto metadata = nil::service::codec<target_time_t>::serialize(target_time);
+        const auto metadata = nil::service::concat(target_time);
 
         flatbuffers::FlatBufferBuilder builder;
         builder.Finish(CreateFileResponse(

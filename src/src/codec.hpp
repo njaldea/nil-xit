@@ -9,11 +9,20 @@ namespace nil::service
     template <>
     struct codec<flatbuffers::FlatBufferBuilder>
     {
-        using type = nil::xit::fbs::MessageType;
-
-        static std::vector<std::uint8_t> serialize(const flatbuffers::FlatBufferBuilder& message)
+        static std::size_t size(const flatbuffers::FlatBufferBuilder& message)
         {
-            return {message.GetBufferPointer(), message.GetBufferPointer() + message.GetSize()};
+            return message.GetSize();
+        }
+
+        static std::size_t serialize(void* output, const flatbuffers::FlatBufferBuilder& message)
+        {
+            const auto size_used = size(message);
+            std::copy(
+                message.GetBufferPointer(),
+                message.GetBufferPointer() + size_used,
+                static_cast<std::uint8_t*>(output)
+            );
+            return size_used;
         }
     };
 
@@ -22,12 +31,17 @@ namespace nil::service
     {
         using type = nil::xit::fbs::MessageType;
 
-        static std::vector<std::uint8_t> serialize(const type& message)
+        static std::size_t size(const type& message)
         {
-            return codec<std::int32_t>::serialize(std::int32_t(message));
+            return codec<std::int32_t>::size(std::int32_t(message));
         }
 
-        static type deserialize(const void* data, std::uint64_t& size)
+        static std::size_t serialize(void* output, const type& message)
+        {
+            return codec<std::int32_t>::serialize(output, std::int32_t(message));
+        }
+
+        static type deserialize(const void* data, std::uint64_t size)
         {
             return type(codec<std::int32_t>::deserialize(data, size));
         }

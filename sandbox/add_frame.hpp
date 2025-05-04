@@ -11,22 +11,19 @@ struct JSON
     std::string buffer;
 };
 
-namespace nil::xit
+template <>
+struct nil::xit::buffer_type<JSON>
 {
-    template <>
-    struct buffer_type<JSON>
+    static JSON deserialize(const void* data, std::uint64_t size)
     {
-        static JSON deserialize(const void* data, std::uint64_t size)
-        {
-            return JSON{std::string(static_cast<const char*>(data), size)};
-        }
+        return JSON{std::string(static_cast<const char*>(data), size)};
+    }
 
-        static std::vector<std::uint8_t> serialize(const JSON& value)
-        {
-            return {value.buffer.begin(), value.buffer.end()};
-        }
-    };
-}
+    static std::vector<std::uint8_t> serialize(const JSON& value)
+    {
+        return {value.buffer.begin(), value.buffer.end()};
+    }
+};
 
 nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core);
 

@@ -4,44 +4,32 @@
 
 #include "../buffer_type.hpp"
 
+#include <nil/xalt/fn_sign.hpp>
+
 #include <functional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 namespace nil::xit::tagged
 {
     namespace impl
     {
         template <typename T>
-        struct first_arg: first_arg<decltype(&T::operator())>
+        struct arg_type: arg_type<typename xalt::fn_sign<T>::arg_types>
         {
         };
 
-        template <typename C, typename... A>
-        struct first_arg<void (C::*)(A...) const>: first_arg<void (*)(A...)>
+        template <typename F, typename A>
+            requires(std::is_same_v<std::remove_cvref_t<F>, std::string_view>)
+        struct arg_type<nil::xalt::tlist_types<F, A>>
         {
-        };
-
-        template <typename C, typename... A>
-        struct first_arg<void (C::*)(A...)>: first_arg<void (*)(A...)>
-        {
-        };
-
-        template <typename A>
-        struct first_arg<void (*)(A)>
-        {
-            using type = std::decay_t<A>;
-        };
-
-        template <typename A>
-        struct first_arg<void (*)(std::string_view, A)>
-        {
-            using type = std::decay_t<A>;
+            using type = std::remove_cvref_t<A>;
         };
 
         template <typename T>
-        using first_arg_t = typename first_arg<T>::type;
+        using arg_type_t = typename arg_type<T>::type;
 
         template <typename T>
         concept arg_none = std::invocable<T, std::string_view>;
@@ -67,10 +55,10 @@ namespace nil::xit::tagged
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && is_built_in<impl::first_arg_t<CB>>)
+        requires(!impl::arg_none<CB> && is_built_in<impl::arg_type_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
-        using type = impl::first_arg_t<CB>;
+        using type = impl::arg_type_t<CB>;
         impl::add_signal(
             frame,
             std::move(id),
@@ -79,10 +67,10 @@ namespace nil::xit::tagged
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && !is_built_in<impl::first_arg_t<CB>>)
+        requires(!impl::arg_none<CB> && !is_built_in<impl::arg_type_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
-        using type = impl::first_arg_t<CB>;
+        using type = impl::arg_type_t<CB>;
         static_assert(has_deserialize<type>, "requires buffer_type<T>::deserialize");
         add_signal(
             frame,
