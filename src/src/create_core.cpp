@@ -524,7 +524,7 @@ namespace nil::xit::fbs
         };
     }
 
-    void on_message(nil::service::S service, Core* ptr)
+    void on_message(nil::service::P service, Core* ptr)
     {
         using nil::service::map;
         using nil::service::mapping;
@@ -554,7 +554,7 @@ namespace nil::xit::fbs
         );
     }
 
-    void on_disconnect(nil::service::S service, Core* ptr)
+    void on_disconnect(nil::service::P service, Core* ptr)
     {
         on_disconnect(
             service,
@@ -580,17 +580,17 @@ namespace nil::xit
         return *ptr;
     }
 
-    C make_core(nil::service::S service)
+    C make_core(nil::service::P service)
     {
         return {{create_core(service), &delete_core}};
     }
 
-    C make_core(nil::service::HTTPService& service)
+    C make_core(nil::service::WebService& service)
     {
         return {{create_core(service), &delete_core}};
     }
 
-    Core* create_core(nil::service::S service)
+    Core* create_core(nil::service::P service)
     {
         Core* ptr = new Core(
             &static_cast<nil::service::MessagingService&>(service),
@@ -613,7 +613,7 @@ namespace nil::xit
         return ptr;
     }
 
-    Core* create_core(nil::service::HTTPService& service)
+    Core* create_core(nil::service::WebService& service)
     {
         return create_core(use_ws(service, "/ws"));
     }

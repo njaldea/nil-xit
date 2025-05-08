@@ -1,3 +1,4 @@
+#include <nil/service/http/server/create.hpp>
 #include <nil/xit.hpp>
 
 #include "add_frame.hpp"
@@ -23,14 +24,15 @@ std::thread run_input_loop(nil::xit::unique::Value<std::string>& str_value)
 
 int main()
 {
-    const auto source_path = std::filesystem::path(__FILE__).parent_path();
+    const auto source_path = std::filesystem::path(std::filesystem::path(__FILE__).parent_path());
 
-    auto http_server = nil::xit::make_server({
-        .source_path = source_path / "node_modules/@nil-/xit",
+    auto http_server = nil::service::http::server::create({
         .host = "127.0.0.1",
         .port = 1101,
-        .buffer_size = 1024ul * 1024ul * 100ul //
+        .buffer = 1024ul * 1024ul * 100ul //
     });
+
+    nil::xit::setup_server(http_server, source_path / "node_modules/@nil-/xit");
     auto core = nil::xit::make_core(http_server);
     set_relative_directory(core, source_path);
 

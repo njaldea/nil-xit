@@ -1,21 +1,17 @@
+#include <nil/service/structs.hpp>
 #include <nil/xit/structs.hpp>
 
 #include <nil/service/http/server/create.hpp>
 
 #include <fstream>
-#include <iostream>
 
 namespace nil::xit
 {
-    nil::service::H make_server(const HTTPServerOptions& options)
+    void setup_server(service::WebService& server, std::filesystem::path source_path)
     {
-        auto http_server = nil::service::http::server::create(
-            {.host = options.host, .port = options.port, .buffer = options.buffer_size}
-        );
-
         on_get(
-            http_server,
-            [source_path = options.source_path](const auto& transaction)
+            server,
+            [source_path = std::move(source_path)](const service::WebTransaction& transaction)
             {
                 auto route = get_route(transaction);
                 if (route[0] == '/' && (route.size() == 1 || route[1] == '?'))
@@ -49,6 +45,5 @@ namespace nil::xit
                 }
             }
         );
-        return http_server;
     }
 }
