@@ -8,13 +8,7 @@
         },
         "sandbox": {
             "description": "sandbox",
-            "dependencies": [
-                "nlohmann-json",
-                {
-                    "name": "nil-service",
-                    "features": ["ssl"]
-                }
-            ]
+            "dependencies": [ "nlohmann-json", "nil-service" ]
         }
     }
 }

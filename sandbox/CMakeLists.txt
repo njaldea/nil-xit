@@ -12,5 +12,5 @@ add_executable(
     add_frame.hpp
 )
 
-find_package(nil-service CONFIG REQUIRED COMPONENTS ssl)
-target_link_libraries(${PROJECT_NAME} PRIVATE xit nil::service-ssl)
+find_package(nil-service CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE xit nil::service)
