@@ -18,7 +18,7 @@ namespace nil::xit::tagged
     void post_impl(
         std::string_view tag,
         const Value<T>& value,
-        const setter_t<T>& new_value,
+        T new_value,
         const std::vector<nil::service::ID>& ids
     )
     {
@@ -28,7 +28,7 @@ namespace nil::xit::tagged
         msg.value = std::make_unique<fbs::ValueT>();
         msg.value->id = value.id;
         flatbuffers::FlatBufferBuilder tmp_builder;
-        nil::xit::utils::msg_set(new_value, *msg.value, tmp_builder);
+        nil::xit::utils::msg_set(std::move(new_value), *msg.value, tmp_builder);
 
         flatbuffers::FlatBufferBuilder builder;
         builder.Finish(fbs::TaggedValueUpdate::Pack(builder, &msg));
@@ -50,11 +50,11 @@ namespace nil::xit::tagged
     )
     {
         msg.id = value.id;
-        return nil::xit::utils::msg_set(setter_t<T>(value.accessor->get(tag)), msg, builder);
+        return nil::xit::utils::msg_set(value.accessor->get(tag), msg, builder);
     }
 
     template <typename T>
-    void value_set( // NOLINT
+    void value_set(
         Value<T>& value,
         const fbs::Value& msg,
         std::string_view tag,
@@ -104,16 +104,12 @@ namespace nil::xit::tagged
         else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
         {
             const auto& buffer = msg.value_as_ValueBuffer()->value();
-            const auto span = std::span<const std::uint8_t>(
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                reinterpret_cast<const std::uint8_t*>(buffer->data()),
-                buffer->size()
-            );
-            value.accessor->set(tag, span);
+            auto data = std::vector<std::uint8_t>(buffer->begin(), buffer->end());
             if (auto ids = get_fid(value, tag, id); !ids.empty())
             {
-                post_impl(tag, value, span, ids);
+                post_impl(tag, value, data, ids);
             }
+            value.accessor->set(tag, std::move(data));
         }
         else
         {

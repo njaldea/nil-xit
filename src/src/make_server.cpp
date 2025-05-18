@@ -1,7 +1,6 @@
+#include <nil/service/http/server/create.hpp>
 #include <nil/service/structs.hpp>
 #include <nil/xit/structs.hpp>
-
-#include <nil/service/http/server/create.hpp>
 
 #include <fstream>
 

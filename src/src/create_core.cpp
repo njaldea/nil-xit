@@ -1,10 +1,11 @@
 #include "codec.hpp"
 #include "messages/message.fbs.h"
 #include "structs.hpp"
-
 #include "tagged/utils.hpp" // IWYU pragma: keep
 #include "unique/utils.hpp" // IWYU pragma: keep
 #include "utils.hpp"        // IWYU pragma: keep
+
+#include <nil/xalt/transparent_stl.hpp>
 
 #include <nil/service/codec.hpp>
 #include <nil/service/concat.hpp>
@@ -198,7 +199,7 @@ namespace nil::xit::fbs
         const auto it = core.unique_frames.find(msg.id()->str());
         if (it != core.unique_frames.end())
         {
-            load(it->second, std::string_view());
+            load(it->second);
         }
     }
 
@@ -216,7 +217,7 @@ namespace nil::xit::fbs
         const auto it = core.unique_frames.find(msg.id()->str());
         if (it != core.unique_frames.end())
         {
-            subscribe(it->second, std::string_view(), id);
+            subscribe(it->second, id);
         }
     }
 
@@ -234,7 +235,7 @@ namespace nil::xit::fbs
         const auto it = core.unique_frames.find(msg.id()->str());
         if (it != core.unique_frames.end())
         {
-            unsubscribe(it->second, std::string_view(), id);
+            unsubscribe(it->second, id);
         }
     }
 
@@ -270,7 +271,7 @@ namespace nil::xit::fbs
                             builder,
                             builder.CreateString(new_value.id),
                             new_value.value.type,
-                            msg_set(v, new_value, builder, std::string_view()).Union()
+                            msg_set(v, new_value, builder).Union()
                         ));
                     },
                     value
@@ -449,8 +450,7 @@ namespace nil::xit::fbs
             if (v_it != it->second.values.end())
             {
                 std::visit(
-                    [&request, &id](auto& v)
-                    { value_set(v, *request.value(), std::string_view(), id); },
+                    [&request, &id](auto& v) { value_set(v, *request.value(), id); },
                     v_it->second
                 );
             }
@@ -467,10 +467,7 @@ namespace nil::xit::fbs
             if (s_it != it->second.signals.end())
             {
                 auto& s = s_it->second;
-                std::visit(
-                    [&request](const auto& ss) { invoke(ss, request, std::string_view()); },
-                    s
-                );
+                std::visit([&request](const auto& ss) { invoke(ss, request); }, s);
             }
         }
     }
@@ -585,19 +582,14 @@ namespace nil::xit
         return {{create_core(service), &delete_core}};
     }
 
-    C make_core(nil::service::WebService& service)
-    {
-        return {{create_core(service), &delete_core}};
-    }
-
     Core* create_core(nil::service::P service)
     {
         Core* ptr = new Core(
             &static_cast<nil::service::MessagingService&>(service),
             std::filesystem::temp_directory_path() / "nil/xit",
             std::nullopt,
-            std::unordered_map<std::string, unique::Frame>(),
-            std::unordered_map<std::string, tagged::Frame>(),
+            nil::xalt::transparent_umap<unique::Frame>(),
+            nil::xalt::transparent_umap<tagged::Frame>(),
             std::mutex()
         );
         fbs::on_message(service, ptr);
@@ -613,23 +605,19 @@ namespace nil::xit
         return ptr;
     }
 
-    Core* create_core(nil::service::WebService& service)
-    {
-        return create_core(use_ws(service, "/ws"));
-    }
-
     void delete_core(Core* core)
     {
         std::default_delete<Core>()(core);
     }
 
-    void set_cache_directory(Core& core, const std::filesystem::path& tmp_path)
+    void set_cache_directory(Core& core, std::filesystem::path tmp_path) // NOLINT
     {
-        core.cache_location = tmp_path / "nil/xit";
+        tmp_path.append("nil/xit");
+        core.cache_location = std::move(tmp_path);
     }
 
-    void set_relative_directory(Core& core, const std::filesystem::path& directory)
+    void set_relative_directory(Core& core, std::filesystem::path directory)
     {
-        core.directory = directory;
+        core.directory = std::move(directory);
     }
 }

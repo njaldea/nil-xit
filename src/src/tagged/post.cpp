@@ -1,10 +1,8 @@
 #include <nil/xit/tagged/post.hpp>
 
-#include "structs.hpp"
-#include "utils.hpp"
-
 #include "../codec.hpp"
 #include "../structs.hpp"
+#include "utils.hpp"
 
 namespace nil::xit::tagged
 {
@@ -29,17 +27,17 @@ namespace nil::xit::tagged
         post_impl(tag, value, new_value, get_fid(value, tag));
     }
 
-    void post(std::string_view tag, const Value<std::string>& value, std::string_view new_value)
+    void post(std::string_view tag, const Value<std::string>& value, std::string new_value)
     {
-        post_impl(tag, value, new_value, get_fid(value, tag));
+        post_impl(tag, value, std::move(new_value), get_fid(value, tag));
     }
 
     void post(
         std::string_view tag,
         const Value<std::vector<std::uint8_t>>& value,
-        std::span<const std::uint8_t> new_value
+        std::vector<std::uint8_t> new_value
     )
     {
-        post_impl(tag, value, new_value, get_fid(value, tag));
+        post_impl(tag, value, std::move(new_value), get_fid(value, tag));
     }
 }

@@ -16,9 +16,7 @@ namespace nil::xit
     };
 
     C make_core(nil::service::P service);
-    C make_core(nil::service::WebService& service);
     Core* create_core(nil::service::P service);
-    Core* create_core(nil::service::WebService& service);
     void delete_core(Core*);
 
     struct HTTPServerOptions
@@ -31,6 +29,7 @@ namespace nil::xit
 
     void setup_server(service::WebService& server, std::filesystem::path source_path);
 
-    void set_relative_directory(Core& core, const std::filesystem::path& directory);
-    void set_cache_directory(Core& core, const std::filesystem::path& tmp_path);
+    void set_relative_directory(Core& core, std::filesystem::path directory);
+
+    void set_cache_directory(Core& core, std::filesystem::path tmp_path);
 }
