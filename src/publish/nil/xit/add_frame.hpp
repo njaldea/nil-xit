@@ -11,7 +11,8 @@
 namespace nil::xit
 {
     unique::Frame& add_unique_frame(Core& core, std::string id);
-    unique::Frame& add_unique_frame(Core& core, std::string id, std::filesystem::path path);
     tagged::Frame& add_tagged_frame(Core& core, std::string id);
+
+    unique::Frame& add_unique_frame(Core& core, std::string id, std::filesystem::path path);
     tagged::Frame& add_tagged_frame(Core& core, std::string id, std::filesystem::path path);
 }

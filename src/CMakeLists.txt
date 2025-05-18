@@ -38,7 +38,6 @@ set(
         publish/nil/xit/structs.hpp
         publish/nil/xit/add_frame.hpp
         publish/nil/xit/buffer_type.hpp
-        publish/nil/xit/setter_type.hpp
         publish/nil/xit/unique/add_value.hpp
         publish/nil/xit/unique/add_signal.hpp
         publish/nil/xit/unique/on_load.hpp

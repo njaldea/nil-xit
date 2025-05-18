@@ -1,10 +1,8 @@
 #include <nil/xit/unique/post.hpp>
 
-#include "structs.hpp"
-#include "utils.hpp"
-
 #include "../codec.hpp"
 #include "../structs.hpp"
+#include "utils.hpp"
 
 namespace nil::xit::unique
 {
@@ -29,16 +27,13 @@ namespace nil::xit::unique
         post_impl(value, new_value, get_fid(value));
     }
 
-    void post(const Value<std::string>& value, std::string_view new_value)
+    void post(const Value<std::string>& value, std::string new_value)
     {
-        post_impl(value, new_value, get_fid(value));
+        post_impl(value, std::move(new_value), get_fid(value));
     }
 
-    void post(
-        const Value<std::vector<std::uint8_t>>& value,
-        std::span<const std::uint8_t> new_value
-    )
+    void post(const Value<std::vector<std::uint8_t>>& value, std::vector<std::uint8_t> new_value)
     {
-        post_impl(value, new_value, get_fid(value));
+        post_impl(value, std::move(new_value), get_fid(value));
     }
 }

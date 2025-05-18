@@ -7,6 +7,8 @@
 #include <nil/xit/unique/add_value.hpp>
 #include <nil/xit/unique/post.hpp>
 
+#include <nil/xalt/transparent_stl.hpp>
+
 #include <iostream>
 
 nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core)
@@ -52,25 +54,6 @@ nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core)
 void add_tagged(nil::xit::Core& core)
 {
     auto& frame = add_tagged_frame(core, "tagged", "gui/Tagged.svelte");
-
-    struct Accessor: nil::xit::tagged::IAccessor<std::int64_t>
-    {
-        std::int64_t get(std::string_view tag) const override
-        {
-            if (const auto it = values.find(std::string(tag)); it != values.end())
-            {
-                return it->second;
-            }
-            return 0;
-        }
-
-        void set(std::string_view tag, nil::xit::setter_t<std::int64_t> value) override
-        {
-            values[std::string(tag)] = value;
-        }
-
-        std::unordered_map<std::string, std::int64_t> values;
-    };
 
     add_value(
         frame,

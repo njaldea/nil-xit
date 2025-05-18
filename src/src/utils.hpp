@@ -8,34 +8,8 @@
 
 namespace nil::xit::utils
 {
-    namespace transparent
-    {
-        struct Hash
-        {
-            using is_transparent = void;
-
-            std::size_t operator()(std::string_view s) const
-            {
-                return std::hash<std::string_view>()(s);
-            }
-        };
-
-        struct Equal
-        {
-            using is_transparent = void;
-
-            bool operator()(std::string_view l, std::string_view r) const
-            {
-                return l == r;
-            }
-        };
-
-        template <typename T>
-        using hash_map = std::unordered_map<std::string, T, Hash, Equal>;
-    }
-
     template <typename T>
-    auto msg_set(const T& value, fbs::ValueT& msg, flatbuffers::FlatBufferBuilder& builder)
+    auto msg_set(T value, fbs::ValueT& msg, flatbuffers::FlatBufferBuilder& builder)
     {
         if constexpr (std::is_same_v<T, bool>)
         {
@@ -55,16 +29,16 @@ namespace nil::xit::utils
             msg.value.AsValueNumber()->value = value;
             return fbs::ValueNumber::Pack(builder, msg.value.AsValueNumber());
         }
-        else if constexpr (std::is_same_v<T, std::string_view>)
+        else if constexpr (std::is_same_v<T, std::string>)
         {
             msg.value.Set(fbs::ValueStringT());
-            msg.value.AsValueString()->value = value;
+            msg.value.AsValueString()->value = std::forward<T>(value);
             return fbs::ValueString::Pack(builder, msg.value.AsValueString());
         }
-        else if constexpr (std::is_same_v<T, std::span<const std::uint8_t>>)
+        else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
         {
             msg.value.Set(fbs::ValueBufferT());
-            msg.value.AsValueBuffer()->value = {value.begin(), value.end()};
+            msg.value.AsValueBuffer()->value = std::forward<T>(value);
             return fbs::ValueBuffer::Pack(builder, msg.value.AsValueBuffer());
         }
         else

@@ -4,38 +4,20 @@
 
 #include "../buffer_type.hpp"
 
+#include <nil/xalt/fn_sign.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <vector>
 
 namespace nil::xit::tagged
 {
-    namespace impl
-    {
-        template <typename T>
-        using return_t = decltype(std::declval<T>().operator()(std::declval<std::string_view>()));
-        template <typename Getter>
-        concept is_valid_getter = requires(Getter getter) {
-            { getter(std::declval<std::string_view>()) };
-        };
-        template <typename Getter, typename Setter>
-        concept is_valid_setter = requires(Getter getter, Setter setter) {
-            {
-                setter(
-                    std::declval<std::string_view>(),
-                    std::declval<setter_t<decltype(getter(std::declval<std::string_view>()))>>()
-                )
-            } -> std::same_as<void>;
-        };
-    }
-
-    Value<bool>& add_value(
+    Value<bool>& add_value( //
         Frame& frame,
         std::string id,
-        std::unique_ptr<IAccessor<bool>> accessor //
+        std::unique_ptr<IAccessor<bool>> accessor
     );
 
     Value<double>& add_value(
@@ -63,7 +45,7 @@ namespace nil::xit::tagged
     );
 
     template <typename T>
-        requires(!is_built_in<T>)
+        requires(!is_built_in_value<T>)
     Value<T>& add_value(Frame& frame, std::string id, std::unique_ptr<IAccessor<T>> accessor)
     {
         static_assert(has_codec<T>, "requires buffer_type<T> serialize/deserialize");
@@ -80,7 +62,7 @@ namespace nil::xit::tagged
                 return buffer_type<T>::serialize(accessor->get(tag));
             }
 
-            void set(std::string_view tag, std::span<const std::uint8_t> value) override
+            void set(std::string_view tag, std::vector<std::uint8_t> value) override
             {
                 accessor->set(tag, buffer_type<T>::deserialize(value.data(), value.size()));
             }
@@ -88,16 +70,20 @@ namespace nil::xit::tagged
             std::unique_ptr<IAccessor<T>> accessor;
         };
 
-        auto& obj
-            = add_value(frame, std::move(id), std::make_unique<Accessor>(std::move(accessor)));
+        auto& obj = add_value( //
+            frame,
+            std::move(id),
+            std::make_unique<Accessor>(std::move(accessor))
+        );
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return reinterpret_cast<Value<T>&>(obj);
     }
 
-    template <impl::is_valid_getter Getter>
+    template <typename Getter>
+        requires(std::is_invocable_v<Getter, std::string_view>)
     auto& add_value(Frame& frame, std::string id, Getter getter)
     {
-        using type = impl::return_t<Getter>;
+        using type = typename nil::xalt::fn_sign<Getter>::return_type;
 
         struct Accessor: IAccessor<type>
         {
@@ -111,7 +97,7 @@ namespace nil::xit::tagged
                 return getter(tag);
             }
 
-            void set(std::string_view /* tag */, setter<type>::type /* value */) override
+            void set(std::string_view /* tag */, type /* value */) override
             {
             }
 
@@ -122,10 +108,10 @@ namespace nil::xit::tagged
     }
 
     template <typename Getter, typename Setter>
-        requires(impl::is_valid_setter<Getter, Setter>)
+        requires(std::is_invocable_v<Getter, std::string_view>)
     auto& add_value(Frame& frame, std::string id, Getter getter, Setter setter)
     {
-        using type = impl::return_t<Getter>;
+        using type = typename nil::xalt::fn_sign<Getter>::return_type;
 
         struct Accessor: IAccessor<type>
         {
@@ -140,7 +126,7 @@ namespace nil::xit::tagged
                 return getter(tag);
             }
 
-            void set(std::string_view tag, setter_t<type> value) override
+            void set(std::string_view tag, type value) override
             {
                 setter(tag, std::move(value));
             }
