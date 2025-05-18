@@ -1,10 +1,11 @@
 #include "codec.hpp"
 #include "messages/message.fbs.h"
 #include "structs.hpp"
-
 #include "tagged/utils.hpp" // IWYU pragma: keep
 #include "unique/utils.hpp" // IWYU pragma: keep
 #include "utils.hpp"        // IWYU pragma: keep
+
+#include <nil/xalt/transparent_stl.hpp>
 
 #include <nil/service/codec.hpp>
 #include <nil/service/concat.hpp>
@@ -102,10 +103,15 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const UniqueFrameInfoRequest& message)
     {
-        const auto it = core.unique_frames.find(message.id()->str());
+        const auto it = core.unique_frames.find(message.id()->string_view());
         if (it != core.unique_frames.end())
         {
             const auto& [frame_id, frame] = *it;
+
+            if (!frame.file_info.has_value())
+            {
+                return;
+            }
 
             const auto is_cached = validate_cache(
                 core,
@@ -113,34 +119,39 @@ namespace nil::xit::fbs
                 core.cache_location / "unique" / frame_id //
             );
 
-            if (!is_cached)
+            if (is_cached)
             {
-                if (frame.path.has_value())
-                {
-                    flatbuffers::FlatBufferBuilder builder;
-                    const auto file = core.directory.has_value()
-                        ? (*core.directory / frame.path.value()).string()
-                        : frame.path->string();
-                    builder.Finish(CreateUniqueFrameInfoResponse(
-                        builder,
-                        builder.CreateString(frame_id),
-                        builder.CreateString(file)
-                    ));
+                return;
+            }
 
-                    const auto header = MessageType_Server_Unique_FrameInfo_File_Response;
-                    auto payload = nil::service::concat(header, builder);
-                    send(*core.service, id, std::move(payload));
-                }
+            if (const auto file_it = core.ui_directories.find(frame.file_info->group);
+                file_it != core.ui_directories.end())
+            {
+                flatbuffers::FlatBufferBuilder builder;
+                builder.Finish(CreateUniqueFrameInfoResponse(
+                    builder,
+                    builder.CreateString(frame_id),
+                    builder.CreateString((file_it->second / frame.file_info->path).c_str())
+                ));
+
+                const auto header = MessageType_Server_Unique_FrameInfo_File_Response;
+                auto payload = nil::service::concat(header, builder);
+                send(*core.service, id, std::move(payload));
             }
         }
     }
 
     void handle(Core& core, const nil::service::ID& id, const TaggedFrameInfoRequest& message)
     {
-        const auto it = core.tagged_frames.find(message.id()->str());
+        const auto it = core.tagged_frames.find(message.id()->string_view());
         if (it != core.tagged_frames.end())
         {
             const auto& [frame_id, frame] = *it;
+
+            if (!frame.file_info.has_value())
+            {
+                return;
+            }
 
             const auto is_cached = validate_cache(
                 core,
@@ -148,32 +159,33 @@ namespace nil::xit::fbs
                 core.cache_location / "tagged" / frame_id,
                 message.tag()->string_view()
             );
-            if (!is_cached)
-            {
-                if (frame.path.has_value())
-                {
-                    flatbuffers::FlatBufferBuilder builder;
-                    const auto file = core.directory.has_value()
-                        ? (*core.directory / frame.path.value()).string()
-                        : frame.path->string();
-                    builder.Finish(CreateTaggedFrameInfoResponse(
-                        builder,
-                        builder.CreateString(frame_id),
-                        builder.CreateString(message.tag()),
-                        builder.CreateString(file)
-                    ));
 
-                    const auto header = MessageType_Server_Tagged_FrameInfo_File_Response;
-                    auto payload = nil::service::concat(header, builder);
-                    send(*core.service, id, std::move(payload));
-                }
+            if (is_cached)
+            {
+                return;
+            }
+
+            if (const auto file_it = core.ui_directories.find(frame.file_info->group);
+                file_it != core.ui_directories.end())
+            {
+                flatbuffers::FlatBufferBuilder builder;
+                builder.Finish(CreateTaggedFrameInfoResponse(
+                    builder,
+                    builder.CreateString(frame_id),
+                    builder.CreateString(message.tag()),
+                    builder.CreateString((file_it->second / frame.file_info->path).c_str())
+                ));
+
+                const auto header = MessageType_Server_Tagged_FrameInfo_File_Response;
+                auto payload = nil::service::concat(header, builder);
+                send(*core.service, id, std::move(payload));
             }
         }
     }
 
     void handle(Core& core, const nil::service::ID& id, const FileRequest& request)
     {
-        const auto target = request.target()->str();
+        const auto target = request.target()->string_view();
         const auto content = load_file(target);
 
         const auto target_time
@@ -193,18 +205,38 @@ namespace nil::xit::fbs
         send(*core.service, id, std::move(payload));
     }
 
+    void handle(Core& core, const nil::service::ID& id, const FileAliasRequest& /* request */)
+    {
+        flatbuffers::FlatBufferBuilder builder;
+        std::vector<flatbuffers::Offset<FileAlias>> file_alias_offsets;
+        file_alias_offsets.reserve(core.ui_directories.size());
+        for (const auto& [key, alias] : core.ui_directories)
+        {
+            file_alias_offsets.emplace_back(CreateFileAlias(
+                builder,
+                builder.CreateString(key),
+                builder.CreateString(alias.c_str())
+            ));
+        }
+        builder.Finish(CreateFileAliasResponse(builder, builder.CreateVector(file_alias_offsets)));
+
+        auto header = MessageType_Server_File_Alias_Response;
+        auto payload = nil::service::concat(header, builder);
+        send(*core.service, id, std::move(payload));
+    }
+
     void handle(Core& core, const nil::service::ID& /* id */, const UniqueFrameLoaded& msg)
     {
-        const auto it = core.unique_frames.find(msg.id()->str());
+        const auto it = core.unique_frames.find(msg.id()->string_view());
         if (it != core.unique_frames.end())
         {
-            load(it->second, std::string_view());
+            load(it->second);
         }
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const TaggedFrameLoaded& msg)
     {
-        const auto it = core.tagged_frames.find(msg.id()->str());
+        const auto it = core.tagged_frames.find(msg.id()->string_view());
         if (it != core.tagged_frames.end())
         {
             load(it->second, msg.tag()->string_view());
@@ -213,16 +245,16 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const UniqueFrameSubscribe& msg)
     {
-        const auto it = core.unique_frames.find(msg.id()->str());
+        const auto it = core.unique_frames.find(msg.id()->string_view());
         if (it != core.unique_frames.end())
         {
-            subscribe(it->second, std::string_view(), id);
+            subscribe(it->second, id);
         }
     }
 
     void handle(Core& core, const nil::service::ID& id, const TaggedFrameSubscribe& msg)
     {
-        const auto it = core.tagged_frames.find(msg.id()->str());
+        const auto it = core.tagged_frames.find(msg.id()->string_view());
         if (it != core.tagged_frames.end())
         {
             subscribe(it->second, msg.tag()->string_view(), id);
@@ -231,16 +263,16 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const UniqueFrameUnsubscribe& msg)
     {
-        const auto it = core.unique_frames.find(msg.id()->str());
+        const auto it = core.unique_frames.find(msg.id()->string_view());
         if (it != core.unique_frames.end())
         {
-            unsubscribe(it->second, std::string_view(), id);
+            unsubscribe(it->second, id);
         }
     }
 
     void handle(Core& core, const nil::service::ID& id, const TaggedFrameUnsubscribe& msg)
     {
-        const auto it = core.tagged_frames.find(msg.id()->str());
+        const auto it = core.tagged_frames.find(msg.id()->string_view());
         if (it != core.tagged_frames.end())
         {
             unsubscribe(it->second, msg.tag()->string_view(), id);
@@ -249,7 +281,7 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const UniqueValueRequest& request)
     {
-        const auto it = core.unique_frames.find(request.id()->str());
+        const auto it = core.unique_frames.find(request.id()->string_view());
         if (it != core.unique_frames.end())
         {
             flatbuffers::FlatBufferBuilder builder;
@@ -270,7 +302,7 @@ namespace nil::xit::fbs
                             builder,
                             builder.CreateString(new_value.id),
                             new_value.value.type,
-                            msg_set(v, new_value, builder, std::string_view()).Union()
+                            msg_set(v, new_value, builder).Union()
                         ));
                     },
                     value
@@ -291,7 +323,7 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const TaggedValueRequest& request)
     {
-        const auto it = core.tagged_frames.find(request.id()->str());
+        const auto it = core.tagged_frames.find(request.id()->string_view());
         if (it != core.tagged_frames.end())
         {
             flatbuffers::FlatBufferBuilder builder;
@@ -334,7 +366,7 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const UniqueSignalRequest& request)
     {
-        const auto it = core.unique_frames.find(request.id()->str());
+        const auto it = core.unique_frames.find(request.id()->string_view());
         if (it != core.unique_frames.end())
         {
             auto& [frame_id, frame] = *it;
@@ -378,7 +410,7 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const TaggedSignalRequest& request)
     {
-        const auto it = core.tagged_frames.find(request.id()->str());
+        const auto it = core.tagged_frames.find(request.id()->string_view());
         if (it != core.tagged_frames.end())
         {
             auto& [frame_id, frame] = *it;
@@ -423,11 +455,11 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const TaggedValueUpdate& request)
     {
-        auto it = core.tagged_frames.find(request.id()->str());
+        auto it = core.tagged_frames.find(request.id()->string_view());
         if (it != core.tagged_frames.end())
         {
             request.value();
-            auto v_it = it->second.values.find(request.value()->id()->str());
+            auto v_it = it->second.values.find(request.value()->id()->string_view());
             if (v_it != it->second.values.end())
             {
                 std::visit(
@@ -441,16 +473,15 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& id, const UniqueValueUpdate& request)
     {
-        auto it = core.unique_frames.find(request.id()->str());
+        auto it = core.unique_frames.find(request.id()->string_view());
         if (it != core.unique_frames.end())
         {
             request.value();
-            auto v_it = it->second.values.find(request.value()->id()->str());
+            auto v_it = it->second.values.find(request.value()->id()->string_view());
             if (v_it != it->second.values.end())
             {
                 std::visit(
-                    [&request, &id](auto& v)
-                    { value_set(v, *request.value(), std::string_view(), id); },
+                    [&request, &id](auto& v) { value_set(v, *request.value(), id); },
                     v_it->second
                 );
             }
@@ -459,29 +490,26 @@ namespace nil::xit::fbs
 
     void handle(Core& core, const nil::service::ID& /* id */, const UniqueSignalNotify& request)
     {
-        auto it = core.unique_frames.find(request.frame_id()->str());
+        auto it = core.unique_frames.find(request.frame_id()->string_view());
         if (it != core.unique_frames.end())
         {
             request.value();
-            auto s_it = it->second.signals.find(request.signal_id()->str());
+            auto s_it = it->second.signals.find(request.signal_id()->string_view());
             if (s_it != it->second.signals.end())
             {
                 auto& s = s_it->second;
-                std::visit(
-                    [&request](const auto& ss) { invoke(ss, request, std::string_view()); },
-                    s
-                );
+                std::visit([&request](const auto& ss) { invoke(ss, request); }, s);
             }
         }
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const TaggedSignalNotify& request)
     {
-        auto it = core.tagged_frames.find(request.frame_id()->str());
+        auto it = core.tagged_frames.find(request.frame_id()->string_view());
         if (it != core.tagged_frames.end())
         {
             request.value();
-            auto s_it = it->second.signals.find(request.signal_id()->str());
+            auto s_it = it->second.signals.find(request.signal_id()->string_view());
             if (s_it != it->second.signals.end())
             {
                 auto& s = s_it->second;
@@ -501,7 +529,7 @@ namespace nil::xit::fbs
             const auto* message = flatbuffers::GetRoot<FrameCache>(data);
             if (message != nullptr)
             {
-                const auto frame_id = message->id()->str();
+                const auto frame_id = message->id()->string_view();
                 std::ofstream f(
                     core->cache_location / dir / frame_id,
                     std::ios::binary | std::ios::out
@@ -534,6 +562,7 @@ namespace nil::xit::fbs
             map(mapping(MessageType_Client_Unique_FrameInfo_Request, handle<UniqueFrameInfoRequest>(ptr)),
                 mapping(MessageType_Client_Tagged_FrameInfo_Request, handle<TaggedFrameInfoRequest>(ptr)),
                 mapping(MessageType_Client_File_Request, handle<FileRequest>(ptr)),
+                mapping(MessageType_Client_File_Alias_Request, handle<FileAliasRequest>(ptr)),
                 mapping(MessageType_Client_Unique_Frame_Loaded, handle<UniqueFrameLoaded>(ptr)),
                 mapping(MessageType_Client_Tagged_Frame_Loaded, handle<TaggedFrameLoaded>(ptr)),
                 mapping(MessageType_Client_Unique_Frame_Subscribe, handle<UniqueFrameSubscribe>(ptr)),
@@ -585,19 +614,14 @@ namespace nil::xit
         return {{create_core(service), &delete_core}};
     }
 
-    C make_core(nil::service::WebService& service)
-    {
-        return {{create_core(service), &delete_core}};
-    }
-
     Core* create_core(nil::service::P service)
     {
         Core* ptr = new Core(
             &static_cast<nil::service::MessagingService&>(service),
             std::filesystem::temp_directory_path() / "nil/xit",
-            std::nullopt,
-            std::unordered_map<std::string, unique::Frame>(),
-            std::unordered_map<std::string, tagged::Frame>(),
+            nil::xalt::transparent_umap<std::filesystem::path>(),
+            nil::xalt::transparent_umap<unique::Frame>(),
+            nil::xalt::transparent_umap<tagged::Frame>(),
             std::mutex()
         );
         fbs::on_message(service, ptr);
@@ -613,23 +637,22 @@ namespace nil::xit
         return ptr;
     }
 
-    Core* create_core(nil::service::WebService& service)
-    {
-        return create_core(use_ws(service, "/ws"));
-    }
-
     void delete_core(Core* core)
     {
         std::default_delete<Core>()(core);
     }
 
-    void set_cache_directory(Core& core, const std::filesystem::path& tmp_path)
+    void set_cache_directory(Core& core, std::filesystem::path tmp_path) // NOLINT
     {
-        core.cache_location = tmp_path / "nil/xit";
+        tmp_path.append("nil/xit");
+        core.cache_location = std::move(tmp_path);
     }
 
-    void set_relative_directory(Core& core, const std::filesystem::path& directory)
+    void set_ui_directories(
+        Core& core,
+        nil::xalt::transparent_umap<std::filesystem::path> ui_directories
+    )
     {
-        core.directory = directory;
+        core.ui_directories = std::move(ui_directories);
     }
 }

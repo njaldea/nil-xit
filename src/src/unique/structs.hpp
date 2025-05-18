@@ -1,14 +1,14 @@
 #pragma once
 
+#include <nil/xit/structs.hpp>
 #include <nil/xit/unique/structs.hpp>
 
 #include <nil/service/ID.hpp>
-
-#include "../utils.hpp"
+#include <nil/xalt/transparent_stl.hpp>
 
 #include <cstdint>
-#include <filesystem>
 #include <functional>
+#include <optional>
 #include <span>
 #include <string>
 #include <variant>
@@ -22,9 +22,9 @@ namespace nil::xit
 namespace nil::xit::unique
 {
     template <typename T>
-    struct Value // NOLINT
+    struct Value
     {
-        Frame* frame;
+        Frame* frame = nullptr;
         std::string id;
         std::unique_ptr<IAccessor<T>> accessor;
     };
@@ -45,7 +45,7 @@ namespace nil::xit::unique
     {
         Core* core;
         std::string id;
-        std::optional<std::filesystem::path> path;
+        std::optional<FileInfo> file_info;
         std::function<void()> on_load;
         std::function<void(std::size_t)> on_sub;
         std::vector<nil::service::ID> subscribers;
@@ -56,7 +56,7 @@ namespace nil::xit::unique
             Value<double>,
             Value<std::string>,
             Value<std::vector<std::uint8_t>>>;
-        utils::transparent::hash_map<Value_t> values;
+        nil::xalt::transparent_umap<Value_t> values;
 
         using Signal_t = std::variant<
             Signal<void>,
@@ -65,6 +65,6 @@ namespace nil::xit::unique
             Signal<double>,
             Signal<std::string_view>,
             Signal<std::span<const std::uint8_t>>>;
-        utils::transparent::hash_map<Signal_t> signals;
+        nil::xalt::transparent_umap<Signal_t> signals;
     };
 }

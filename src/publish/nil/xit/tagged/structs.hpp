@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../setter_type.hpp"
-
 #include <string_view>
 
 namespace nil::xit::tagged
@@ -19,7 +17,7 @@ namespace nil::xit::tagged
         IAccessor& operator=(const IAccessor&) = delete;
 
         virtual T get(std::string_view) const = 0;
-        virtual void set(std::string_view, setter_t<T>) = 0;
+        virtual void set(std::string_view, T) = 0;
     };
 
     template <typename T>

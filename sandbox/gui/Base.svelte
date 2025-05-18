@@ -1,6 +1,6 @@
 <script>
-    import Range from "./components/Range.svelte";
-    import Text from "./components/Text.svelte";
+    import Range from "$components/Range.svelte";
+    import Text from "$components/Text.svelte";
 
     import { xit, json_string } from "@nil-/xit";
 

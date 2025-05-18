@@ -17,22 +17,11 @@ namespace nil::xit::tagged
     namespace impl
     {
         template <typename T>
-        struct arg_type: arg_type<typename xalt::fn_sign<T>::arg_types>
-        {
-        };
-
-        template <typename F, typename A>
-            requires(std::is_same_v<std::remove_cvref_t<F>, std::string_view>)
-        struct arg_type<nil::xalt::tlist_types<F, A>>
-        {
-            using type = std::remove_cvref_t<A>;
-        };
+        using arg_type_t
+            = std::remove_cvref_t<typename xalt::fn_sign<T>::arg_types::template at<1>>;
 
         template <typename T>
-        using arg_type_t = typename arg_type<T>::type;
-
-        template <typename T>
-        concept arg_none = std::invocable<T, std::string_view>;
+        concept arg_none = xalt::fn_sign<T>::arg_types::size == 1;
 
         // clang-format off
         void add_signal(Frame& frame, std::string id, std::function<void(std::string_view)> callback);
@@ -55,19 +44,18 @@ namespace nil::xit::tagged
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && is_built_in<impl::arg_type_t<CB>>)
+        requires(!impl::arg_none<CB> && is_built_in_signal<impl::arg_type_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
-        using type = impl::arg_type_t<CB>;
         impl::add_signal(
             frame,
             std::move(id),
-            std::function<void(std::string_view, type)>(std::move(callback))
+            std::function<void(std::string_view, impl::arg_type_t<CB>)>(std::move(callback))
         );
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && !is_built_in<impl::arg_type_t<CB>>)
+        requires(!impl::arg_none<CB> && !is_built_in_signal<impl::arg_type_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
         using type = impl::arg_type_t<CB>;
@@ -75,8 +63,8 @@ namespace nil::xit::tagged
         add_signal(
             frame,
             std::move(id),
-            [callback
-             = std::move(callback)](std::string_view tag, std::span<const std::uint8_t> data)
+            [callback = std::move(callback)] //
+            (std::string_view tag, std::span<const std::uint8_t> data)
             { callback(tag, buffer_type<type>::deserialize(data.data(), data.size())); }
         );
     }

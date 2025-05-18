@@ -1,14 +1,19 @@
 {
     "compilerOptions": {
+        "baseUrl": ".",
         "checkJs": true,
         "allowJs": true,
 		"module": "esnext",
-		"target": "esnext"
+		"target": "esnext",
+        "paths": {
+            "$components/*": [ "./gui/components/*" ]
+        }
     },
     "include": [
-        "basic/gui/**/*",
-        "test/gui/**/*",
-        "./global.d.ts"
+        "./global.d.ts",
+        "./**/*.js",
+        "./**/*.ts", 
+        "./**/*.svelte"
     ],
-    "exclude": [ "./node_modules" ]
+    "exclude": [ "./node_modules" ],
 }

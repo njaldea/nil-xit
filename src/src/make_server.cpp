@@ -1,46 +1,51 @@
-#include <nil/service/structs.hpp>
 #include <nil/xit/structs.hpp>
 
 #include <nil/service/http/server/create.hpp>
+#include <nil/service/structs.hpp>
 
 #include <fstream>
 
 namespace nil::xit
 {
-    void setup_server(service::WebService& server, std::filesystem::path source_path)
+    void setup_server(service::WebService& server, std::vector<std::filesystem::path> asset_paths)
     {
         on_get(
             server,
-            [source_path = std::move(source_path)](const service::WebTransaction& transaction)
+            [asset_paths = std::move(asset_paths)](const service::WebTransaction& transaction)
             {
                 auto route = get_route(transaction);
-                if (route[0] == '/' && (route.size() == 1 || route[1] == '?'))
+                const auto is_index = route[0] == '/' && (route.size() == 1 || route[1] == '?');
+                const auto file = is_index ? "index.html" : route.substr(1);
+
+                if (file.ends_with(".html"))
                 {
                     set_content_type(transaction, "text/html");
-                    const std::ifstream file(source_path / "assets/index.html", std::ios::binary);
-                    send(transaction, file);
+                }
+                else if (file.ends_with(".js"))
+                {
+                    set_content_type(transaction, "application/javascript");
+                }
+                else if (file.ends_with(".png"))
+                {
+                    set_content_type(transaction, "image/png");
+                }
+                else if (file.ends_with(".svg"))
+                {
+                    set_content_type(transaction, "image/svg+xml");
                 }
                 else
                 {
-                    const std::filesystem::path path = source_path / route.substr(1);
-                    if (exists(path))
+                    return;
+                }
+
+                for (const auto& asset_path : asset_paths)
+                {
+                    const auto full_path = asset_path / file;
+                    if (std::filesystem::exists(full_path))
                     {
-                        const std::ifstream file(path, std::ios::binary);
-                        if (".js" == path.extension())
-                        {
-                            set_content_type(transaction, "application/javascript");
-                            send(transaction, file);
-                        }
-                        else if (".png" == path.extension())
-                        {
-                            set_content_type(transaction, "image/png");
-                            send(transaction, file);
-                        }
-                        else if (".svg" == path.extension())
-                        {
-                            set_content_type(transaction, "image/svg+xml");
-                            send(transaction, file);
-                        }
+                        const std::ifstream f(full_path, std::ios::binary);
+                        send(transaction, f);
+                        return;
                     }
                 }
             }

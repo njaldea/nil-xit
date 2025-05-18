@@ -9,26 +9,28 @@ enum MessageType: int {
     Server_Tagged_FrameInfo_Content_Response = 5,
     Client_File_Request = 6,
     Server_File_Response = 7,
-    Client_Unique_FrameCache = 8, 
-    Client_Tagged_FrameCache = 9, 
-    Client_Unique_Frame_Loaded = 10,
-    Client_Tagged_Frame_Loaded = 11,
-    Client_Unique_Frame_Subscribe = 12,
-    Client_Tagged_Frame_Subscribe = 13,
-    Client_Unique_Frame_Unsubscribe = 14,
-    Client_Tagged_Frame_Unsubscribe = 15,
-    Client_Unique_Value_Request = 16,
-    Client_Tagged_Value_Request = 17,
-    Server_Unique_Value_Response = 18,
-    Server_Tagged_Value_Response = 19,
-    Unique_Value_Update = 20,
-    Tagged_Value_Update = 21,
-    Client_Unique_Signal_Request = 22,
-    Client_Tagged_Signal_Request = 23,
-    Server_Unique_Signal_Response = 24,
-    Server_Tagged_Signal_Response = 25,
-    Client_Unique_Signal_Notify = 26,
-    Client_Tagged_Signal_Notify = 27
+    Client_File_Alias_Request = 8,
+    Server_File_Alias_Response = 9,
+    Client_Unique_FrameCache = 10,
+    Client_Tagged_FrameCache = 11,
+    Client_Unique_Frame_Loaded = 12,
+    Client_Tagged_Frame_Loaded = 13,
+    Client_Unique_Frame_Subscribe = 14,
+    Client_Tagged_Frame_Subscribe = 15,
+    Client_Unique_Frame_Unsubscribe = 16,
+    Client_Tagged_Frame_Unsubscribe = 17,
+    Client_Unique_Value_Request = 18,
+    Client_Tagged_Value_Request = 19,
+    Server_Unique_Value_Response = 20,
+    Server_Tagged_Value_Response = 21,
+    Unique_Value_Update = 22,
+    Tagged_Value_Update = 23,
+    Client_Unique_Signal_Request = 24,
+    Client_Tagged_Signal_Request = 25,
+    Server_Unique_Signal_Response = 26,
+    Server_Tagged_Signal_Response = 27,
+    Client_Unique_Signal_Notify = 28,
+    Client_Tagged_Signal_Notify = 29
 }
 
 enum SignalType: int {
@@ -64,6 +66,9 @@ table FileRequest {
     target: string (required);
 }
 
+table FileAliasRequest {
+}
+
 table FileInfo {
     target: string (required);
     metadata: [ubyte] (required);
@@ -73,6 +78,15 @@ table FileResponse {
     target: string (required);
     content: string (required);
     metadata: [ubyte] (required);
+}
+
+table FileAlias {
+    key: string (required);
+    value: string (required);
+}
+
+table FileAliasResponse {
+    aliases: [FileAlias] (required);
 }
 
 table FrameCache {

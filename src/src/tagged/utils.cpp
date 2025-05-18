@@ -26,17 +26,10 @@ namespace nil::xit::tagged
             if (subs.empty())
             {
                 frame.subscribers.erase(it);
-                if (frame.on_sub)
-                {
-                    frame.on_sub(tag, 0);
-                }
             }
-            else
+            if (frame.on_sub)
             {
-                if (frame.on_sub)
-                {
-                    frame.on_sub(tag, subs.size());
-                }
+                frame.on_sub(tag, subs.size());
             }
         }
     }
