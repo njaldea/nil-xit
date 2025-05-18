@@ -14,18 +14,14 @@
 namespace nil::xit::unique
 {
     template <typename T>
-    void post_impl(
-        const Value<T>& value,
-        const setter_t<T>& new_value,
-        const std::vector<nil::service::ID>& ids
-    )
+    void post_impl(const Value<T>& value, T new_value, const std::vector<nil::service::ID>& ids)
     {
         fbs::UniqueValueUpdateT msg;
         msg.id = value.frame->id;
         msg.value = std::make_unique<fbs::ValueT>();
         msg.value->id = value.id;
         flatbuffers::FlatBufferBuilder tmp_builder;
-        nil::xit::utils::msg_set(new_value, *msg.value, tmp_builder);
+        nil::xit::utils::msg_set(std::move(new_value), *msg.value, tmp_builder);
 
         flatbuffers::FlatBufferBuilder builder;
         builder.Finish(fbs::UniqueValueUpdate::Pack(builder, &msg));
@@ -33,30 +29,19 @@ namespace nil::xit::unique
         send(*value.frame->core->service, ids, nil::service::concat(header, builder));
     }
 
-    void subscribe(Frame& frame, std::string_view /* tag */, const nil::service::ID& id);
-    void unsubscribe(Frame& frame, std::string_view /* tag */, const nil::service::ID& id);
+    void subscribe(Frame& frame, const nil::service::ID& id);
     void unsubscribe(Frame& frame, const nil::service::ID& id);
-    void load(const Frame& frame, std::string_view /* tag */);
+    void load(const Frame& frame);
 
     template <typename T>
-    auto msg_set(
-        const Value<T>& value,
-        fbs::ValueT& msg,
-        flatbuffers::FlatBufferBuilder& builder,
-        std::string_view /* tag */
-    )
+    auto msg_set(const Value<T>& value, fbs::ValueT& msg, flatbuffers::FlatBufferBuilder& builder)
     {
         msg.id = value.id;
-        return nil::xit::utils::msg_set(setter_t<T>(value.accessor->get()), msg, builder);
+        return nil::xit::utils::msg_set(value.accessor->get(), msg, builder);
     }
 
     template <typename T>
-    void value_set( // NOLINT
-        Value<T>& value,
-        const fbs::Value& msg,
-        std::string_view /* tag */,
-        const nil::service::ID& id
-    )
+    void value_set(Value<T>& value, const fbs::Value& msg, const nil::service::ID& id)
     {
         constexpr auto get_fid = [](auto& x_value, auto& ex_tag)
         {
@@ -101,16 +86,12 @@ namespace nil::xit::unique
         else if constexpr (std::is_same_v<T, std::vector<std::uint8_t>>)
         {
             const auto& buffer = msg.value_as_ValueBuffer()->value();
-            const auto span = std::span<const std::uint8_t>(
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                reinterpret_cast<const std::uint8_t*>(buffer->data()),
-                buffer->size()
-            );
-            value.accessor->set(span);
+            auto data = std::vector<std::uint8_t>(buffer->begin(), buffer->end());
             if (auto ids = get_fid(value, id); !ids.empty())
             {
-                post_impl(value, span, ids);
+                post_impl(value, data, ids);
             }
+            value.accessor->set(std::move(data));
         }
         else
         {
@@ -119,11 +100,7 @@ namespace nil::xit::unique
     }
 
     template <typename T>
-    void invoke(
-        const Signal<T>& signal,
-        const fbs::UniqueSignalNotify& msg,
-        std::string_view /* tag */
-    )
+    void invoke(const Signal<T>& signal, const fbs::UniqueSignalNotify& msg)
     {
         if (signal.on_call)
         {

@@ -16,13 +16,19 @@ namespace nil::xit
     };
 
     template <typename T>
-    constexpr bool is_built_in                          //
-        = std::is_same_v<T, bool>                       //
-        || std::is_same_v<T, double>                    //
-        || std::is_same_v<T, std::int64_t>              //
-        || std::is_same_v<T, std::string>               //
-        || std::is_same_v<T, std::string_view>          //
-        || std::is_same_v<T, std::vector<std::uint8_t>> //
+    concept is_built_in_value              //
+        = std::is_same_v<T, bool>          //
+        || std::is_same_v<T, double>       //
+        || std::is_same_v<T, std::int64_t> //
+        || std::is_same_v<T, std::string>  //
+        || std::is_same_v<T, std::vector<std::uint8_t>>;
+
+    template <typename T>
+    concept is_built_in_signal                 //
+        = std::is_same_v<T, bool>              //
+        || std::is_same_v<T, double>           //
+        || std::is_same_v<T, std::int64_t>     //
+        || std::is_same_v<T, std::string_view> //
         || std::is_same_v<T, std::span<const std::uint8_t>>;
 
     template <typename T>
