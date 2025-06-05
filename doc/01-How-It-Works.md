@@ -27,7 +27,7 @@ int main()
     });
     auto core = nil::xit::make_core(server);
 
-    set_ui_directories(
+    set_frame_groups(
         core,
         {
             {"base", "aliased path"},

@@ -124,8 +124,8 @@ namespace nil::xit::fbs
                 return;
             }
 
-            if (const auto file_it = core.ui_directories.find(frame.file_info->group);
-                file_it != core.ui_directories.end())
+            if (const auto file_it = core.frame_groups.find(frame.file_info->group);
+                file_it != core.frame_groups.end())
             {
                 flatbuffers::FlatBufferBuilder builder;
                 builder.Finish(CreateUniqueFrameInfoResponse(
@@ -165,8 +165,8 @@ namespace nil::xit::fbs
                 return;
             }
 
-            if (const auto file_it = core.ui_directories.find(frame.file_info->group);
-                file_it != core.ui_directories.end())
+            if (const auto file_it = core.frame_groups.find(frame.file_info->group);
+                file_it != core.frame_groups.end())
             {
                 flatbuffers::FlatBufferBuilder builder;
                 builder.Finish(CreateTaggedFrameInfoResponse(
@@ -209,8 +209,8 @@ namespace nil::xit::fbs
     {
         flatbuffers::FlatBufferBuilder builder;
         std::vector<flatbuffers::Offset<FileAlias>> file_alias_offsets;
-        file_alias_offsets.reserve(core.ui_directories.size());
-        for (const auto& [key, alias] : core.ui_directories)
+        file_alias_offsets.reserve(core.frame_groups.size());
+        for (const auto& [key, alias] : core.frame_groups)
         {
             file_alias_offsets.emplace_back(CreateFileAlias(
                 builder,
@@ -458,7 +458,6 @@ namespace nil::xit::fbs
         auto it = core.tagged_frames.find(request.id()->string_view());
         if (it != core.tagged_frames.end())
         {
-            request.value();
             auto v_it = it->second.values.find(request.value()->id()->string_view());
             if (v_it != it->second.values.end())
             {
@@ -476,7 +475,6 @@ namespace nil::xit::fbs
         auto it = core.unique_frames.find(request.id()->string_view());
         if (it != core.unique_frames.end())
         {
-            request.value();
             auto v_it = it->second.values.find(request.value()->id()->string_view());
             if (v_it != it->second.values.end())
             {
@@ -493,7 +491,6 @@ namespace nil::xit::fbs
         auto it = core.unique_frames.find(request.frame_id()->string_view());
         if (it != core.unique_frames.end())
         {
-            request.value();
             auto s_it = it->second.signals.find(request.signal_id()->string_view());
             if (s_it != it->second.signals.end())
             {
@@ -508,7 +505,6 @@ namespace nil::xit::fbs
         auto it = core.tagged_frames.find(request.frame_id()->string_view());
         if (it != core.tagged_frames.end())
         {
-            request.value();
             auto s_it = it->second.signals.find(request.signal_id()->string_view());
             if (s_it != it->second.signals.end())
             {
@@ -648,11 +644,16 @@ namespace nil::xit
         core.cache_location = std::move(tmp_path);
     }
 
-    void set_ui_directories(
+    void set_frame_groups(
         Core& core,
-        nil::xalt::transparent_umap<std::filesystem::path> ui_directories
+        nil::xalt::transparent_umap<std::filesystem::path> frame_groups
     )
     {
-        core.ui_directories = std::move(ui_directories);
+        core.frame_groups = std::move(frame_groups);
+    }
+
+    const nil::xalt::transparent_umap<std::filesystem::path>& get_frame_groups(const Core& core)
+    {
+        return core.frame_groups;
     }
 }

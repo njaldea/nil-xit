@@ -1,10 +1,9 @@
-<script>
-    /** @type {{ label: string, placeholder: string, value: string }}  */
+<script lang="ts">
     let {
         value = $bindable(),
         label,
         placeholder,
-    } = $props();
+    }: { label: string, placeholder: string, value: string } = $props();
 </script>
 
 <div>

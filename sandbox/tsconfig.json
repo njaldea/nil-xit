@@ -7,7 +7,9 @@
 		"target": "esnext",
         "paths": {
             "$components/*": [ "./gui/components/*" ]
-        }
+        },
+        "noEmit": true,
+        "allowImportingTsExtensions": true
     },
     "include": [
         "./global.d.ts",

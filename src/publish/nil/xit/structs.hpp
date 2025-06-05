@@ -20,14 +20,6 @@ namespace nil::xit
     Core* create_core(nil::service::P service);
     void delete_core(Core*);
 
-    struct HTTPServerOptions
-    {
-        std::filesystem::path source_path;
-        std::string host;
-        std::uint16_t port = 0;
-        std::uint64_t buffer_size = 4ul * 1024ul;
-    };
-
     // setup the server to handle file requests
     // currently supports the following file format:
     //  -  .html
@@ -42,10 +34,12 @@ namespace nil::xit
         std::filesystem::path path;
     };
 
-    void set_ui_directories(
+    void set_cache_directory(Core& core, std::filesystem::path tmp_path);
+
+    void set_frame_groups(
         Core& core,
-        nil::xalt::transparent_umap<std::filesystem::path> ui_directories
+        nil::xalt::transparent_umap<std::filesystem::path> frame_groups
     );
 
-    void set_cache_directory(Core& core, std::filesystem::path tmp_path);
+    const nil::xalt::transparent_umap<std::filesystem::path>& get_frame_groups(const Core& core);
 }

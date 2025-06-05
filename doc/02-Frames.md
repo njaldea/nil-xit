@@ -14,13 +14,27 @@ auto core = nil::xit::create_core(server);
 auto& unique_frame = add_unique_frame(
     core,
     "unique-frame-id",
-    "/absolute/path/to/your/file.svelte"
+    {
+        .group="group1", // <-- group1 or group2 from set_frame_groups
+        .path="path/to/your/file.svelte"
+    }
 );
 
 auto& tagged_frame = add_tagged_frame(
     core,
     "tagged-frame-id",
-    "/absolute/path/to/your/file.svelte"
+    {
+        .group="group2", // <-- group1 or group2 from set_frame_groups
+        .path="path/to/your/file.svelte"
+    }
+);
+
+set_frame_groups(
+    core,
+    {
+        {"group1", "paths..."},
+        {"group2", "paths..."}
+    }
 );
 ```
 
