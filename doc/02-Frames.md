@@ -15,7 +15,7 @@ auto& unique_frame = add_unique_frame(
     core,
     "unique-frame-id",
     {
-        .group="group1", // <-- group1 or group2 from set_frame_groups
+        .group="group1", // <-- group1 or group2 from set_groups
         .path="path/to/your/file.svelte"
     }
 );
@@ -24,12 +24,12 @@ auto& tagged_frame = add_tagged_frame(
     core,
     "tagged-frame-id",
     {
-        .group="group2", // <-- group1 or group2 from set_frame_groups
+        .group="group2", // <-- group1 or group2 from set_groups
         .path="path/to/your/file.svelte"
     }
 );
 
-set_frame_groups(
+set_groups(
     core,
     {
         {"group1", "paths..."},

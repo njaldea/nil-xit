@@ -27,7 +27,7 @@ int main()
     });
     auto core = nil::xit::make_core(server);
 
-    set_frame_groups(
+    set_groups(
         core,
         {
             {"base", "aliased path"},

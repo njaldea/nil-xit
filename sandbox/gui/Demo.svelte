@@ -10,7 +10,7 @@
         {frame: "group"},
     ];
 
-    const { frame_ui } = xit();
+    const { load_frame_ui } = xit();
 
     let selected = $state(0);
 </script>
@@ -25,7 +25,7 @@
     {#key selected}
         {#if selected < frames.length}
             {@const f = frames[selected]}
-            {#await frame_ui(f.frame, f.tag)}
+            {#await load_frame_ui(f.frame, f.tag)}
                 <div>Loading {f.tag ? `${f.frame}-${f.tag}` : f.frame}...</div>
             {:then a}
                 <div style="display: contents" use:a></div>

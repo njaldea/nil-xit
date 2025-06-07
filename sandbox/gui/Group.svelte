@@ -1,7 +1,7 @@
 <script>
     import { xit } from "@nil-/xit";
 
-    const { frame_ui } = xit();
+    const { load_frame_ui } = xit();
 
     /** @type {{ frame: string; tag?: string }[]} */
     const frames = [
@@ -14,7 +14,7 @@
 
 <div class="wrapper">
     {#each frames as ff}
-        {#await frame_ui(ff.frame, ff.tag)}
+        {#await load_frame_ui(ff.frame, ff.tag)}
             <div>Loading {ff.tag ? `${ff.frame}-${ff.tag}` : ff.frame}...</div>
         {:then f}
             <div style="display: contents" use:f></div>

@@ -1232,6 +1232,7 @@ inline ::flatbuffers::Offset<FileAliasResponse> CreateFileAliasResponseDirect(
 struct FrameCacheT : public ::flatbuffers::NativeTable {
   typedef FrameCache TableType;
   std::string id{};
+  std::string target{};
   std::string content{};
   std::vector<std::unique_ptr<nil::xit::fbs::FileInfoT>> files{};
   FrameCacheT() = default;
@@ -1245,11 +1246,15 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FrameCacheBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
-    VT_CONTENT = 6,
-    VT_FILES = 8
+    VT_TARGET = 6,
+    VT_CONTENT = 8,
+    VT_FILES = 10
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
+  }
+  const ::flatbuffers::String *target() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_TARGET);
   }
   const ::flatbuffers::String *content() const {
     return GetPointer<const ::flatbuffers::String *>(VT_CONTENT);
@@ -1261,6 +1266,8 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_ID) &&
            verifier.VerifyString(id()) &&
+           VerifyOffsetRequired(verifier, VT_TARGET) &&
+           verifier.VerifyString(target()) &&
            VerifyOffsetRequired(verifier, VT_CONTENT) &&
            verifier.VerifyString(content()) &&
            VerifyOffsetRequired(verifier, VT_FILES) &&
@@ -1280,6 +1287,9 @@ struct FrameCacheBuilder {
   void add_id(::flatbuffers::Offset<::flatbuffers::String> id) {
     fbb_.AddOffset(FrameCache::VT_ID, id);
   }
+  void add_target(::flatbuffers::Offset<::flatbuffers::String> target) {
+    fbb_.AddOffset(FrameCache::VT_TARGET, target);
+  }
   void add_content(::flatbuffers::Offset<::flatbuffers::String> content) {
     fbb_.AddOffset(FrameCache::VT_CONTENT, content);
   }
@@ -1294,6 +1304,7 @@ struct FrameCacheBuilder {
     const auto end = fbb_.EndTable(start_);
     auto o = ::flatbuffers::Offset<FrameCache>(end);
     fbb_.Required(o, FrameCache::VT_ID);
+    fbb_.Required(o, FrameCache::VT_TARGET);
     fbb_.Required(o, FrameCache::VT_CONTENT);
     fbb_.Required(o, FrameCache::VT_FILES);
     return o;
@@ -1303,11 +1314,13 @@ struct FrameCacheBuilder {
 inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> target = 0,
     ::flatbuffers::Offset<::flatbuffers::String> content = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files = 0) {
   FrameCacheBuilder builder_(_fbb);
   builder_.add_files(files);
   builder_.add_content(content);
+  builder_.add_target(target);
   builder_.add_id(id);
   return builder_.Finish();
 }
@@ -1315,14 +1328,17 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
 inline ::flatbuffers::Offset<FrameCache> CreateFrameCacheDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
+    const char *target = nullptr,
     const char *content = nullptr,
     const std::vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
+  auto target__ = target ? _fbb.CreateString(target) : 0;
   auto content__ = content ? _fbb.CreateString(content) : 0;
   auto files__ = files ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>(*files) : 0;
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       id__,
+      target__,
       content__,
       files__);
 }
@@ -3802,6 +3818,7 @@ inline ::flatbuffers::Offset<FileAliasResponse> CreateFileAliasResponse(::flatbu
 
 inline FrameCacheT::FrameCacheT(const FrameCacheT &o)
       : id(o.id),
+        target(o.target),
         content(o.content) {
   files.reserve(o.files.size());
   for (const auto &files_ : o.files) { files.emplace_back((files_) ? new nil::xit::fbs::FileInfoT(*files_) : nullptr); }
@@ -3809,6 +3826,7 @@ inline FrameCacheT::FrameCacheT(const FrameCacheT &o)
 
 inline FrameCacheT &FrameCacheT::operator=(FrameCacheT o) FLATBUFFERS_NOEXCEPT {
   std::swap(id, o.id);
+  std::swap(target, o.target);
   std::swap(content, o.content);
   std::swap(files, o.files);
   return *this;
@@ -3824,6 +3842,7 @@ inline void FrameCache::UnPackTo(FrameCacheT *_o, const ::flatbuffers::resolver_
   (void)_o;
   (void)_resolver;
   { auto _e = id(); if (_e) _o->id = _e->str(); }
+  { auto _e = target(); if (_e) _o->target = _e->str(); }
   { auto _e = content(); if (_e) _o->content = _e->str(); }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->files[_i]) { _e->Get(_i)->UnPackTo(_o->files[_i].get(), _resolver); } else { _o->files[_i] = std::unique_ptr<nil::xit::fbs::FileInfoT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->files.resize(0); } }
 }
@@ -3837,11 +3856,13 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(::flatbuffers::FlatBuf
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FrameCacheT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _fbb.CreateString(_o->id);
+  auto _target = _fbb.CreateString(_o->target);
   auto _content = _fbb.CreateString(_o->content);
   auto _files = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfo(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va );
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       _id,
+      _target,
       _content,
       _files);
 }

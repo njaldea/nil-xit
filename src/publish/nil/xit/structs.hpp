@@ -36,10 +36,7 @@ namespace nil::xit
 
     void set_cache_directory(Core& core, std::filesystem::path tmp_path);
 
-    void set_frame_groups(
-        Core& core,
-        nil::xalt::transparent_umap<std::filesystem::path> frame_groups
-    );
+    void set_groups(Core& core, nil::xalt::transparent_umap<std::filesystem::path> groups);
 
-    const nil::xalt::transparent_umap<std::filesystem::path>& get_frame_groups(const Core& core);
+    const nil::xalt::transparent_umap<std::filesystem::path>& get_groups(const Core& core);
 }
