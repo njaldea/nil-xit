@@ -5,6 +5,7 @@
 #include "unique/utils.hpp" // IWYU pragma: keep
 #include "utils.hpp"        // IWYU pragma: keep
 
+#include <nil/xalt/literal.hpp>
 #include <nil/xalt/transparent_stl.hpp>
 
 #include <nil/service/codec.hpp>
@@ -36,7 +37,7 @@ namespace nil::xit::fbs
         Core& core,
         const nil::service::ID& id,
         const std::filesystem::path& cache_path,
-        const std::filesystem::path& target_path,
+        std::string_view target_path,
         std::optional<std::string_view> tag = {}
     )
     {
@@ -115,32 +116,27 @@ namespace nil::xit::fbs
         {
             const auto& [frame_id, frame] = *it;
 
-            if (!frame.file_info.has_value())
+            if (!frame.path.has_value())
             {
                 return;
             }
 
-            if (const auto file_it = core.groups.find(frame.file_info->group);
-                file_it != core.groups.end())
+            const auto dir = core.cache_location / "unique" / frame_id;
+            if (validate_cache(core, id, dir, frame.path.value()))
             {
-                const auto file = file_it->second / frame.file_info->path;
-                const auto dir = core.cache_location / frame_id;
-                if (validate_cache(core, id, dir, file))
-                {
-                    return;
-                }
-
-                flatbuffers::FlatBufferBuilder builder;
-                builder.Finish(CreateUniqueFrameInfoResponse(
-                    builder,
-                    builder.CreateString(frame_id),
-                    builder.CreateString(file.c_str())
-                ));
-
-                const auto header = MessageType_Server_Unique_FrameInfo_File_Response;
-                auto payload = nil::service::concat(header, builder);
-                send(*core.service, id, std::move(payload));
+                return;
             }
+
+            flatbuffers::FlatBufferBuilder builder;
+            builder.Finish(CreateUniqueFrameInfoResponse(
+                builder,
+                builder.CreateString(frame_id),
+                builder.CreateString(frame.path->c_str())
+            ));
+
+            const auto header = MessageType_Server_Unique_FrameInfo_File_Response;
+            auto payload = nil::service::concat(header, builder);
+            send(*core.service, id, std::move(payload));
         }
     }
 
@@ -151,33 +147,28 @@ namespace nil::xit::fbs
         {
             const auto& [frame_id, frame] = *it;
 
-            if (!frame.file_info.has_value())
+            if (!frame.path.has_value())
             {
                 return;
             }
 
-            if (const auto file_it = core.groups.find(frame.file_info->group);
-                file_it != core.groups.end())
+            const auto dir = core.cache_location / "tagged" / frame_id;
+            if (validate_cache(core, id, dir, frame.path.value(), message.tag()->string_view()))
             {
-                const auto file = file_it->second / frame.file_info->path;
-                const auto dir = core.cache_location / frame_id;
-                if (validate_cache(core, id, dir, file, message.tag()->string_view()))
-                {
-                    return;
-                }
-
-                flatbuffers::FlatBufferBuilder builder;
-                builder.Finish(CreateTaggedFrameInfoResponse(
-                    builder,
-                    builder.CreateString(frame_id),
-                    builder.CreateString(message.tag()),
-                    builder.CreateString(file.c_str())
-                ));
-
-                const auto header = MessageType_Server_Tagged_FrameInfo_File_Response;
-                auto payload = nil::service::concat(header, builder);
-                send(*core.service, id, std::move(payload));
+                return;
             }
+
+            flatbuffers::FlatBufferBuilder builder;
+            builder.Finish(CreateTaggedFrameInfoResponse(
+                builder,
+                builder.CreateString(frame_id),
+                builder.CreateString(message.tag()),
+                builder.CreateString(frame.path->c_str())
+            ));
+
+            const auto header = MessageType_Server_Tagged_FrameInfo_File_Response;
+            auto payload = nil::service::concat(header, builder);
+            send(*core.service, id, std::move(payload));
         }
     }
 
@@ -516,6 +507,7 @@ namespace nil::xit::fbs
         }
     }
 
+    template <xalt::literal type>
     auto handle_frame_cache(Core* core)
     {
         return [core](const nil::service::ID& /* id */, const void* data, std::uint64_t size)
@@ -524,7 +516,10 @@ namespace nil::xit::fbs
             if (message != nullptr)
             {
                 const auto frame_id = message->id()->string_view();
-                std::ofstream f(core->cache_location / frame_id, std::ios::binary | std::ios::out);
+                std::ofstream f(
+                    core->cache_location / xalt::literal_sv<type> / frame_id,
+                    std::ios::binary | std::ios::out
+                );
                 f.write(static_cast<const char*>(data), std::int64_t(size));
             }
         };
@@ -564,8 +559,8 @@ namespace nil::xit::fbs
                 mapping(MessageType_Client_Tagged_Value_Request, handle<TaggedValueRequest>(ptr)),
                 mapping(MessageType_Client_Unique_Signal_Request, handle<UniqueSignalRequest>(ptr)),
                 mapping(MessageType_Client_Tagged_Signal_Request, handle<TaggedSignalRequest>(ptr)),
-                mapping(MessageType_Client_Unique_FrameCache, handle_frame_cache(ptr)),
-                mapping(MessageType_Client_Tagged_FrameCache, handle_frame_cache(ptr)),
+                mapping(MessageType_Client_Unique_FrameCache, handle_frame_cache<"unique">(ptr)),
+                mapping(MessageType_Client_Tagged_FrameCache, handle_frame_cache<"tagged">(ptr)),
                 mapping(MessageType_Tagged_Value_Update, handle<TaggedValueUpdate>(ptr)),
                 mapping(MessageType_Unique_Value_Update, handle<UniqueValueUpdate>(ptr)),
                 mapping(MessageType_Client_Tagged_Signal_Notify, handle<TaggedSignalNotify>(ptr)),
@@ -617,7 +612,14 @@ namespace nil::xit
         );
         fbs::on_message(service, ptr);
         fbs::on_disconnect(service, ptr);
-        on_ready(service, [ptr]() { std::filesystem::create_directories(ptr->cache_location); });
+        on_ready(
+            service,
+            [ptr]()
+            {
+                std::filesystem::create_directories(ptr->cache_location / "unique");
+                std::filesystem::create_directories(ptr->cache_location / "tagged");
+            }
+        );
         return ptr;
     }
 

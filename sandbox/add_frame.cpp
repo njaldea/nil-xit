@@ -13,7 +13,7 @@
 
 nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core)
 {
-    auto& frame = add_unique_frame(core, "base", {"base", "gui/Base.svelte"});
+    auto& frame = add_unique_frame(core, "base", "$base/gui/Base.svelte");
     auto& value = add_value(
         frame,
         "value_0_1",
@@ -53,7 +53,7 @@ nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core)
 
 void add_tagged(nil::xit::Core& core)
 {
-    auto& frame = add_tagged_frame(core, "tagged", {"base", "gui/Tagged.svelte"});
+    auto& frame = add_tagged_frame(core, "tagged", "$base/gui/Tagged.svelte");
 
     add_value(
         frame,
@@ -79,12 +79,12 @@ void add_tagged(nil::xit::Core& core)
 
 void add_group(nil::xit::Core& core)
 {
-    add_unique_frame(core, "group", {"base", "gui/Group.svelte"});
+    add_unique_frame(core, "group", "$base/gui/Group.svelte");
 }
 
 void add_json_editor(nil::xit::Core& core)
 {
-    auto& frame = add_unique_frame(core, "json_editor", {"base", "gui/JsonEditor.svelte"});
+    auto& frame = add_unique_frame(core, "json_editor", "$base/gui/JsonEditor.svelte");
     auto json = std::make_shared<JSON>();
     json->buffer = R"({ "hello": "hello this is buffer" })";
     add_value(
@@ -101,5 +101,5 @@ void add_json_editor(nil::xit::Core& core)
 
 void add_demo(nil::xit::Core& core)
 {
-    add_unique_frame(core, "index", {"base", "gui/Demo.svelte"});
+    add_unique_frame(core, "index", "$base/gui/Demo.svelte");
 }

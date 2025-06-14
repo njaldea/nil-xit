@@ -45,7 +45,7 @@ namespace nil::xit::tagged
     {
         Core* core;
         std::string id;
-        std::optional<FileInfo> file_info;
+        std::optional<std::string> path;
         std::function<void(std::string_view)> on_load;
         std::function<void(std::string_view, std::size_t)> on_sub;
         nil::xalt::transparent_umap<std::vector<nil::service::ID>> subscribers;

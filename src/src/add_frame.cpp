@@ -10,9 +10,9 @@ namespace nil::xit
         return core.unique_frames.emplace(std::move(id), std::move(f)).first->second;
     }
 
-    unique::Frame& add_unique_frame(Core& core, std::string id, FileInfo file_info)
+    unique::Frame& add_unique_frame(Core& core, std::string id, std::string path)
     {
-        auto f = unique::Frame{&core, id, std::move(file_info), {}, {}, {}, {}, {}};
+        auto f = unique::Frame{&core, id, std::move(path), {}, {}, {}, {}, {}};
         return core.unique_frames.emplace(std::move(id), std::move(f)).first->second;
     }
 
@@ -22,9 +22,9 @@ namespace nil::xit
         return core.tagged_frames.emplace(std::move(id), std::move(f)).first->second;
     }
 
-    tagged::Frame& add_tagged_frame(Core& core, std::string id, FileInfo file_info)
+    tagged::Frame& add_tagged_frame(Core& core, std::string id, std::string path)
     {
-        auto f = tagged::Frame{&core, id, std::move(file_info), {}, {}, {}, {}, {}};
+        auto f = tagged::Frame{&core, id, std::move(path), {}, {}, {}, {}, {}};
         return core.tagged_frames.emplace(std::move(id), std::move(f)).first->second;
     }
 }
