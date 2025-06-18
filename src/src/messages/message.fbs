@@ -92,6 +92,7 @@ table FileAliasResponse {
 table FrameCache {
     id: string (required);
     target: string (required);
+    full_target: string (required);
     content: string (required);
     files: [FileInfo] (required);
 }

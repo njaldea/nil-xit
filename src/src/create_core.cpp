@@ -54,6 +54,26 @@ namespace nil::xit::fbs
             return false;
         }
 
+        if (target_path.starts_with('$'))
+        {
+            const auto separator = target_path.find_first_of('/');
+            const auto group = target_path.substr(1, separator - 1);
+            const auto it = core.groups.find(group);
+            if (it == core.groups.end())
+            {
+                return false;
+            }
+            const auto full_path = it->second / target_path.substr(separator + 1);
+            if (cache.full_target()->string_view() != full_path)
+            {
+                return false;
+            }
+        }
+        else if (cache.full_target()->string_view() != target_path)
+        {
+            return false;
+        }
+
         for (const auto& ff : *cache.files())
         {
             const auto target = ff->target()->string_view();
