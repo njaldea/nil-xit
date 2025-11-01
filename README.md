@@ -1,126 +1,159 @@
 # nil/xit
 
-This is a small project designed to bridge the gap between C++ and any UI frontend to create GUI applications.
+Bridge C++ backends and any UI/client with a tiny, explicit protocol. Define frames, values, and signals in C++; keep your client simple and reactive. The client can be web, desktop, or any runtime that speaks the protocol.
 
-## Motivation
+- Frames group values and signals displayed by a UI component
+- Two flavors: unique (one instance) and tagged (keyed by a tag)
+- Values expose get/set and can be posted from C++ to all subscribers
+- Signals represent UI → C++ events (optionally with payload)
 
-Popular GUI frameworks like ImGui and Qt require developers to learn their specific APIs, rendering models, and threading models.
+See also:
+- [How It Works](./doc/01-How-It-Works.md)
+- [Frames](./doc/02-Frames.md)
+- [Supported Types](./doc/03-Supported-Types.md)
+- [Number Issues](./doc/04-Number-Issues.md)
 
-This project provides an alternative approach to building GUI applications, minimizing direct interaction with the GUI thread.
+Protocol note
+- Messages are defined in FlatBuffers (see `src/src/messages/message.fbs`).
+- Transport is provided by nil/service (commonly WebSocket), but any transport works if it delivers/receives the same bytes.
+- The Svelte example below is just one client; any client that implements the schema can participate.
 
-## Requirements
+## Core
 
-This library is developed in a repo with `vcpkg`.
+Create a core on top of a messaging service and (optionally) map UI asset groups.
 
-1. To consume the library, add `nil` registry to your `vcpkg-configuration.json`
+Key helpers (headers under `src/publish/nil/xit/`):
+- `make_core(...)` – construct the core
+- `add_unique_frame(core, id [, path])`
+- `add_tagged_frame(core, id [, path])`
+- `set_groups(core, { {group, path}, ... })`
+- `set_cache_directory(core, path)`
 
-```json
-{
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg-configuration.schema.json",
-    "default-registry": {
-        "kind": "git",
-        "repository": "https://github.com/Microsoft/vcpkg",
-        "baseline": "3508985146f1b1d248c67ead13f8f54be5b4f5da"
-    },
-    "registries": [
-        {
-            "kind": "git",
-            "repository": "https://github.com/njaldea/nil-vcpkg-ports",
-            "baseline": "cd90893b3a88f7dadda67c68b7a8050c7651920e",
-            "packages": ["nil-xit", "nil-xalt", "nil-service"]
-        }
-    ]
-}
-```
-
-2. Create your target binary and link to `nil::xit`.
-
-```
-project(YOUR_PROJECT)
-
-find_package(nil-xit CONFIG REQUIRED)
-
-add_executable(${PROJECT_NAME} main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE nil::xit)
-```
-
-3. Implement your application
-
-The example below serves the GUI through http server.
-
-3.A If you want to serve your own files
+Example bootstrap (abbreviated):
 
 ```cpp
-#include <nil/service.hpp>
-#include <nil/xit.hpp>
+auto server = nil::service::http::server::create({/*...*/});
+nil::xit::setup_server(server, {"node_modules/@nil-/xit/assets"});
+auto ws = use_ws(server, "/ws");
+auto core = nil::xit::make_core(ws);
 
-int main()
-{
-    auto server = nil::service::http::server::create({
-        .host = "127.0.0.1",
-        .port = 1101,
-        .buffer = 1024ul * 1024ul * 100ul
-    });
+auto& uframe = add_unique_frame(core, "base", "$base/gui/Base.svelte");
+auto& tframe = add_tagged_frame(core, "tagged", "$base/gui/Tagged.svelte");
 
-    // if using `nil-/xit`, run npm install with the package.json below
-    // and point to the library like below.
-    // this is going to be simplified once #embed is available
-    nil::xit::setup_server(server, {"node_modules/@nil-/xit/assets"});
-    auto ws = use_ws(server, "/ws");
-    auto core = nil::xit::make_core(ws);
-
-    start(server); // blocking call
-    return 0;
-}
+start(server); // service thread handles UI messages
 ```
 
-While the source files are not yet embedded in the library (`#embed`), 
-a sibling library `nil-/xit` in npmjs is developed so we can write the UI in svelte.
+## Values – unique
 
-```json
-{
-  "dependencies": {
-    "@nil-/xit": "^0.2.8",
-    "svelte": "^5.33.4"
-  }
-}
-```
+Add a value with a getter (and optional setter). Supported payloads: `bool`, `std::int64_t`, `double`, `std::string`, `std::vector<std::uint8_t>`. Custom types are supported via `buffer_type<T>`.
 
-### If you want to reuse files served through vercel
+Headers: `unique/add_value.hpp`, `unique/post.hpp`
 
 ```cpp
-#include <nil/service.hpp>
-#include <nil/xit.hpp>
+int counter = 0;
 
-int main()
-{
-    auto server = nil::service::ws::server::create({
-        .host = "127.0.0.1",
-        .port = 1101,
-        .route = "/ws",
-        .buffer = 1024ul * 1024ul * 100ul
-    });
+add_value(
+    uframe,
+    "counter",
+    []() -> std::int64_t { return counter; },
+    [](std::int64_t v) { counter = static_cast<int>(v); }
+);
 
-    auto core = nil::xit::make_core(server);
-
-    start(server); // blocking call
-    return 0;
-}
+// Push a new value to all subscribers (service thread context)
+nil::xit::unique::post(uframe, "counter", std::int64_t{42});
 ```
 
-Then visit: https://xit-ui.vercel.app/view/ws:/127.0.0.1:1101/ws
+Notes
+- Without a setter, the value is read-only from UI.
+- Posting re-broadcasts to subscribers of the frame.
 
-## Dependencies
+## Values – tagged
 
- -  boost (asio and beast)
- -  flatbuffers
- -  [nil/service](https://github.com/njaldea/nil-service/blob/master/README.md)
- -  [nil/xalt](https://github.com/njaldea/nil-xalt/blob/master/README.md)
+Tagged values receive a `tag` in get/set/post.
 
-## [How It Works](./doc/01-How-It-Works.md)
+Headers: `tagged/add_value.hpp`, `tagged/post.hpp`
 
-## [Frames](./doc/02-Frames.md)
+```cpp
+add_value(
+    tframe,
+    "score",
+    [](std::string_view tag) -> std::int64_t { /* lookup by tag */ return 100; },
+    [](std::string_view tag, std::int64_t v) { /* store by tag */ }
+);
 
-## [Supported Types](./doc/03-Supported-Types.md)
+nil::xit::tagged::post("player-42", tframe, "score", std::int64_t{7});
+```
 
-## [Number Issues](./doc/04-Number-Issues.md)
+## Signals
+
+Register callbacks invoked when the UI emits events. Signals may be `void`, `bool`, `int64_t`, `double`, `string_view`, or `span<const uint8_t>` (custom types via `buffer_type<T>`).
+
+Headers: `unique/add_signal.hpp`, `tagged/add_signal.hpp`
+
+Unique example:
+
+```cpp
+add_signal(uframe, "reset", []() {
+    // handle UI-triggered reset
+});
+
+add_signal(uframe, "log", [](std::string_view msg) {
+    // handle message
+});
+```
+
+Tagged example:
+
+```cpp
+add_signal(tframe, "notify", [](std::string_view tag, std::string_view msg) {
+    // per-tag notification
+});
+```
+
+## Lifecycle hooks
+
+Per-frame hooks to react to client activity.
+
+Headers: `unique/on_load.hpp`, `unique/on_sub.hpp`, `tagged/on_load.hpp`, `tagged/on_sub.hpp`
+
+```cpp
+nil::xit::unique::on_load(uframe, [] { /* a client loaded the frame */ });
+nil::xit::unique::on_sub(uframe, [](std::size_t n) { /* subscriber count changed */ });
+```
+
+## Subscriptions
+
+Subscriptions are tracked per frame. Updates posted to a value are broadcast to all subscribers of that frame (for tagged frames: to subscribers of the tag).
+
+## Threading model
+
+- Before `start(...)`: configure frames/values/signals from a single thread.
+- After `start(...)`: mutations that affect subscribers must run on the service thread. Use the provided `post(...)` functions for broadcasting from C++.
+
+## UI usage (example)
+
+Using the sibling JS package from Svelte:
+
+```svelte
+<script>
+    import { xit } from "@nil-/xit";
+    const { values, signals } = xit();
+
+    const int_value = values.number('tagged_value', 1101);
+    const string_signal = signals.string('tagged_signal');
+
+    const click = () => {
+        int_value.update(v => v + 1);
+        string_signal(`${$int_value} published`);
+    };
+</script>
+
+<button onclick={click}>tagged {$int_value}</button>
+```
+
+## Docs
+
+- [How It Works](./doc/01-How-It-Works.md)
+- [Frames](./doc/02-Frames.md)
+- [Supported Types](./doc/03-Supported-Types.md)
+- [Number Issues](./doc/04-Number-Issues.md)

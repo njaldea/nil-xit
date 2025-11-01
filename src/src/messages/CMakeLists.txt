@@ -24,7 +24,8 @@ add_custom_command(
 )
 
 add_library(${PROJECT_NAME} message.fbs.h)
-target_link_libraries(${PROJECT_NAME} PUBLIC flatbuffers::flatbuffers)
+set_property(TARGET ${PROJECT_NAME} PROPERTY LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:flatbuffers::flatbuffers>)
 # set_target_properties(${PROJECT_NAME} PROPERTIES CXX_CLANG_TIDY "")
 
 nil_install_targets(${PROJECT_NAME})
