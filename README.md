@@ -23,7 +23,9 @@ Protocol note
 Create a core on top of a messaging service and (optionally) map UI asset groups.
 
 Key helpers (headers under `src/publish/nil/xit/`):
-- `make_core(...)` – construct the core
+- `create_core(...)` – construct the core
+- `destroy_core(...)` - cleanup
+- `make_core(...)` - unique_ptr using create/destroy
 - `add_unique_frame(core, id [, path])`
 - `add_tagged_frame(core, id [, path])`
 - `set_groups(core, { {group, path}, ... })`
@@ -33,14 +35,14 @@ Example bootstrap (abbreviated):
 
 ```cpp
 auto server = nil::service::http::server::create({/*...*/});
-nil::xit::setup_server(server, {"node_modules/@nil-/xit/assets"});
-auto ws = use_ws(server, "/ws");
-auto core = nil::xit::make_core(ws);
+nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
+auto* ws = server->use_ws("/ws");
+auto core = nil::xit::make_core(*ws);
 
-auto& uframe = add_unique_frame(core, "base", "$base/gui/Base.svelte");
-auto& tframe = add_tagged_frame(core, "tagged", "$base/gui/Tagged.svelte");
+auto& uframe = add_unique_frame(*core, "base", "$base/gui/Base.svelte");
+auto& tframe = add_tagged_frame(*core, "tagged", "$base/gui/Tagged.svelte");
 
-start(server); // service thread handles UI messages
+server->start(); // service thread handles UI messages
 ```
 
 ## Values – unique
