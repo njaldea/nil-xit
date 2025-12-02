@@ -1,5 +1,6 @@
 #include "codec.hpp"
 #include "messages/message.fbs.h"
+#include "nil/xit/structs.hpp"
 #include "structs.hpp"
 #include "tagged/utils.hpp" // IWYU pragma: keep
 #include "unique/utils.hpp" // IWYU pragma: keep
@@ -86,7 +87,7 @@ namespace nil::xit::fbs
                 = std::filesystem::last_write_time(target).time_since_epoch().count();
             using target_time_t = std::decay_t<decltype(target_time)>;
             const auto* const metadata = ff->metadata();
-            std::uint64_t size = metadata->size();
+            const std::uint64_t size = metadata->size();
             if (sizeof(target_time) != size)
             {
                 return false;
@@ -111,7 +112,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Tagged_FrameInfo_Content_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
         else
         {
@@ -124,7 +125,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Unique_FrameInfo_Content_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
         return true;
     }
@@ -156,7 +157,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Unique_FrameInfo_File_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
     }
 
@@ -188,7 +189,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Tagged_FrameInfo_File_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
     }
 
@@ -211,7 +212,7 @@ namespace nil::xit::fbs
 
         auto header = MessageType_Server_File_Response;
         auto payload = nil::service::concat(header, builder);
-        send(*core.service, id, std::move(payload));
+        core.service->send(id, std::move(payload));
     }
 
     void handle(Core& core, const nil::service::ID& id, const FileAliasRequest& /* request */)
@@ -231,7 +232,7 @@ namespace nil::xit::fbs
 
         auto header = MessageType_Server_File_Alias_Response;
         auto payload = nil::service::concat(header, builder);
-        send(*core.service, id, std::move(payload));
+        core.service->send(id, std::move(payload));
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const UniqueFrameLoaded& msg)
@@ -326,7 +327,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Unique_Value_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
     }
 
@@ -369,7 +370,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Tagged_Value_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
     }
 
@@ -413,7 +414,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Unique_Signal_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
     }
 
@@ -458,7 +459,7 @@ namespace nil::xit::fbs
 
             const auto header = MessageType_Server_Tagged_Signal_Response;
             auto payload = nil::service::concat(header, builder);
-            send(*core.service, id, std::move(payload));
+            core.service->send(id, std::move(payload));
         }
     }
 
@@ -558,12 +559,11 @@ namespace nil::xit::fbs
         };
     }
 
-    void on_message(nil::service::P service, Core* ptr)
+    void on_message(nil::service::IObservableService& service, Core* ptr)
     {
         using nil::service::map;
         using nil::service::mapping;
-        on_message(
-            service,
+        service.on_message(
             // clang-format off
             map(mapping(MessageType_Client_Unique_FrameInfo_Request, handle<UniqueFrameInfoRequest>(ptr)),
                 mapping(MessageType_Client_Tagged_FrameInfo_Request, handle<TaggedFrameInfoRequest>(ptr)),
@@ -589,10 +589,9 @@ namespace nil::xit::fbs
         );
     }
 
-    void on_disconnect(nil::service::P service, Core* ptr)
+    void on_disconnect(nil::service::IObservableService& service, Core* ptr)
     {
-        on_disconnect(
-            service,
+        service.on_disconnect(
             [ptr](const auto& id)
             {
                 for (auto& pair : ptr->unique_frames)
@@ -610,20 +609,15 @@ namespace nil::xit::fbs
 
 namespace nil::xit
 {
-    C::operator Core&() const
+    std::unique_ptr<Core, void (*)(Core*)> make_core(nil::service::IService& service)
     {
-        return *ptr;
+        return {create_core(service), &destroy_core};
     }
 
-    C make_core(nil::service::P service)
-    {
-        return {{create_core(service), &delete_core}};
-    }
-
-    Core* create_core(nil::service::P service)
+    Core* create_core(nil::service::IService& service)
     {
         Core* ptr = new Core(
-            &static_cast<nil::service::MessagingService&>(service),
+            &service,
             std::filesystem::temp_directory_path() / "nil/xit",
             nil::xalt::transparent_umap<std::filesystem::path>(),
             nil::xalt::transparent_umap<unique::Frame>(),
@@ -632,8 +626,7 @@ namespace nil::xit
         );
         fbs::on_message(service, ptr);
         fbs::on_disconnect(service, ptr);
-        on_ready(
-            service,
+        service.on_ready(
             [ptr]()
             {
                 std::filesystem::create_directories(ptr->cache_location / "unique");
@@ -643,7 +636,7 @@ namespace nil::xit
         return ptr;
     }
 
-    void delete_core(Core* core)
+    void destroy_core(Core* core)
     {
         std::default_delete<Core>()(core);
     }

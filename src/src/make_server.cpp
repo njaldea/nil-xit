@@ -7,11 +7,10 @@
 
 namespace nil::xit
 {
-    void setup_server(service::WebService& server, std::vector<std::filesystem::path> asset_paths)
+    void setup_server(service::IWebService& server, std::vector<std::filesystem::path> asset_paths)
     {
-        on_get(
-            server,
-            [asset_paths = std::move(asset_paths)](const service::WebTransaction& transaction)
+        server.on_get(
+            [asset_paths = std::move(asset_paths)](service::WebTransaction& transaction)
             {
                 auto route = get_route(transaction);
                 const auto is_index = route[0] == '/' && (route.size() == 1 || route[1] == '?');
@@ -35,19 +34,20 @@ namespace nil::xit
                 }
                 else
                 {
-                    return;
+                    return false;
                 }
 
-                for (const auto& asset_path : asset_paths)
+                for (const auto& asset_path : asset_paths) // NOLINT(readability-use-anyofallof)
                 {
                     const auto full_path = asset_path / file;
                     if (std::filesystem::exists(full_path))
                     {
                         const std::ifstream f(full_path, std::ios::binary);
                         send(transaction, f);
-                        return;
+                        return true;
                     }
                 }
+                return false;
             }
         );
     }

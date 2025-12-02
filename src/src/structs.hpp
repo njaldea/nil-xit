@@ -15,7 +15,7 @@ namespace nil::xit
 {
     struct Core
     {
-        nil::service::MessagingService* service;
+        nil::service::IMessagingService* service;
         std::filesystem::path cache_location;
         nil::xalt::transparent_umap<std::filesystem::path> groups;
         nil::xalt::transparent_umap<unique::Frame> unique_frames;

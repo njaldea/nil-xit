@@ -29,11 +29,7 @@ namespace nil::xit::unique
             flatbuffers::FlatBufferBuilder builder;
             builder.Finish(fbs::UniqueValueUpdate::Pack(builder, &msg));
             constexpr auto header = fbs::MessageType_Unique_Value_Update;
-            send(
-                *value.frame->core->service,
-                std::move(ids),
-                nil::service::concat(header, builder)
-            );
+            value.frame->core->service->send(std::move(ids), nil::service::concat(header, builder));
         }
     }
 
