@@ -2,8 +2,6 @@ project(xit)
 
 add_subdirectory(src/messages)
 
-find_package(nil-service CONFIG REQUIRED)
-
 set(
     SOURCES
         src/codec.hpp

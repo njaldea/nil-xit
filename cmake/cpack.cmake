@@ -1,6 +1,0 @@
-set(CPACK_PACKAGE_NAME "nil-xit-dev")
-set(CPACK_PACKAGE_CONTACT "njaldea@gmail.com")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Neil Aldea <njaldea@gmail.com>")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "nil-service-dev (>= 1.0.3)")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "C++ bridge to frontend")
-include(CPack)
