@@ -24,13 +24,18 @@ namespace nil::xit::unique
             msg.value = std::make_unique<fbs::ValueT>();
             msg.value->id = value.id;
             flatbuffers::FlatBufferBuilder tmp_builder;
-            nil::xit::utils::msg_set(std::forward<U>(new_value), *msg.value, tmp_builder);
+            nil::xit::utils::msg_set(new_value, *msg.value, tmp_builder);
 
             flatbuffers::FlatBufferBuilder builder;
             builder.Finish(fbs::UniqueValueUpdate::Pack(builder, &msg));
             constexpr auto header = fbs::MessageType_Unique_Value_Update;
-            value.frame->core->service->send(std::move(ids), nil::service::concat(header, builder));
+            value.frame->core->msg_service->send(
+                std::move(ids),
+                nil::service::concat(header, builder)
+            );
         }
+
+        value.accessor->set(std::forward<U>(new_value));
     }
 
     void subscribe(Frame& frame, const nil::service::ID& id);
@@ -79,15 +84,11 @@ namespace nil::xit::unique
         constexpr auto get_fid = [](auto& x_value, auto& ex_tag)
         {
             const auto not_ex_tag = [ex_tag](const auto& sub_id) { return ex_tag != sub_id; };
-            auto _ = std::lock_guard(x_value.frame->core->mutex);
             auto view = x_value.frame->subscribers | std::ranges::views::filter(not_ex_tag);
             return std::vector<nil::service::ID>(view.begin(), view.end());
         };
-        if (auto ids = get_fid(value, id); !ids.empty())
-        {
-            post_impl(value, (data), std::move(ids));
-        }
-        value.accessor->set(std::move(data));
+
+        post_impl(value, (data), get_fid(value, id));
     }
 
     template <typename T>

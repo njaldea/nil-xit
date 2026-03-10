@@ -8,8 +8,19 @@
 namespace nil::xit
 {
     struct Core;
-    std::unique_ptr<Core, void (*)(Core*)> make_core(nil::service::IService& service);
-    Core* create_core(nil::service::IService& service);
+    using core_ptr = std::unique_ptr<Core, void (*)(Core*)>;
+    core_ptr make_core(
+        nil::service::IRunnableService& run_service,
+        nil::service::IService& msg_service
+    );
+    core_ptr make_core(nil::service::IStandaloneService& service);
+
+    Core* create_core(
+        nil::service::IRunnableService& run_service,
+        nil::service::IService& msg_service
+    );
+    Core* create_core(nil::service::IStandaloneService& service);
+
     void destroy_core(Core*);
 
     // setup the server to handle file requests

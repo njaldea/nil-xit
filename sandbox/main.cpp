@@ -33,7 +33,7 @@ int main()
     });
 
     nil::xit::setup_server(*server, {source_path / "node_modules/@nil-/xit/assets"});
-    auto core = nil::xit::make_core(*server->use_ws("/ws"));
+    auto core = nil::xit::make_core(*server, *server->use_ws("/ws"));
     set_groups(*core, {{"base", source_path}, {"components", source_path / "gui/components"}});
 
     const auto tmp_dir = std::filesystem::temp_directory_path() / "sandbox";

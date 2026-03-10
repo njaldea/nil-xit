@@ -6,7 +6,6 @@ namespace nil::xit::unique
 {
     void subscribe(Frame& frame, const nil::service::ID& id)
     {
-        auto _ = std::lock_guard(frame.core->mutex);
         frame.subscribers.push_back(id);
         if (frame.on_sub)
         {
@@ -16,7 +15,6 @@ namespace nil::xit::unique
 
     void unsubscribe(Frame& frame, const nil::service::ID& id)
     {
-        auto _ = std::lock_guard(frame.core->mutex);
         auto& subs = frame.subscribers;
         subs.erase(std::remove(subs.begin(), subs.end(), id), subs.end());
         if (frame.on_sub)

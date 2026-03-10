@@ -31,13 +31,18 @@ namespace nil::xit::tagged
             msg.value = std::make_unique<fbs::ValueT>();
             msg.value->id = value.id;
             flatbuffers::FlatBufferBuilder tmp_builder;
-            nil::xit::utils::msg_set(std::forward<U>(new_value), *msg.value, tmp_builder);
+            nil::xit::utils::msg_set(new_value, *msg.value, tmp_builder);
 
             flatbuffers::FlatBufferBuilder builder;
             builder.Finish(fbs::TaggedValueUpdate::Pack(builder, &msg));
             constexpr auto header = fbs::MessageType_Tagged_Value_Update;
-            value.frame->core->service->send(std::move(ids), nil::service::concat(header, builder));
+            value.frame->core->msg_service->send(
+                std::move(ids),
+                nil::service::concat(header, builder)
+            );
         }
+
+        value.accessor->set(tag, std::forward<U>(new_value));
     }
 
     void subscribe(Frame& frame, std::string_view tag, const nil::service::ID& id);
@@ -98,7 +103,6 @@ namespace nil::xit::tagged
             = [](auto& x_value, auto i_tag, auto& ex_tag) -> std::vector<nil::service::ID>
         {
             const auto not_ex_tag = [&ex_tag](const auto& sub_id) { return ex_tag != sub_id; };
-            auto _ = std::lock_guard(x_value.frame->core->mutex);
             auto& subs = x_value.frame->subscribers;
             if (auto it = subs.find(i_tag); it != subs.end())
             {
@@ -107,11 +111,8 @@ namespace nil::xit::tagged
             }
             return {};
         };
-        if (auto ids = get_fid(value, tag, id); !ids.empty())
-        {
-            post_impl(tag, value, data, std::move(ids));
-        }
-        value.accessor->set(tag, std::move(data));
+
+        post_impl(tag, value, data, get_fid(value, tag, id));
     }
 
     template <typename T>
