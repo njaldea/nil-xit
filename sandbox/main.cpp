@@ -32,7 +32,7 @@ int main()
         .buffer = 1024ul * 1024ul * 100ul //
     });
 
-    nil::xit::setup_server(*server, {source_path / "node_modules/@nil-/xit/assets"});
+    nil::xit::setup_server(*server, {"assets/xit/assets"});
     auto core = nil::xit::make_core(*server, *server->use_ws("/ws"));
     set_groups(*core, {{"base", source_path}, {"components", source_path / "gui/components"}});
 
@@ -47,9 +47,16 @@ int main()
     auto& str_value = ::add_base(*core);
 
     std::thread th;
-    server->on_ready([&]() { th = run_input_loop(str_value); });
+    server->on_ready(
+        [&](const auto& id)
+        {
+            std::cout << "http://" << id.text << std::endl;
+            th = run_input_loop(str_value);
+        }
+    );
 
     server->start();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
     th.join();
 
     return 0;
