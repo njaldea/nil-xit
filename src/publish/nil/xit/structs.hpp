@@ -11,13 +11,13 @@ namespace nil::xit
     using core_ptr = std::unique_ptr<Core, void (*)(Core*)>;
     core_ptr make_core(
         nil::service::IRunnableService& run_service,
-        nil::service::IService& msg_service
+        nil::service::IEventService& event_service
     );
     core_ptr make_core(nil::service::IStandaloneService& service);
 
     Core* create_core(
         nil::service::IRunnableService& run_service,
-        nil::service::IService& msg_service
+        nil::service::IEventService& event_service
     );
     Core* create_core(nil::service::IStandaloneService& service);
 

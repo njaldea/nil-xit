@@ -559,7 +559,7 @@ namespace nil::xit::fbs
         };
     }
 
-    void on_message(nil::service::IObservableService& service, Core* ptr)
+    void on_message(nil::service::ICallbackService& service, Core* ptr)
     {
         using nil::service::map;
         using nil::service::mapping;
@@ -589,7 +589,7 @@ namespace nil::xit::fbs
         );
     }
 
-    void on_disconnect(nil::service::IObservableService& service, Core* ptr)
+    void on_disconnect(nil::service::ICallbackService& service, Core* ptr)
     {
         service.on_disconnect(
             [ptr](const auto& id)
@@ -611,10 +611,10 @@ namespace nil::xit
 {
     core_ptr make_core(
         nil::service::IRunnableService& run_service,
-        nil::service::IService& msg_service
+        nil::service::IEventService& event_service
     )
     {
-        return {create_core(run_service, msg_service), &destroy_core};
+        return {create_core(run_service, event_service), &destroy_core};
     }
 
     core_ptr make_core(nil::service::IStandaloneService& service)
@@ -624,20 +624,20 @@ namespace nil::xit
 
     Core* create_core(
         nil::service::IRunnableService& run_service,
-        nil::service::IService& msg_service
+        nil::service::IEventService& event_service
     )
     {
         Core* ptr = new Core(
             &run_service,
-            &msg_service,
+            &event_service,
             std::filesystem::temp_directory_path() / "nil/xit",
             nil::xalt::transparent_umap<std::filesystem::path>(),
             nil::xalt::transparent_umap<unique::Frame>(),
             nil::xalt::transparent_umap<tagged::Frame>()
         );
-        fbs::on_message(msg_service, ptr);
-        fbs::on_disconnect(msg_service, ptr);
-        msg_service.on_ready(
+        fbs::on_message(event_service, ptr);
+        fbs::on_disconnect(event_service, ptr);
+        event_service.on_ready(
             [ptr]()
             {
                 std::filesystem::create_directories(ptr->cache_location / "unique");

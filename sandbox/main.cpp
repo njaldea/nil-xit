@@ -50,7 +50,7 @@ int main()
     server->on_ready(
         [&](const auto& id)
         {
-            std::cout << "http://" << id.text << std::endl;
+            std::cout << "http://" << to_string(id) << std::endl;
             th = run_input_loop(str_value);
         }
     );
