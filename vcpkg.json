@@ -9,6 +9,15 @@
         "sandbox": {
             "description": "sandbox",
             "dependencies": [ "nlohmann-json" ]
+        },
+        "c-api": {
+            "description": "Enable C api",
+            "dependencies": [
+                {
+                    "name": "nil-service",
+                    "features": ["c-api"]
+                }
+            ]
         }
     }
 }

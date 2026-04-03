@@ -33,6 +33,7 @@ set(
 set(
     HEADERS
         publish/nil/xit.hpp
+        publish/nil/xit.h
         publish/nil/xit/structs.hpp
         publish/nil/xit/add_frame.hpp
         publish/nil/xit/buffer_type.hpp
@@ -56,3 +57,19 @@ target_link_libraries(${PROJECT_NAME} PUBLIC nil::service)
 
 nil_install_headers( ${PROJECT_NAME} PUBLIC)
 nil_install_targets(${PROJECT_NAME})
+
+if(ENABLE_C_API)
+    add_library(
+        ${PROJECT_NAME}-c-api
+        SHARED
+        publish/nil/xit.h
+        src/c/xit.cpp
+        src/c/ValueType.cpp
+        src/c/ValueType.hpp
+    )
+
+    target_link_libraries(${PROJECT_NAME}-c-api PRIVATE ${PROJECT_NAME})
+
+    nil_install_headers(${PROJECT_NAME}-c-api INTERFACE)
+    nil_install_targets(${PROJECT_NAME}-c-api)
+endif()

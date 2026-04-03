@@ -15,6 +15,12 @@ add_executable(
 find_package(nil-service CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE xit nil::service)
 
+if(ENABLE_C_API)
+    find_package(nil-service CONFIG REQUIRED c-api)
+    add_executable(${PROJECT_NAME}-c main.c)
+    target_link_libraries(${PROJECT_NAME}-c PRIVATE xit-c-api nil::service-c-api)
+endif()
+
 include(ExternalProject)
 
 set(TARBALL_FILE "xit-0.4.19.tgz")

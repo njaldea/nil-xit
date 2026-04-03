@@ -7,31 +7,53 @@
     const buf_value = values.json('json_value', {}, json_string);
 
     const json_editor = (target) => {
+        let is_notified_from_store = false;
+        let is_edited_from_editor = false;
         const editor = createJSONEditor({
             target,
             props: {
                 content: { json: $buf_value },
-                onChange: (updatedContent, previousContent, { contentErrors, patchResult }) => {
-                    if (updatedContent.json)
+                onChange: (updatedContent) => {
+                    is_edited_from_editor = true;
+                    if ("json" in updatedContent)
                     {
-                        $buf_value = updatedContent.json   
+                        if (!is_notified_from_store)
+                        {
+                            $buf_value = updatedContent.json;
+                        }
                     }
-                    else if (updatedContent.text)
+                    else if ("text" in updatedContent)
                     {
                         try
                         {
-                            $buf_value = JSON.parse(updatedContent.text)
+                            if (!is_notified_from_store)
+                            {
+                                $buf_value = JSON.parse(updatedContent.text);
+                            }
                         }
                         catch (e)
                         {
                             console.log(e);
                         }
                     }
+                    is_edited_from_editor = false;
                 }
             }
         });
-        return { destroy: () => editor.destroy() };
+        const unsub = buf_value.subscribe((v) => {
+            is_notified_from_store = true;
+            if (!is_edited_from_editor) {
+                editor.set({ json: v });
+            }
+            is_notified_from_store = false;
+        });
+        return {
+            destroy: () => {
+                unsub();
+                editor.destroy();
+            }
+        };
     };
 </script>
 
-<div style="display: contents" use:json_editor></div>
+<div style:display="contents" use:json_editor></div>
