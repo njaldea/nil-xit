@@ -9,25 +9,25 @@
 
 namespace nil::xit::tagged
 {
-    void post(std::string, const Value<bool>& value, bool new_value);
-    void post(std::string, const Value<double>& value, double new_value);
-    void post(std::string, const Value<std::int64_t>& value, std::int64_t new_value);
-    void post(std::string, const Value<std::string>& value, std::string new_value);
+    void post(const Value<bool>& value, std::string, bool new_value);
+    void post(const Value<double>& value, std::string, double new_value);
+    void post(const Value<std::int64_t>& value, std::string, std::int64_t new_value);
+    void post(const Value<std::string>& value, std::string, std::string new_value);
     void post(
-        std::string,
         const Value<std::vector<std::uint8_t>>& value,
+        std::string,
         std::vector<std::uint8_t> new_value
     );
 
     template <typename T>
         requires(!is_built_in_value<T>)
-    void post(std::string tag, const Value<T>& value, const T& new_value)
+    void post(const Value<T>& value, std::string tag, const T& new_value)
     {
         static_assert(has_serialize<T>, "requires buffer_type<T>::serialize");
         post(
-            tag,
             // NOLINTNEXTLINE
             reinterpret_cast<const Value<std::vector<std::uint8_t>>&>(value),
+            std::move(tag),
             buffer_type<T>::serialize(new_value)
         );
     }

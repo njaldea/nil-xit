@@ -18,20 +18,29 @@ Protocol note
 - Transport is provided by nil/service (commonly WebSocket), but any transport works if it delivers/receives the same bytes.
 - The Svelte example below is just one client; any client that implements the schema can participate.
 
+nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
+auto* ws = server->use_ws("/ws");
+auto core = nil::xit::make_core(*ws);
+auto& uframe = add_unique_frame(*core, "base", "$base/gui/Base.svelte");
+auto& tframe = add_tagged_frame(*core, "tagged", "$base/gui/Tagged.svelte");
+nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
+
 ## Core
 
 Create a core on top of a messaging service and (optionally) map UI asset groups.
 
+
 Key helpers (headers under `src/publish/nil/xit/`):
-- `create_core(...)` – construct the core
+- `make_core(...)` – construct the core (C++ API)
 - `destroy_core(...)` - cleanup
-- `make_core(...)` - unique_ptr using create/destroy
 - `add_unique_frame(core, id [, path])`
 - `add_tagged_frame(core, id [, path])`
 - `set_groups(core, { {group, path}, ... })`
 - `set_cache_directory(core, path)`
 
-Example bootstrap (abbreviated):
+**Note:** This README documents the C++ API. For C API usage, see [C API documentation](./doc/c-api.md) (to be created/updated).
+
+Example bootstrap (abbreviated, C++):
 
 ```cpp
 auto server = nil::service::http::server::create({/*...*/});
@@ -54,7 +63,7 @@ Headers: `unique/add_value.hpp`, `unique/post.hpp`
 ```cpp
 int counter = 0;
 
-add_value(
+auto& value = add_value(
     uframe,
     "counter",
     []() -> std::int64_t { return counter; },
@@ -62,7 +71,7 @@ add_value(
 );
 
 // Push a new value to all subscribers (service thread context)
-nil::xit::unique::post(uframe, "counter", std::int64_t{42});
+post(value, std::int64_t{42});
 ```
 
 Notes
@@ -76,14 +85,14 @@ Tagged values receive a `tag` in get/set/post.
 Headers: `tagged/add_value.hpp`, `tagged/post.hpp`
 
 ```cpp
-add_value(
+auto& value = add_value(
     tframe,
     "score",
     [](std::string_view tag) -> std::int64_t { /* lookup by tag */ return 100; },
     [](std::string_view tag, std::int64_t v) { /* store by tag */ }
 );
 
-nil::xit::tagged::post("player-42", tframe, "score", std::int64_t{7});
+post(value, "player-42", std::int64_t{7});
 ```
 
 ## Signals

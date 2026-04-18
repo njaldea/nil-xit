@@ -16,7 +16,7 @@ namespace nil::xit::tagged
         return {};
     }
 
-    void post(std::string tag, const Value<bool>& value, bool new_value)
+    void post(const Value<bool>& value, std::string tag, bool new_value)
     {
         value.frame->core->run_service->dispatch(
             [tag = std::move(tag), value = &value, new_value]()
@@ -24,7 +24,7 @@ namespace nil::xit::tagged
         );
     }
 
-    void post(std::string tag, const Value<double>& value, double new_value)
+    void post(const Value<double>& value, std::string tag, double new_value)
     {
         value.frame->core->run_service->dispatch(
             [tag = std::move(tag), value = &value, new_value]()
@@ -32,7 +32,7 @@ namespace nil::xit::tagged
         );
     }
 
-    void post(std::string tag, const Value<std::int64_t>& value, std::int64_t new_value)
+    void post(const Value<std::int64_t>& value, std::string tag, std::int64_t new_value)
     {
         value.frame->core->run_service->dispatch(
             [tag = std::move(tag), value = &value, new_value]()
@@ -40,7 +40,7 @@ namespace nil::xit::tagged
         );
     }
 
-    void post(std::string tag, const Value<std::string>& value, std::string new_value)
+    void post(const Value<std::string>& value, std::string tag, std::string new_value)
     {
         value.frame->core->run_service->dispatch(
             [tag = std::move(tag), value = &value, new_value = std::move(new_value)]() mutable
@@ -49,8 +49,8 @@ namespace nil::xit::tagged
     }
 
     void post(
-        std::string tag,
         const Value<std::vector<std::uint8_t>>& value,
+        std::string tag,
         std::vector<std::uint8_t> new_value
     )
     {

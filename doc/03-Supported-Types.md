@@ -11,9 +11,10 @@ Supported types are the following:
 - string
     - `std::string` for values
     - `std::string_view` for signals
+
 - buffer
-    - `std::vector<uint8_t>` for values
-    - `std::span<const uint8_t>` for signals
+    - `std::vector<std::uint8_t>` for values
+    - `std::span<const std::uint8_t>` for signals
 
 ## Custom Types
 
@@ -65,12 +66,12 @@ auto& tagged_value = add_value(
     [](std::string_view tag){ return JSON(); },
     [](std::string_view tag, const JSON& value){ /* ... */ }
 );
-post("tag", tagged_value, JSON());
+post(tagged_value, "tag", JSON());
 
 add_signal(
     tagged_frame,
     "id-signal",
-    [](std::string_view, tag, const JSON& value){ /* ... */ }
+    [](std::string_view tag, const JSON& value){ /* ... */ }
 );
 ```
 

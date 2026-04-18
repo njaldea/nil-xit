@@ -6,12 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void on_load(void* ctx)
-{
-    (void)ctx;
-    printf("frame loaded\n");
-}
-
 static void on_ready(const nil_service_id* id, void* ctx)
 {
     (void)id;
@@ -41,43 +35,120 @@ static void get_source_dir(char* out, size_t out_size)
     }
 }
 
-typedef struct Data
+typedef struct UniqueData
 {
     char* text;
-} Data;
+} UniqueData;
 
-uint64_t encode_size(const void* ctx)
+uint64_t unique_encode_size(const void* ctx)
 {
-    return strlen(((const Data*)ctx)->text);
+    return strlen(((const UniqueData*)ctx)->text);
 }
 
 // NOLINTNEXTLINE
-void encode(const void* ctx, void* buffer)
+void unique_encode(const void* ctx, void* buffer)
 {
-    const char* str = ((const Data*)ctx)->text;
+    const char* str = ((const UniqueData*)ctx)->text;
     memcpy(buffer, str, strlen(str));
 }
 
 // NOLINTNEXTLINE
-void decode(void* ctx, const void* data, uint64_t size)
+void unique_decode(void* ctx, const void* data, uint64_t size)
 {
-    Data* d = (Data*)ctx;
+    UniqueData* d = (UniqueData*)ctx;
     free(d->text);
-    d->text = (char*)malloc(size + 1U);
-    memcpy(d->text, data, size);
-    d->text[size] = '\0';
+    d->text = (char*)malloc(size);
+    memcpy(d->text, data, size - 1U);
+    d->text[size - 1U] = '\0';
 }
 
-void cleanup(void* ctx)
+void unique_cleanup(void* ctx)
 {
-    Data* d = (Data*)ctx;
+    UniqueData* d = (UniqueData*)ctx;
     free(d->text);
     free(d);
 }
 
+typedef struct TaggedDataEntry
+{
+    char* tag;
+    char* text;
+} TaggedDataEntry;
+
+typedef struct TaggedData
+{
+    size_t count;
+    TaggedDataEntry** entries;
+} TaggedData;
+
+uint64_t tagged_encode_size(const char* tag, const void* ctx)
+{
+    for (size_t i = 0; i < ((const TaggedData*)ctx)->count; ++i)
+    {
+        if (strcmp(((const TaggedData*)ctx)->entries[i]->tag, tag) == 0)
+        {
+            return strlen(((const TaggedData*)ctx)->entries[i]->text);
+        }
+    }
+    return 0;
+}
+
+// NOLINTNEXTLINE
+void tagged_encode(const char* tag, const void* ctx, void* buffer)
+{
+    TaggedData* d = (TaggedData*)ctx;
+    printf("Encoding tag: %s\n", tag);
+    for (size_t i = 0; i < d->count; ++i)
+    {
+        if (strcmp(d->entries[i]->tag, tag) == 0)
+        {
+            memcpy(buffer, d->entries[i]->text, strlen(d->entries[i]->text));
+            return;
+        }
+    }
+}
+
+// NOLINTNEXTLINE
+void tagged_decode(const char* tag, void* ctx, const void* data, uint64_t size)
+{
+    TaggedData* d = (TaggedData*)ctx;
+    for (size_t i = 0; i < d->count; ++i)
+    {
+        if (strcmp(d->entries[i]->tag, tag) == 0)
+        {
+            TaggedDataEntry* entry = d->entries[i];
+            free(entry->text);
+            entry->text = (char*)malloc(size);
+            memcpy(entry->text, data, size - 1);
+            entry->text[size - 1U] = '\0';
+            return;
+        }
+    }
+}
+
+void tagged_cleanup(void* ctx)
+{
+    TaggedData* d = (TaggedData*)ctx;
+    for (size_t i = 0; i < d->count; ++i)
+    {
+        free(d->entries[i]->tag);
+        free(d->entries[i]->text);
+        free(d->entries[i]);
+    }
+    free(d->entries);
+    free(d);
+}
+
+struct cin_context
+{
+    nil_xit_unique_frame_value* unique_value;
+    nil_xit_tagged_frame_value* tagged_value;
+    int index;
+};
+
 void* post_value_thread(void* ctx)
 {
-    nil_xit_unique_frame_value* value = (nil_xit_unique_frame_value*)ctx;
+    struct cin_context* context = (struct cin_context*)ctx;
     char line[1024];
     while (fgets(line, sizeof(line), stdin))
     {
@@ -86,10 +157,30 @@ void* post_value_thread(void* ctx)
         {
             line[len - 1] = '\0';
         }
-        char json[1200];
-        snprintf(json, sizeof(json), "{ \"message\": \"%s\" }", line);
-        Data data = {.text = json};
-        nil_xit_unique_value_post(*value, &data);
+        switch(context->index)
+        {
+            case 0: {
+                char json[1200];
+                snprintf(json, sizeof(json), "{ \"message\": \"%s\" }", line);
+                nil_xit_unique_value_post(*context->unique_value, &json, strlen(json));
+                context->index = 1;
+                break;
+            }
+            case 1: {
+                char json[1200];
+                snprintf(json, sizeof(json), "{ \"message\": \"%s\" }", line);
+                nil_xit_tagged_value_post(*context->tagged_value, "1101", &json, strlen(json));
+                context->index = 2;
+                break;
+            }
+            case 2: {
+                char json[1200];
+                snprintf(json, sizeof(json), "{ \"message\": \"%s\" }", line);
+                nil_xit_tagged_value_post(*context->tagged_value, "1102", &json, strlen(json));
+                context->index = 0;
+                break;
+            }
+        }
     }
     return NULL;
 }
@@ -104,7 +195,8 @@ int main(void)
     nil_service_web web = nil_service_create_http_server("127.0.0.1", 1101, 4096);
     nil_service_event ws = nil_service_web_use_ws(web, "/ws");
     nil_service_runnable run = nil_service_web_to_runnable(web);
-    nil_xit_setup_server(web, "assets/xit/assets");
+    const char* assets[] = { "assets/xit/assets" };
+    nil_xit_setup_server(web, assets, 1);
 
     nil_xit_core core = nil_xit_core_create(run, ws);
     nil_xit_set_cache_directory(core, "/tmp/nil-xit-sandbox-c");
@@ -117,30 +209,27 @@ int main(void)
         2
     );
 
-    nil_xit_unique_frame frame
+    nil_xit_core_add_unique_frame(core, "index", "$base/gui/Demo.svelte");
+
+    nil_xit_unique_frame unique_frame
         = nil_xit_core_add_unique_frame(core, "json_editor", "$base/gui/JsonEditor.svelte");
 
     static const char initial[] = "{ \"message\": \"hello from c\" }";
     char* buf = (char*)malloc(sizeof(initial) - 1U);
     memcpy((void*)buf, initial, sizeof(initial) - 1U);
 
-    Data* data = (Data*)malloc(sizeof(Data));
-    data->text = buf;
+    UniqueData* unique_data = (UniqueData*)malloc(sizeof(UniqueData));
+    unique_data->text = buf;
 
-    nil_xit_unique_frame_value value = nil_xit_unique_frame_add_value(
-        frame,
+    nil_xit_unique_frame_value unique_value = nil_xit_unique_frame_add_value(
+        unique_frame,
         "json_value",
         (nil_xit_unique_value_accessor
-        ){.encode_size = &encode_size,
-          .encode = &encode,
-          .decode = &decode,
-          .ctx = data,
-          .cleanup = &cleanup}
-    );
-
-    nil_xit_unique_frame_on_load(
-        frame,
-        (nil_xit_callback_info){.exec = on_load, .context = NULL, .cleanup = NULL}
+        ){.encode_size = &unique_encode_size,
+          .encode = &unique_encode,
+          .decode = &unique_decode,
+          .ctx = unique_data,
+          .cleanup = &unique_cleanup}
     );
 
     nil_service_web_on_ready(
@@ -148,8 +237,45 @@ int main(void)
         (nil_service_callback_info){.exec = on_ready, .context = NULL, .cleanup = NULL}
     );
 
+    nil_xit_tagged_frame tagged_frame = nil_xit_core_add_tagged_frame(
+        core,
+        "tagged",
+        "$base/gui/Tagged.svelte"
+    );
+
+    TaggedDataEntry* entry1 = (TaggedDataEntry*)malloc(sizeof(TaggedDataEntry));
+    entry1->tag = strdup("1101");
+    entry1->text = strdup("{ \"message\": \"hello from c tagged first\" }");
+
+    TaggedDataEntry* entry2 = (TaggedDataEntry*)malloc(sizeof(TaggedDataEntry));
+    entry2->tag = strdup("1102");
+    entry2->text = strdup("{ \"message\": \"hello from c tagged second\" }");
+
+    TaggedData* tagged_data = (TaggedData*)malloc(sizeof(TaggedData));
+    tagged_data->count = 2;
+    tagged_data->entries = (TaggedDataEntry**)malloc(sizeof(TaggedDataEntry*) * tagged_data->count);
+    tagged_data->entries[0] = entry1;
+    tagged_data->entries[1] = entry2;
+
+    nil_xit_tagged_frame_value tagged_value = nil_xit_tagged_frame_add_value(
+        tagged_frame,
+        "tagged_json",
+        (nil_xit_tagged_value_accessor
+        ){.encode_size = &tagged_encode_size,
+          .encode = &tagged_encode,
+          .decode = &tagged_decode,
+          .ctx = tagged_data,
+          .cleanup = &tagged_cleanup}
+    );
+
+    struct cin_context context = {
+        .unique_value = &unique_value,
+        .tagged_value = &tagged_value,
+        .index = 0,
+    };
+
     pthread_t tid = 0;
-    pthread_create(&tid, NULL, post_value_thread, &value);
+    pthread_create(&tid, NULL, post_value_thread, &context);
     pthread_detach(tid);
 
     nil_service_runnable_start(run);

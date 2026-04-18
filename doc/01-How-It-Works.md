@@ -31,7 +31,7 @@ int main()
         core,
         {
             {"base", "aliased path"},
-            ...
+            // ...
         }
     );
 
@@ -39,22 +39,16 @@ int main()
         core,
         "frame-id",
         {
-            .group="base",
-            .path="/absolute/path/to/your/file.svelte"
+            .group = "base",
+            .path = "/absolute/path/to/your/file.svelte"
         }
     );
 
-    add_value(
+    auto value = add_value(
         frame,
         "str_value",
-        []() -> std::string
-        {
-            return "initial value";
-        },
-        [](std::string_view v)
-        {
-            std::cout << "value changed: " << v << std::endl;
-        }
+        []() -> std::string { return "initial value"; },
+        [](std::string_view v) { std::cout << "value changed: " << v << std::endl; }
     );
 
     start(server);

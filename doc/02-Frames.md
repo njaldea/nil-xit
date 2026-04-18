@@ -68,7 +68,7 @@ From C++, you can update the frontend store by posting a new value.
 post(value, new_value);
 
 // Notify the UI about a value change for a specific tag.
-post("tag", value, new_value);
+post(value, "tag", new_value);
 ```
 
 Note: Calling post updates the frontend store, but does not trigger the C++ setter. Setters are only invoked when the value changes from the UI.
@@ -110,14 +110,14 @@ add_signal(unique_frame, "id-bool",    [](bool){});
 add_signal(unique_frame, "id-double",  [](double){});
 add_signal(unique_frame, "id-number",  [](std::int64_t){});
 add_signal(unique_frame, "id-string",  [](std::string_view){});
-add_signal(unique_frame, "id-buffer",  [](std::span<std::int8_t>){});
+add_signal(unique_frame, "id-buffer",  [](std::span<const std::uint8_t>){});
 
 add_signal(tagged_frame, "id-void",    [](std::string_view){});
 add_signal(tagged_frame, "id-bool",    [](std::string_view, bool){});
 add_signal(tagged_frame, "id-double",  [](std::string_view, double){});
 add_signal(tagged_frame, "id-number",  [](std::string_view, std::int64_t){});
 add_signal(tagged_frame, "id-string",  [](std::string_view, std::string_view){});
-add_signal(tagged_frame, "id-buffer",  [](std::string_view, std::span<std::int8_t>){});
+add_signal(tagged_frame, "id-buffer",  [](std::string_view, std::span<const std::uint8_t>){});
 ```
 
 The only difference between unique/tagged frame is the first std::string_view requirement of tagged frame.
