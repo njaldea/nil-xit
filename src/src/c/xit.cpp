@@ -69,7 +69,7 @@ extern "C"
 
     void nil_xit_set_cache_directory(nil_xit_core core, const char* tmp_path)
     {
-        nil::xit::set_cache_directory(*from_c(core), std::filesystem::path(tmp_path));
+        set_cache_directory(*from_c(core), std::filesystem::path(tmp_path));
     }
 
     void nil_xit_set_groups(nil_xit_core core, const nil_xit_group_entry* groups, uint64_t size)
@@ -80,12 +80,12 @@ extern "C"
             mapped_groups.emplace(groups[i].group, std::filesystem::path(groups[i].path));
         }
 
-        nil::xit::set_groups(*from_c(core), std::move(mapped_groups));
+        set_groups(*from_c(core), std::move(mapped_groups));
     }
 
     void nil_xit_core_destroy(nil_xit_core core)
     {
-        nil::xit::destroy_core(from_c(core));
+        destroy_core(from_c(core));
     }
 
     nil_xit_unique_frame nil_xit_core_add_unique_frame(
@@ -96,10 +96,10 @@ extern "C"
     {
         if (path == nullptr)
         {
-            return to_c(nil::xit::add_unique_frame(*from_c(core), id));
+            return to_c(add_unique_frame(*from_c(core), id));
         }
 
-        return to_c(nil::xit::add_unique_frame(*from_c(core), id, path));
+        return to_c(add_unique_frame(*from_c(core), id, path));
     }
 
     nil_xit_unique_frame nil_xit_core_add_unique_frame_with_path(
@@ -108,7 +108,7 @@ extern "C"
         const char* path
     )
     {
-        return to_c(nil::xit::add_unique_frame(*from_c(core), id, path));
+        return to_c(add_unique_frame(*from_c(core), id, path));
     }
 
     void nil_xit_unique_frame_on_load(
@@ -118,10 +118,7 @@ extern "C"
     {
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
 
-        nil::xit::unique::on_load(
-            *from_c(frame),
-            [exec = callback.exec, holder]() { exec(holder->object); }
-        );
+        on_load(*from_c(frame), [exec = callback.exec, holder]() { exec(holder->object); });
     }
 
     void nil_xit_unique_frame_on_sub(
@@ -131,7 +128,7 @@ extern "C"
     {
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
 
-        nil::xit::unique::on_sub(
+        on_sub(
             *from_c(frame),
             [exec = callback.exec, holder](std::size_t count)
             { exec(static_cast<std::uint64_t>(count), holder->object); }
@@ -144,7 +141,7 @@ extern "C"
         nil_xit_unique_value_accessor accessor
     )
     {
-        auto& value = nil::xit::unique::add_value(
+        auto& value = add_value(
             *from_c(frame),
             std::string(id),
             std::make_unique<nil::xit::c::UniqueAccessor>(accessor)
@@ -163,7 +160,7 @@ extern "C"
             = static_cast<nil::xit::unique::Value<std::vector<std::uint8_t>>*>(value.handle);
 
         const auto* start = static_cast<const std::uint8_t*>(new_data);
-        nil::xit::unique::post(*value_handle, {start, start + new_data_size});
+        post(*value_handle, std::vector<std::uint8_t>{start, start + new_data_size});
     }
 
     void nil_xit_unique_frame_add_signal(
@@ -176,7 +173,7 @@ extern "C"
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
 
         // The callback signature for unique frames is void().
-        nil::xit::unique::add_signal(
+        add_signal(
             *from_c(frame),
             std::string(id),
             [exec = callback.exec, holder]() { exec(holder->object); }
@@ -191,9 +188,9 @@ extern "C"
     {
         if (path == nullptr)
         {
-            return {.handle = &nil::xit::add_tagged_frame(*from_c(core), id)};
+            return {.handle = &add_tagged_frame(*from_c(core), id)};
         }
-        return {.handle = &nil::xit::add_tagged_frame(*from_c(core), id, path)};
+        return {.handle = &add_tagged_frame(*from_c(core), id, path)};
     }
 
     nil_xit_tagged_frame nil_xit_core_add_tagged_frame_with_path(
@@ -202,7 +199,7 @@ extern "C"
         const char* path
     )
     {
-        return {.handle = &nil::xit::add_tagged_frame(*from_c(core), id, path)};
+        return {.handle = &add_tagged_frame(*from_c(core), id, path)};
     }
 
     void nil_xit_tagged_frame_on_load(
@@ -211,7 +208,7 @@ extern "C"
     )
     {
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
-        nil::xit::tagged::on_load(
+        on_load(
             *static_cast<nil::xit::tagged::Frame*>(frame.handle),
             [exec = callback.exec, holder](std::string_view tag)
             { exec(tag.data(), holder->object); }
@@ -224,7 +221,7 @@ extern "C"
     )
     {
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
-        nil::xit::tagged::on_sub(
+        on_sub(
             *static_cast<nil::xit::tagged::Frame*>(frame.handle),
             [exec = callback.exec, holder](std::string_view tag, std::size_t count)
             { exec(tag.data(), static_cast<uint64_t>(count), holder->object); }
@@ -237,7 +234,7 @@ extern "C"
         nil_xit_tagged_value_accessor accessor
     )
     {
-        auto& value = nil::xit::tagged::add_value(
+        auto& value = add_value(
             *static_cast<nil::xit::tagged::Frame*>(frame.handle),
             std::string(id),
             std::make_unique<nil::xit::c::TaggedAccessor>(accessor)
@@ -252,7 +249,7 @@ extern "C"
     )
     {
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
-        nil::xit::tagged::add_signal(
+        add_signal(
             *static_cast<nil::xit::tagged::Frame*>(frame.handle),
             std::string(id),
             [exec = callback.exec, holder](std::string_view tag)
@@ -271,6 +268,10 @@ extern "C"
             = static_cast<nil::xit::tagged::Value<std::vector<std::uint8_t>>*>(value.handle);
 
         const auto* start = static_cast<const std::uint8_t*>(new_data);
-        nil::xit::tagged::post(*value_handle, std::string(tag), {start, start + new_data_size});
+        post(
+            *value_handle,
+            std::string(tag),
+            std::vector<std::uint8_t>{start, start + new_data_size}
+        );
     }
 }

@@ -93,26 +93,6 @@ struct TaggedFrameNotify;
 struct TaggedFrameNotifyBuilder;
 struct TaggedFrameNotifyT;
 
-struct ValueBoolean;
-struct ValueBooleanBuilder;
-struct ValueBooleanT;
-
-struct ValueNumber;
-struct ValueNumberBuilder;
-struct ValueNumberT;
-
-struct ValueDouble;
-struct ValueDoubleBuilder;
-struct ValueDoubleT;
-
-struct ValueString;
-struct ValueStringBuilder;
-struct ValueStringT;
-
-struct ValueBuffer;
-struct ValueBufferBuilder;
-struct ValueBufferT;
-
 struct Value;
 struct ValueBuilder;
 struct ValueT;
@@ -282,213 +262,6 @@ inline const char *EnumNameMessageType(MessageType e) {
   const size_t index = static_cast<size_t>(e);
   return EnumNamesMessageType()[index];
 }
-
-enum SignalType : int32_t {
-  SignalType_None = 0,
-  SignalType_Boolean = 1,
-  SignalType_Number = 2,
-  SignalType_Double = 3,
-  SignalType_String = 4,
-  SignalType_Buffer = 5,
-  SignalType_MIN = SignalType_None,
-  SignalType_MAX = SignalType_Buffer
-};
-
-inline const SignalType (&EnumValuesSignalType())[6] {
-  static const SignalType values[] = {
-    SignalType_None,
-    SignalType_Boolean,
-    SignalType_Number,
-    SignalType_Double,
-    SignalType_String,
-    SignalType_Buffer
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesSignalType() {
-  static const char * const names[7] = {
-    "None",
-    "Boolean",
-    "Number",
-    "Double",
-    "String",
-    "Buffer",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameSignalType(SignalType e) {
-  if (::flatbuffers::IsOutRange(e, SignalType_None, SignalType_Buffer)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesSignalType()[index];
-}
-
-enum ValueUnion : uint8_t {
-  ValueUnion_NONE = 0,
-  ValueUnion_ValueBoolean = 1,
-  ValueUnion_ValueNumber = 2,
-  ValueUnion_ValueDouble = 3,
-  ValueUnion_ValueString = 4,
-  ValueUnion_ValueBuffer = 5,
-  ValueUnion_MIN = ValueUnion_NONE,
-  ValueUnion_MAX = ValueUnion_ValueBuffer
-};
-
-inline const ValueUnion (&EnumValuesValueUnion())[6] {
-  static const ValueUnion values[] = {
-    ValueUnion_NONE,
-    ValueUnion_ValueBoolean,
-    ValueUnion_ValueNumber,
-    ValueUnion_ValueDouble,
-    ValueUnion_ValueString,
-    ValueUnion_ValueBuffer
-  };
-  return values;
-}
-
-inline const char * const *EnumNamesValueUnion() {
-  static const char * const names[7] = {
-    "NONE",
-    "ValueBoolean",
-    "ValueNumber",
-    "ValueDouble",
-    "ValueString",
-    "ValueBuffer",
-    nullptr
-  };
-  return names;
-}
-
-inline const char *EnumNameValueUnion(ValueUnion e) {
-  if (::flatbuffers::IsOutRange(e, ValueUnion_NONE, ValueUnion_ValueBuffer)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesValueUnion()[index];
-}
-
-template<typename T> struct ValueUnionTraits {
-  static const ValueUnion enum_value = ValueUnion_NONE;
-};
-
-template<> struct ValueUnionTraits<nil::xit::fbs::ValueBoolean> {
-  static const ValueUnion enum_value = ValueUnion_ValueBoolean;
-};
-
-template<> struct ValueUnionTraits<nil::xit::fbs::ValueNumber> {
-  static const ValueUnion enum_value = ValueUnion_ValueNumber;
-};
-
-template<> struct ValueUnionTraits<nil::xit::fbs::ValueDouble> {
-  static const ValueUnion enum_value = ValueUnion_ValueDouble;
-};
-
-template<> struct ValueUnionTraits<nil::xit::fbs::ValueString> {
-  static const ValueUnion enum_value = ValueUnion_ValueString;
-};
-
-template<> struct ValueUnionTraits<nil::xit::fbs::ValueBuffer> {
-  static const ValueUnion enum_value = ValueUnion_ValueBuffer;
-};
-
-template<typename T> struct ValueUnionUnionTraits {
-  static const ValueUnion enum_value = ValueUnion_NONE;
-};
-
-template<> struct ValueUnionUnionTraits<nil::xit::fbs::ValueBooleanT> {
-  static const ValueUnion enum_value = ValueUnion_ValueBoolean;
-};
-
-template<> struct ValueUnionUnionTraits<nil::xit::fbs::ValueNumberT> {
-  static const ValueUnion enum_value = ValueUnion_ValueNumber;
-};
-
-template<> struct ValueUnionUnionTraits<nil::xit::fbs::ValueDoubleT> {
-  static const ValueUnion enum_value = ValueUnion_ValueDouble;
-};
-
-template<> struct ValueUnionUnionTraits<nil::xit::fbs::ValueStringT> {
-  static const ValueUnion enum_value = ValueUnion_ValueString;
-};
-
-template<> struct ValueUnionUnionTraits<nil::xit::fbs::ValueBufferT> {
-  static const ValueUnion enum_value = ValueUnion_ValueBuffer;
-};
-
-struct ValueUnionUnion {
-  ValueUnion type;
-  void *value;
-
-  ValueUnionUnion() : type(ValueUnion_NONE), value(nullptr) {}
-  ValueUnionUnion(ValueUnionUnion&& u) FLATBUFFERS_NOEXCEPT :
-    type(ValueUnion_NONE), value(nullptr)
-    { std::swap(type, u.type); std::swap(value, u.value); }
-  ValueUnionUnion(const ValueUnionUnion &);
-  ValueUnionUnion &operator=(const ValueUnionUnion &u)
-    { ValueUnionUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
-  ValueUnionUnion &operator=(ValueUnionUnion &&u) FLATBUFFERS_NOEXCEPT
-    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
-  ~ValueUnionUnion() { Reset(); }
-
-  void Reset();
-
-  template <typename T>
-  void Set(T&& val) {
-    typedef typename std::remove_reference<T>::type RT;
-    Reset();
-    type = ValueUnionUnionTraits<RT>::enum_value;
-    if (type != ValueUnion_NONE) {
-      value = new RT(std::forward<T>(val));
-    }
-  }
-
-  static void *UnPack(const void *obj, ValueUnion type, const ::flatbuffers::resolver_function_t *resolver);
-  ::flatbuffers::Offset<void> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
-
-  nil::xit::fbs::ValueBooleanT *AsValueBoolean() {
-    return type == ValueUnion_ValueBoolean ?
-      reinterpret_cast<nil::xit::fbs::ValueBooleanT *>(value) : nullptr;
-  }
-  const nil::xit::fbs::ValueBooleanT *AsValueBoolean() const {
-    return type == ValueUnion_ValueBoolean ?
-      reinterpret_cast<const nil::xit::fbs::ValueBooleanT *>(value) : nullptr;
-  }
-  nil::xit::fbs::ValueNumberT *AsValueNumber() {
-    return type == ValueUnion_ValueNumber ?
-      reinterpret_cast<nil::xit::fbs::ValueNumberT *>(value) : nullptr;
-  }
-  const nil::xit::fbs::ValueNumberT *AsValueNumber() const {
-    return type == ValueUnion_ValueNumber ?
-      reinterpret_cast<const nil::xit::fbs::ValueNumberT *>(value) : nullptr;
-  }
-  nil::xit::fbs::ValueDoubleT *AsValueDouble() {
-    return type == ValueUnion_ValueDouble ?
-      reinterpret_cast<nil::xit::fbs::ValueDoubleT *>(value) : nullptr;
-  }
-  const nil::xit::fbs::ValueDoubleT *AsValueDouble() const {
-    return type == ValueUnion_ValueDouble ?
-      reinterpret_cast<const nil::xit::fbs::ValueDoubleT *>(value) : nullptr;
-  }
-  nil::xit::fbs::ValueStringT *AsValueString() {
-    return type == ValueUnion_ValueString ?
-      reinterpret_cast<nil::xit::fbs::ValueStringT *>(value) : nullptr;
-  }
-  const nil::xit::fbs::ValueStringT *AsValueString() const {
-    return type == ValueUnion_ValueString ?
-      reinterpret_cast<const nil::xit::fbs::ValueStringT *>(value) : nullptr;
-  }
-  nil::xit::fbs::ValueBufferT *AsValueBuffer() {
-    return type == ValueUnion_ValueBuffer ?
-      reinterpret_cast<nil::xit::fbs::ValueBufferT *>(value) : nullptr;
-  }
-  const nil::xit::fbs::ValueBufferT *AsValueBuffer() const {
-    return type == ValueUnion_ValueBuffer ?
-      reinterpret_cast<const nil::xit::fbs::ValueBufferT *>(value) : nullptr;
-  }
-};
-
-bool VerifyValueUnion(::flatbuffers::Verifier &verifier, const void *obj, ValueUnion type);
-bool VerifyValueUnionVector(::flatbuffers::Verifier &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<uint8_t> *types);
 
 struct UniqueFrameInfoRequestT : public ::flatbuffers::NativeTable {
   typedef UniqueFrameInfoRequest TableType;
@@ -1929,290 +1702,10 @@ inline ::flatbuffers::Offset<TaggedFrameNotify> CreateTaggedFrameNotifyDirect(
 
 ::flatbuffers::Offset<TaggedFrameNotify> CreateTaggedFrameNotify(::flatbuffers::FlatBufferBuilder &_fbb, const TaggedFrameNotifyT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct ValueBooleanT : public ::flatbuffers::NativeTable {
-  typedef ValueBoolean TableType;
-  bool value = false;
-};
-
-struct ValueBoolean FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef ValueBooleanT NativeTableType;
-  typedef ValueBooleanBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_VALUE = 4
-  };
-  bool value() const {
-    return GetField<uint8_t>(VT_VALUE, 0) != 0;
-  }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_VALUE, 1) &&
-           verifier.EndTable();
-  }
-  ValueBooleanT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ValueBooleanT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<ValueBoolean> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBooleanT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct ValueBooleanBuilder {
-  typedef ValueBoolean Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  void add_value(bool value) {
-    fbb_.AddElement<uint8_t>(ValueBoolean::VT_VALUE, static_cast<uint8_t>(value), 0);
-  }
-  explicit ValueBooleanBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<ValueBoolean> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<ValueBoolean>(end);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<ValueBoolean> CreateValueBoolean(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    bool value = false) {
-  ValueBooleanBuilder builder_(_fbb);
-  builder_.add_value(value);
-  return builder_.Finish();
-}
-
-::flatbuffers::Offset<ValueBoolean> CreateValueBoolean(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBooleanT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct ValueNumberT : public ::flatbuffers::NativeTable {
-  typedef ValueNumber TableType;
-  int64_t value = 0;
-};
-
-struct ValueNumber FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef ValueNumberT NativeTableType;
-  typedef ValueNumberBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_VALUE = 4
-  };
-  int64_t value() const {
-    return GetField<int64_t>(VT_VALUE, 0);
-  }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<int64_t>(verifier, VT_VALUE, 8) &&
-           verifier.EndTable();
-  }
-  ValueNumberT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ValueNumberT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<ValueNumber> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueNumberT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct ValueNumberBuilder {
-  typedef ValueNumber Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  void add_value(int64_t value) {
-    fbb_.AddElement<int64_t>(ValueNumber::VT_VALUE, value, 0);
-  }
-  explicit ValueNumberBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<ValueNumber> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<ValueNumber>(end);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<ValueNumber> CreateValueNumber(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    int64_t value = 0) {
-  ValueNumberBuilder builder_(_fbb);
-  builder_.add_value(value);
-  return builder_.Finish();
-}
-
-::flatbuffers::Offset<ValueNumber> CreateValueNumber(::flatbuffers::FlatBufferBuilder &_fbb, const ValueNumberT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct ValueDoubleT : public ::flatbuffers::NativeTable {
-  typedef ValueDouble TableType;
-  double value = 0.0;
-};
-
-struct ValueDouble FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef ValueDoubleT NativeTableType;
-  typedef ValueDoubleBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_VALUE = 4
-  };
-  double value() const {
-    return GetField<double>(VT_VALUE, 0.0);
-  }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyField<double>(verifier, VT_VALUE, 8) &&
-           verifier.EndTable();
-  }
-  ValueDoubleT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ValueDoubleT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<ValueDouble> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueDoubleT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct ValueDoubleBuilder {
-  typedef ValueDouble Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  void add_value(double value) {
-    fbb_.AddElement<double>(ValueDouble::VT_VALUE, value, 0.0);
-  }
-  explicit ValueDoubleBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<ValueDouble> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<ValueDouble>(end);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<ValueDouble> CreateValueDouble(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    double value = 0.0) {
-  ValueDoubleBuilder builder_(_fbb);
-  builder_.add_value(value);
-  return builder_.Finish();
-}
-
-::flatbuffers::Offset<ValueDouble> CreateValueDouble(::flatbuffers::FlatBufferBuilder &_fbb, const ValueDoubleT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct ValueStringT : public ::flatbuffers::NativeTable {
-  typedef ValueString TableType;
-  std::string value{};
-};
-
-struct ValueString FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef ValueStringT NativeTableType;
-  typedef ValueStringBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_VALUE = 4
-  };
-  const ::flatbuffers::String *value() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_VALUE);
-  }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_VALUE) &&
-           verifier.VerifyString(value()) &&
-           verifier.EndTable();
-  }
-  ValueStringT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ValueStringT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<ValueString> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueStringT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct ValueStringBuilder {
-  typedef ValueString Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  void add_value(::flatbuffers::Offset<::flatbuffers::String> value) {
-    fbb_.AddOffset(ValueString::VT_VALUE, value);
-  }
-  explicit ValueStringBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<ValueString> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<ValueString>(end);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<ValueString> CreateValueString(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::String> value = 0) {
-  ValueStringBuilder builder_(_fbb);
-  builder_.add_value(value);
-  return builder_.Finish();
-}
-
-inline ::flatbuffers::Offset<ValueString> CreateValueStringDirect(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    const char *value = nullptr) {
-  auto value__ = value ? _fbb.CreateString(value) : 0;
-  return nil::xit::fbs::CreateValueString(
-      _fbb,
-      value__);
-}
-
-::flatbuffers::Offset<ValueString> CreateValueString(::flatbuffers::FlatBufferBuilder &_fbb, const ValueStringT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct ValueBufferT : public ::flatbuffers::NativeTable {
-  typedef ValueBuffer TableType;
-  std::vector<uint8_t> value{};
-};
-
-struct ValueBuffer FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef ValueBufferT NativeTableType;
-  typedef ValueBufferBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_VALUE = 4
-  };
-  const ::flatbuffers::Vector<uint8_t> *value() const {
-    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_VALUE);
-  }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_VALUE) &&
-           verifier.VerifyVector(value()) &&
-           verifier.EndTable();
-  }
-  ValueBufferT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ValueBufferT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<ValueBuffer> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBufferT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct ValueBufferBuilder {
-  typedef ValueBuffer Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  void add_value(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value) {
-    fbb_.AddOffset(ValueBuffer::VT_VALUE, value);
-  }
-  explicit ValueBufferBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<ValueBuffer> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<ValueBuffer>(end);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<ValueBuffer> CreateValueBuffer(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value = 0) {
-  ValueBufferBuilder builder_(_fbb);
-  builder_.add_value(value);
-  return builder_.Finish();
-}
-
-inline ::flatbuffers::Offset<ValueBuffer> CreateValueBufferDirect(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<uint8_t> *value = nullptr) {
-  auto value__ = value ? _fbb.CreateVector<uint8_t>(*value) : 0;
-  return nil::xit::fbs::CreateValueBuffer(
-      _fbb,
-      value__);
-}
-
-::flatbuffers::Offset<ValueBuffer> CreateValueBuffer(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBufferT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
 struct ValueT : public ::flatbuffers::NativeTable {
   typedef Value TableType;
   std::string id{};
-  nil::xit::fbs::ValueUnionUnion value{};
+  std::vector<uint8_t> value{};
 };
 
 struct Value FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -2220,67 +1713,26 @@ struct Value FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef ValueBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
-    VT_VALUE_TYPE = 6,
-    VT_VALUE = 8
+    VT_VALUE = 6
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
   }
-  nil::xit::fbs::ValueUnion value_type() const {
-    return static_cast<nil::xit::fbs::ValueUnion>(GetField<uint8_t>(VT_VALUE_TYPE, 0));
-  }
-  const void *value() const {
-    return GetPointer<const void *>(VT_VALUE);
-  }
-  template<typename T> const T *value_as() const;
-  const nil::xit::fbs::ValueBoolean *value_as_ValueBoolean() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueBoolean ? static_cast<const nil::xit::fbs::ValueBoolean *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueNumber *value_as_ValueNumber() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueNumber ? static_cast<const nil::xit::fbs::ValueNumber *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueDouble *value_as_ValueDouble() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueDouble ? static_cast<const nil::xit::fbs::ValueDouble *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueString *value_as_ValueString() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueString ? static_cast<const nil::xit::fbs::ValueString *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueBuffer *value_as_ValueBuffer() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueBuffer ? static_cast<const nil::xit::fbs::ValueBuffer *>(value()) : nullptr;
+  const ::flatbuffers::Vector<uint8_t> *value() const {
+    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_VALUE);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_ID) &&
            verifier.VerifyString(id()) &&
-           VerifyField<uint8_t>(verifier, VT_VALUE_TYPE, 1) &&
            VerifyOffsetRequired(verifier, VT_VALUE) &&
-           VerifyValueUnion(verifier, value(), value_type()) &&
+           verifier.VerifyVector(value()) &&
            verifier.EndTable();
   }
   ValueT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
   void UnPackTo(ValueT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
   static ::flatbuffers::Offset<Value> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
-
-template<> inline const nil::xit::fbs::ValueBoolean *Value::value_as<nil::xit::fbs::ValueBoolean>() const {
-  return value_as_ValueBoolean();
-}
-
-template<> inline const nil::xit::fbs::ValueNumber *Value::value_as<nil::xit::fbs::ValueNumber>() const {
-  return value_as_ValueNumber();
-}
-
-template<> inline const nil::xit::fbs::ValueDouble *Value::value_as<nil::xit::fbs::ValueDouble>() const {
-  return value_as_ValueDouble();
-}
-
-template<> inline const nil::xit::fbs::ValueString *Value::value_as<nil::xit::fbs::ValueString>() const {
-  return value_as_ValueString();
-}
-
-template<> inline const nil::xit::fbs::ValueBuffer *Value::value_as<nil::xit::fbs::ValueBuffer>() const {
-  return value_as_ValueBuffer();
-}
 
 struct ValueBuilder {
   typedef Value Table;
@@ -2289,10 +1741,7 @@ struct ValueBuilder {
   void add_id(::flatbuffers::Offset<::flatbuffers::String> id) {
     fbb_.AddOffset(Value::VT_ID, id);
   }
-  void add_value_type(nil::xit::fbs::ValueUnion value_type) {
-    fbb_.AddElement<uint8_t>(Value::VT_VALUE_TYPE, static_cast<uint8_t>(value_type), 0);
-  }
-  void add_value(::flatbuffers::Offset<void> value) {
+  void add_value(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value) {
     fbb_.AddOffset(Value::VT_VALUE, value);
   }
   explicit ValueBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
@@ -2311,26 +1760,23 @@ struct ValueBuilder {
 inline ::flatbuffers::Offset<Value> CreateValue(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
-    nil::xit::fbs::ValueUnion value_type = nil::xit::fbs::ValueUnion_NONE,
-    ::flatbuffers::Offset<void> value = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value = 0) {
   ValueBuilder builder_(_fbb);
   builder_.add_value(value);
   builder_.add_id(id);
-  builder_.add_value_type(value_type);
   return builder_.Finish();
 }
 
 inline ::flatbuffers::Offset<Value> CreateValueDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
-    nil::xit::fbs::ValueUnion value_type = nil::xit::fbs::ValueUnion_NONE,
-    ::flatbuffers::Offset<void> value = 0) {
+    const std::vector<uint8_t> *value = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
+  auto value__ = value ? _fbb.CreateVector<uint8_t>(*value) : 0;
   return nil::xit::fbs::CreateValue(
       _fbb,
       id__,
-      value_type,
-      value);
+      value__);
 }
 
 ::flatbuffers::Offset<Value> CreateValue(::flatbuffers::FlatBufferBuilder &_fbb, const ValueT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -2844,27 +2290,21 @@ inline ::flatbuffers::Offset<TaggedValueUpdate> CreateTaggedValueUpdateDirect(
 struct SignalT : public ::flatbuffers::NativeTable {
   typedef Signal TableType;
   std::string id{};
-  nil::xit::fbs::SignalType type = nil::xit::fbs::SignalType_None;
 };
 
 struct Signal FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef SignalT NativeTableType;
   typedef SignalBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_ID = 4,
-    VT_TYPE = 6
+    VT_ID = 4
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
-  }
-  nil::xit::fbs::SignalType type() const {
-    return static_cast<nil::xit::fbs::SignalType>(GetField<int32_t>(VT_TYPE, 0));
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_ID) &&
            verifier.VerifyString(id()) &&
-           VerifyField<int32_t>(verifier, VT_TYPE, 4) &&
            verifier.EndTable();
   }
   SignalT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -2878,9 +2318,6 @@ struct SignalBuilder {
   ::flatbuffers::uoffset_t start_;
   void add_id(::flatbuffers::Offset<::flatbuffers::String> id) {
     fbb_.AddOffset(Signal::VT_ID, id);
-  }
-  void add_type(nil::xit::fbs::SignalType type) {
-    fbb_.AddElement<int32_t>(Signal::VT_TYPE, static_cast<int32_t>(type), 0);
   }
   explicit SignalBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -2896,23 +2333,19 @@ struct SignalBuilder {
 
 inline ::flatbuffers::Offset<Signal> CreateSignal(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::String> id = 0,
-    nil::xit::fbs::SignalType type = nil::xit::fbs::SignalType_None) {
+    ::flatbuffers::Offset<::flatbuffers::String> id = 0) {
   SignalBuilder builder_(_fbb);
-  builder_.add_type(type);
   builder_.add_id(id);
   return builder_.Finish();
 }
 
 inline ::flatbuffers::Offset<Signal> CreateSignalDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    const char *id = nullptr,
-    nil::xit::fbs::SignalType type = nil::xit::fbs::SignalType_None) {
+    const char *id = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
   return nil::xit::fbs::CreateSignal(
       _fbb,
-      id__,
-      type);
+      id__);
 }
 
 ::flatbuffers::Offset<Signal> CreateSignal(::flatbuffers::FlatBufferBuilder &_fbb, const SignalT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -3247,7 +2680,7 @@ struct UniqueSignalNotifyT : public ::flatbuffers::NativeTable {
   typedef UniqueSignalNotify TableType;
   std::string frame_id{};
   std::string signal_id{};
-  nil::xit::fbs::ValueUnionUnion value{};
+  std::vector<uint8_t> value{};
 };
 
 struct UniqueSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -3256,8 +2689,7 @@ struct UniqueSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_FRAME_ID = 4,
     VT_SIGNAL_ID = 6,
-    VT_VALUE_TYPE = 8,
-    VT_VALUE = 10
+    VT_VALUE = 8
   };
   const ::flatbuffers::String *frame_id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_FRAME_ID);
@@ -3265,27 +2697,8 @@ struct UniqueSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
   const ::flatbuffers::String *signal_id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_SIGNAL_ID);
   }
-  nil::xit::fbs::ValueUnion value_type() const {
-    return static_cast<nil::xit::fbs::ValueUnion>(GetField<uint8_t>(VT_VALUE_TYPE, 0));
-  }
-  const void *value() const {
-    return GetPointer<const void *>(VT_VALUE);
-  }
-  template<typename T> const T *value_as() const;
-  const nil::xit::fbs::ValueBoolean *value_as_ValueBoolean() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueBoolean ? static_cast<const nil::xit::fbs::ValueBoolean *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueNumber *value_as_ValueNumber() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueNumber ? static_cast<const nil::xit::fbs::ValueNumber *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueDouble *value_as_ValueDouble() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueDouble ? static_cast<const nil::xit::fbs::ValueDouble *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueString *value_as_ValueString() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueString ? static_cast<const nil::xit::fbs::ValueString *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueBuffer *value_as_ValueBuffer() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueBuffer ? static_cast<const nil::xit::fbs::ValueBuffer *>(value()) : nullptr;
+  const ::flatbuffers::Vector<uint8_t> *value() const {
+    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_VALUE);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -3293,35 +2706,14 @@ struct UniqueSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
            verifier.VerifyString(frame_id()) &&
            VerifyOffsetRequired(verifier, VT_SIGNAL_ID) &&
            verifier.VerifyString(signal_id()) &&
-           VerifyField<uint8_t>(verifier, VT_VALUE_TYPE, 1) &&
            VerifyOffset(verifier, VT_VALUE) &&
-           VerifyValueUnion(verifier, value(), value_type()) &&
+           verifier.VerifyVector(value()) &&
            verifier.EndTable();
   }
   UniqueSignalNotifyT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
   void UnPackTo(UniqueSignalNotifyT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
   static ::flatbuffers::Offset<UniqueSignalNotify> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const UniqueSignalNotifyT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
-
-template<> inline const nil::xit::fbs::ValueBoolean *UniqueSignalNotify::value_as<nil::xit::fbs::ValueBoolean>() const {
-  return value_as_ValueBoolean();
-}
-
-template<> inline const nil::xit::fbs::ValueNumber *UniqueSignalNotify::value_as<nil::xit::fbs::ValueNumber>() const {
-  return value_as_ValueNumber();
-}
-
-template<> inline const nil::xit::fbs::ValueDouble *UniqueSignalNotify::value_as<nil::xit::fbs::ValueDouble>() const {
-  return value_as_ValueDouble();
-}
-
-template<> inline const nil::xit::fbs::ValueString *UniqueSignalNotify::value_as<nil::xit::fbs::ValueString>() const {
-  return value_as_ValueString();
-}
-
-template<> inline const nil::xit::fbs::ValueBuffer *UniqueSignalNotify::value_as<nil::xit::fbs::ValueBuffer>() const {
-  return value_as_ValueBuffer();
-}
 
 struct UniqueSignalNotifyBuilder {
   typedef UniqueSignalNotify Table;
@@ -3333,10 +2725,7 @@ struct UniqueSignalNotifyBuilder {
   void add_signal_id(::flatbuffers::Offset<::flatbuffers::String> signal_id) {
     fbb_.AddOffset(UniqueSignalNotify::VT_SIGNAL_ID, signal_id);
   }
-  void add_value_type(nil::xit::fbs::ValueUnion value_type) {
-    fbb_.AddElement<uint8_t>(UniqueSignalNotify::VT_VALUE_TYPE, static_cast<uint8_t>(value_type), 0);
-  }
-  void add_value(::flatbuffers::Offset<void> value) {
+  void add_value(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value) {
     fbb_.AddOffset(UniqueSignalNotify::VT_VALUE, value);
   }
   explicit UniqueSignalNotifyBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
@@ -3356,13 +2745,11 @@ inline ::flatbuffers::Offset<UniqueSignalNotify> CreateUniqueSignalNotify(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> frame_id = 0,
     ::flatbuffers::Offset<::flatbuffers::String> signal_id = 0,
-    nil::xit::fbs::ValueUnion value_type = nil::xit::fbs::ValueUnion_NONE,
-    ::flatbuffers::Offset<void> value = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value = 0) {
   UniqueSignalNotifyBuilder builder_(_fbb);
   builder_.add_value(value);
   builder_.add_signal_id(signal_id);
   builder_.add_frame_id(frame_id);
-  builder_.add_value_type(value_type);
   return builder_.Finish();
 }
 
@@ -3370,16 +2757,15 @@ inline ::flatbuffers::Offset<UniqueSignalNotify> CreateUniqueSignalNotifyDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *frame_id = nullptr,
     const char *signal_id = nullptr,
-    nil::xit::fbs::ValueUnion value_type = nil::xit::fbs::ValueUnion_NONE,
-    ::flatbuffers::Offset<void> value = 0) {
+    const std::vector<uint8_t> *value = nullptr) {
   auto frame_id__ = frame_id ? _fbb.CreateString(frame_id) : 0;
   auto signal_id__ = signal_id ? _fbb.CreateString(signal_id) : 0;
+  auto value__ = value ? _fbb.CreateVector<uint8_t>(*value) : 0;
   return nil::xit::fbs::CreateUniqueSignalNotify(
       _fbb,
       frame_id__,
       signal_id__,
-      value_type,
-      value);
+      value__);
 }
 
 ::flatbuffers::Offset<UniqueSignalNotify> CreateUniqueSignalNotify(::flatbuffers::FlatBufferBuilder &_fbb, const UniqueSignalNotifyT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -3389,7 +2775,7 @@ struct TaggedSignalNotifyT : public ::flatbuffers::NativeTable {
   std::string frame_id{};
   std::string tag{};
   std::string signal_id{};
-  nil::xit::fbs::ValueUnionUnion value{};
+  std::vector<uint8_t> value{};
 };
 
 struct TaggedSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -3399,8 +2785,7 @@ struct TaggedSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
     VT_FRAME_ID = 4,
     VT_TAG = 6,
     VT_SIGNAL_ID = 8,
-    VT_VALUE_TYPE = 10,
-    VT_VALUE = 12
+    VT_VALUE = 10
   };
   const ::flatbuffers::String *frame_id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_FRAME_ID);
@@ -3411,27 +2796,8 @@ struct TaggedSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
   const ::flatbuffers::String *signal_id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_SIGNAL_ID);
   }
-  nil::xit::fbs::ValueUnion value_type() const {
-    return static_cast<nil::xit::fbs::ValueUnion>(GetField<uint8_t>(VT_VALUE_TYPE, 0));
-  }
-  const void *value() const {
-    return GetPointer<const void *>(VT_VALUE);
-  }
-  template<typename T> const T *value_as() const;
-  const nil::xit::fbs::ValueBoolean *value_as_ValueBoolean() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueBoolean ? static_cast<const nil::xit::fbs::ValueBoolean *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueNumber *value_as_ValueNumber() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueNumber ? static_cast<const nil::xit::fbs::ValueNumber *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueDouble *value_as_ValueDouble() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueDouble ? static_cast<const nil::xit::fbs::ValueDouble *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueString *value_as_ValueString() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueString ? static_cast<const nil::xit::fbs::ValueString *>(value()) : nullptr;
-  }
-  const nil::xit::fbs::ValueBuffer *value_as_ValueBuffer() const {
-    return value_type() == nil::xit::fbs::ValueUnion_ValueBuffer ? static_cast<const nil::xit::fbs::ValueBuffer *>(value()) : nullptr;
+  const ::flatbuffers::Vector<uint8_t> *value() const {
+    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_VALUE);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -3441,35 +2807,14 @@ struct TaggedSignalNotify FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
            verifier.VerifyString(tag()) &&
            VerifyOffsetRequired(verifier, VT_SIGNAL_ID) &&
            verifier.VerifyString(signal_id()) &&
-           VerifyField<uint8_t>(verifier, VT_VALUE_TYPE, 1) &&
            VerifyOffset(verifier, VT_VALUE) &&
-           VerifyValueUnion(verifier, value(), value_type()) &&
+           verifier.VerifyVector(value()) &&
            verifier.EndTable();
   }
   TaggedSignalNotifyT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
   void UnPackTo(TaggedSignalNotifyT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
   static ::flatbuffers::Offset<TaggedSignalNotify> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const TaggedSignalNotifyT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
-
-template<> inline const nil::xit::fbs::ValueBoolean *TaggedSignalNotify::value_as<nil::xit::fbs::ValueBoolean>() const {
-  return value_as_ValueBoolean();
-}
-
-template<> inline const nil::xit::fbs::ValueNumber *TaggedSignalNotify::value_as<nil::xit::fbs::ValueNumber>() const {
-  return value_as_ValueNumber();
-}
-
-template<> inline const nil::xit::fbs::ValueDouble *TaggedSignalNotify::value_as<nil::xit::fbs::ValueDouble>() const {
-  return value_as_ValueDouble();
-}
-
-template<> inline const nil::xit::fbs::ValueString *TaggedSignalNotify::value_as<nil::xit::fbs::ValueString>() const {
-  return value_as_ValueString();
-}
-
-template<> inline const nil::xit::fbs::ValueBuffer *TaggedSignalNotify::value_as<nil::xit::fbs::ValueBuffer>() const {
-  return value_as_ValueBuffer();
-}
 
 struct TaggedSignalNotifyBuilder {
   typedef TaggedSignalNotify Table;
@@ -3484,10 +2829,7 @@ struct TaggedSignalNotifyBuilder {
   void add_signal_id(::flatbuffers::Offset<::flatbuffers::String> signal_id) {
     fbb_.AddOffset(TaggedSignalNotify::VT_SIGNAL_ID, signal_id);
   }
-  void add_value_type(nil::xit::fbs::ValueUnion value_type) {
-    fbb_.AddElement<uint8_t>(TaggedSignalNotify::VT_VALUE_TYPE, static_cast<uint8_t>(value_type), 0);
-  }
-  void add_value(::flatbuffers::Offset<void> value) {
+  void add_value(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value) {
     fbb_.AddOffset(TaggedSignalNotify::VT_VALUE, value);
   }
   explicit TaggedSignalNotifyBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
@@ -3509,14 +2851,12 @@ inline ::flatbuffers::Offset<TaggedSignalNotify> CreateTaggedSignalNotify(
     ::flatbuffers::Offset<::flatbuffers::String> frame_id = 0,
     ::flatbuffers::Offset<::flatbuffers::String> tag = 0,
     ::flatbuffers::Offset<::flatbuffers::String> signal_id = 0,
-    nil::xit::fbs::ValueUnion value_type = nil::xit::fbs::ValueUnion_NONE,
-    ::flatbuffers::Offset<void> value = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> value = 0) {
   TaggedSignalNotifyBuilder builder_(_fbb);
   builder_.add_value(value);
   builder_.add_signal_id(signal_id);
   builder_.add_tag(tag);
   builder_.add_frame_id(frame_id);
-  builder_.add_value_type(value_type);
   return builder_.Finish();
 }
 
@@ -3525,18 +2865,17 @@ inline ::flatbuffers::Offset<TaggedSignalNotify> CreateTaggedSignalNotifyDirect(
     const char *frame_id = nullptr,
     const char *tag = nullptr,
     const char *signal_id = nullptr,
-    nil::xit::fbs::ValueUnion value_type = nil::xit::fbs::ValueUnion_NONE,
-    ::flatbuffers::Offset<void> value = 0) {
+    const std::vector<uint8_t> *value = nullptr) {
   auto frame_id__ = frame_id ? _fbb.CreateString(frame_id) : 0;
   auto tag__ = tag ? _fbb.CreateString(tag) : 0;
   auto signal_id__ = signal_id ? _fbb.CreateString(signal_id) : 0;
+  auto value__ = value ? _fbb.CreateVector<uint8_t>(*value) : 0;
   return nil::xit::fbs::CreateTaggedSignalNotify(
       _fbb,
       frame_id__,
       tag__,
       signal_id__,
-      value_type,
-      value);
+      value__);
 }
 
 ::flatbuffers::Offset<TaggedSignalNotify> CreateTaggedSignalNotify(::flatbuffers::FlatBufferBuilder &_fbb, const TaggedSignalNotifyT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -4108,136 +3447,6 @@ inline ::flatbuffers::Offset<TaggedFrameNotify> CreateTaggedFrameNotify(::flatbu
       _tag);
 }
 
-inline ValueBooleanT *ValueBoolean::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ValueBooleanT>(new ValueBooleanT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ValueBoolean::UnPackTo(ValueBooleanT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = value(); _o->value = _e; }
-}
-
-inline ::flatbuffers::Offset<ValueBoolean> ValueBoolean::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBooleanT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateValueBoolean(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<ValueBoolean> CreateValueBoolean(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBooleanT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ValueBooleanT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _value = _o->value;
-  return nil::xit::fbs::CreateValueBoolean(
-      _fbb,
-      _value);
-}
-
-inline ValueNumberT *ValueNumber::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ValueNumberT>(new ValueNumberT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ValueNumber::UnPackTo(ValueNumberT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = value(); _o->value = _e; }
-}
-
-inline ::flatbuffers::Offset<ValueNumber> ValueNumber::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueNumberT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateValueNumber(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<ValueNumber> CreateValueNumber(::flatbuffers::FlatBufferBuilder &_fbb, const ValueNumberT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ValueNumberT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _value = _o->value;
-  return nil::xit::fbs::CreateValueNumber(
-      _fbb,
-      _value);
-}
-
-inline ValueDoubleT *ValueDouble::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ValueDoubleT>(new ValueDoubleT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ValueDouble::UnPackTo(ValueDoubleT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = value(); _o->value = _e; }
-}
-
-inline ::flatbuffers::Offset<ValueDouble> ValueDouble::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueDoubleT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateValueDouble(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<ValueDouble> CreateValueDouble(::flatbuffers::FlatBufferBuilder &_fbb, const ValueDoubleT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ValueDoubleT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _value = _o->value;
-  return nil::xit::fbs::CreateValueDouble(
-      _fbb,
-      _value);
-}
-
-inline ValueStringT *ValueString::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ValueStringT>(new ValueStringT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ValueString::UnPackTo(ValueStringT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = value(); if (_e) _o->value = _e->str(); }
-}
-
-inline ::flatbuffers::Offset<ValueString> ValueString::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueStringT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateValueString(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<ValueString> CreateValueString(::flatbuffers::FlatBufferBuilder &_fbb, const ValueStringT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ValueStringT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _value = _o->value.empty() ? 0 : _fbb.CreateString(_o->value);
-  return nil::xit::fbs::CreateValueString(
-      _fbb,
-      _value);
-}
-
-inline ValueBufferT *ValueBuffer::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<ValueBufferT>(new ValueBufferT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ValueBuffer::UnPackTo(ValueBufferT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->value.begin()); } }
-}
-
-inline ::flatbuffers::Offset<ValueBuffer> ValueBuffer::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBufferT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateValueBuffer(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<ValueBuffer> CreateValueBuffer(::flatbuffers::FlatBufferBuilder &_fbb, const ValueBufferT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ValueBufferT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _value = _o->value.size() ? _fbb.CreateVector(_o->value) : 0;
-  return nil::xit::fbs::CreateValueBuffer(
-      _fbb,
-      _value);
-}
-
 inline ValueT *Value::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::unique_ptr<ValueT>(new ValueT());
   UnPackTo(_o.get(), _resolver);
@@ -4248,8 +3457,7 @@ inline void Value::UnPackTo(ValueT *_o, const ::flatbuffers::resolver_function_t
   (void)_o;
   (void)_resolver;
   { auto _e = id(); if (_e) _o->id = _e->str(); }
-  { auto _e = value_type(); _o->value.type = _e; }
-  { auto _e = value(); if (_e) _o->value.value = nil::xit::fbs::ValueUnionUnion::UnPack(_e, value_type(), _resolver); }
+  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->value.begin()); } }
 }
 
 inline ::flatbuffers::Offset<Value> Value::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ValueT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -4261,12 +3469,10 @@ inline ::flatbuffers::Offset<Value> CreateValue(::flatbuffers::FlatBufferBuilder
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ValueT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _fbb.CreateString(_o->id);
-  auto _value_type = _o->value.type;
-  auto _value = _o->value.Pack(_fbb);
+  auto _value = _fbb.CreateVector(_o->value);
   return nil::xit::fbs::CreateValue(
       _fbb,
       _id,
-      _value_type,
       _value);
 }
 
@@ -4507,7 +3713,6 @@ inline void Signal::UnPackTo(SignalT *_o, const ::flatbuffers::resolver_function
   (void)_o;
   (void)_resolver;
   { auto _e = id(); if (_e) _o->id = _e->str(); }
-  { auto _e = type(); _o->type = _e; }
 }
 
 inline ::flatbuffers::Offset<Signal> Signal::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SignalT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -4519,11 +3724,9 @@ inline ::flatbuffers::Offset<Signal> CreateSignal(::flatbuffers::FlatBufferBuild
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const SignalT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _fbb.CreateString(_o->id);
-  auto _type = _o->type;
   return nil::xit::fbs::CreateSignal(
       _fbb,
-      _id,
-      _type);
+      _id);
 }
 
 inline UniqueSignalRequestT *UniqueSignalRequest::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
@@ -4679,8 +3882,7 @@ inline void UniqueSignalNotify::UnPackTo(UniqueSignalNotifyT *_o, const ::flatbu
   (void)_resolver;
   { auto _e = frame_id(); if (_e) _o->frame_id = _e->str(); }
   { auto _e = signal_id(); if (_e) _o->signal_id = _e->str(); }
-  { auto _e = value_type(); _o->value.type = _e; }
-  { auto _e = value(); if (_e) _o->value.value = nil::xit::fbs::ValueUnionUnion::UnPack(_e, value_type(), _resolver); }
+  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->value.begin()); } }
 }
 
 inline ::flatbuffers::Offset<UniqueSignalNotify> UniqueSignalNotify::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const UniqueSignalNotifyT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -4693,13 +3895,11 @@ inline ::flatbuffers::Offset<UniqueSignalNotify> CreateUniqueSignalNotify(::flat
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const UniqueSignalNotifyT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _frame_id = _fbb.CreateString(_o->frame_id);
   auto _signal_id = _fbb.CreateString(_o->signal_id);
-  auto _value_type = _o->value.type;
-  auto _value = _o->value.Pack(_fbb);
+  auto _value = _o->value.size() ? _fbb.CreateVector(_o->value) : 0;
   return nil::xit::fbs::CreateUniqueSignalNotify(
       _fbb,
       _frame_id,
       _signal_id,
-      _value_type,
       _value);
 }
 
@@ -4715,8 +3915,7 @@ inline void TaggedSignalNotify::UnPackTo(TaggedSignalNotifyT *_o, const ::flatbu
   { auto _e = frame_id(); if (_e) _o->frame_id = _e->str(); }
   { auto _e = tag(); if (_e) _o->tag = _e->str(); }
   { auto _e = signal_id(); if (_e) _o->signal_id = _e->str(); }
-  { auto _e = value_type(); _o->value.type = _e; }
-  { auto _e = value(); if (_e) _o->value.value = nil::xit::fbs::ValueUnionUnion::UnPack(_e, value_type(), _resolver); }
+  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->value.begin()); } }
 }
 
 inline ::flatbuffers::Offset<TaggedSignalNotify> TaggedSignalNotify::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const TaggedSignalNotifyT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -4730,170 +3929,13 @@ inline ::flatbuffers::Offset<TaggedSignalNotify> CreateTaggedSignalNotify(::flat
   auto _frame_id = _fbb.CreateString(_o->frame_id);
   auto _tag = _fbb.CreateString(_o->tag);
   auto _signal_id = _fbb.CreateString(_o->signal_id);
-  auto _value_type = _o->value.type;
-  auto _value = _o->value.Pack(_fbb);
+  auto _value = _o->value.size() ? _fbb.CreateVector(_o->value) : 0;
   return nil::xit::fbs::CreateTaggedSignalNotify(
       _fbb,
       _frame_id,
       _tag,
       _signal_id,
-      _value_type,
       _value);
-}
-
-inline bool VerifyValueUnion(::flatbuffers::Verifier &verifier, const void *obj, ValueUnion type) {
-  switch (type) {
-    case ValueUnion_NONE: {
-      return true;
-    }
-    case ValueUnion_ValueBoolean: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueBoolean *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case ValueUnion_ValueNumber: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueNumber *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case ValueUnion_ValueDouble: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueDouble *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case ValueUnion_ValueString: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueString *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    case ValueUnion_ValueBuffer: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueBuffer *>(obj);
-      return verifier.VerifyTable(ptr);
-    }
-    default: return true;
-  }
-}
-
-inline bool VerifyValueUnionVector(::flatbuffers::Verifier &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<uint8_t> *types) {
-  if (!values || !types) return !values && !types;
-  if (values->size() != types->size()) return false;
-  for (::flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
-    if (!VerifyValueUnion(
-        verifier,  values->Get(i), types->GetEnum<ValueUnion>(i))) {
-      return false;
-    }
-  }
-  return true;
-}
-
-inline void *ValueUnionUnion::UnPack(const void *obj, ValueUnion type, const ::flatbuffers::resolver_function_t *resolver) {
-  (void)resolver;
-  switch (type) {
-    case ValueUnion_ValueBoolean: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueBoolean *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ValueUnion_ValueNumber: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueNumber *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ValueUnion_ValueDouble: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueDouble *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ValueUnion_ValueString: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueString *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ValueUnion_ValueBuffer: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueBuffer *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    default: return nullptr;
-  }
-}
-
-inline ::flatbuffers::Offset<void> ValueUnionUnion::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ::flatbuffers::rehasher_function_t *_rehasher) const {
-  (void)_rehasher;
-  switch (type) {
-    case ValueUnion_ValueBoolean: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueBooleanT *>(value);
-      return CreateValueBoolean(_fbb, ptr, _rehasher).Union();
-    }
-    case ValueUnion_ValueNumber: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueNumberT *>(value);
-      return CreateValueNumber(_fbb, ptr, _rehasher).Union();
-    }
-    case ValueUnion_ValueDouble: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueDoubleT *>(value);
-      return CreateValueDouble(_fbb, ptr, _rehasher).Union();
-    }
-    case ValueUnion_ValueString: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueStringT *>(value);
-      return CreateValueString(_fbb, ptr, _rehasher).Union();
-    }
-    case ValueUnion_ValueBuffer: {
-      auto ptr = reinterpret_cast<const nil::xit::fbs::ValueBufferT *>(value);
-      return CreateValueBuffer(_fbb, ptr, _rehasher).Union();
-    }
-    default: return 0;
-  }
-}
-
-inline ValueUnionUnion::ValueUnionUnion(const ValueUnionUnion &u) : type(u.type), value(nullptr) {
-  switch (type) {
-    case ValueUnion_ValueBoolean: {
-      value = new nil::xit::fbs::ValueBooleanT(*reinterpret_cast<nil::xit::fbs::ValueBooleanT *>(u.value));
-      break;
-    }
-    case ValueUnion_ValueNumber: {
-      value = new nil::xit::fbs::ValueNumberT(*reinterpret_cast<nil::xit::fbs::ValueNumberT *>(u.value));
-      break;
-    }
-    case ValueUnion_ValueDouble: {
-      value = new nil::xit::fbs::ValueDoubleT(*reinterpret_cast<nil::xit::fbs::ValueDoubleT *>(u.value));
-      break;
-    }
-    case ValueUnion_ValueString: {
-      value = new nil::xit::fbs::ValueStringT(*reinterpret_cast<nil::xit::fbs::ValueStringT *>(u.value));
-      break;
-    }
-    case ValueUnion_ValueBuffer: {
-      value = new nil::xit::fbs::ValueBufferT(*reinterpret_cast<nil::xit::fbs::ValueBufferT *>(u.value));
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-inline void ValueUnionUnion::Reset() {
-  switch (type) {
-    case ValueUnion_ValueBoolean: {
-      auto ptr = reinterpret_cast<nil::xit::fbs::ValueBooleanT *>(value);
-      delete ptr;
-      break;
-    }
-    case ValueUnion_ValueNumber: {
-      auto ptr = reinterpret_cast<nil::xit::fbs::ValueNumberT *>(value);
-      delete ptr;
-      break;
-    }
-    case ValueUnion_ValueDouble: {
-      auto ptr = reinterpret_cast<nil::xit::fbs::ValueDoubleT *>(value);
-      delete ptr;
-      break;
-    }
-    case ValueUnion_ValueString: {
-      auto ptr = reinterpret_cast<nil::xit::fbs::ValueStringT *>(value);
-      delete ptr;
-      break;
-    }
-    case ValueUnion_ValueBuffer: {
-      auto ptr = reinterpret_cast<nil::xit::fbs::ValueBufferT *>(value);
-      delete ptr;
-      break;
-    }
-    default: break;
-  }
-  value = nullptr;
-  type = ValueUnion_NONE;
 }
 
 }  // namespace fbs

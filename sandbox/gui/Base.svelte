@@ -2,16 +2,16 @@
     import Range from "$components/Range.svelte";
     import Text from "$components/Text.svelte";
 
-    import { xit, json_string } from "@nil-/xit";
+    import { xit, codec_number, codec_json_from_string, codec_string, codec_bool } from "@nil-/xit";
 
     const { values, signals } = xit();
 
-    const int_value = values.number('value_0_0', 1101);
-    const str_value = values.string('value_0_1', "world");
+    const int_value = values('value_0_0', 1101, codec_number);
+    const str_value = values('value_0_1', "world", codec_string);
 
-    const signal1 = signals.none("signal-1");
-    const signal2 = signals.json("signal-2", json_string.encode);
-    const signal3 = signals.boolean("signal-3");
+    const signal1 = signals("signal-1");
+    const signal2 = signals("signal-2", codec_json_from_string.encode);
+    const signal3 = signals("signal-3", codec_bool.encode);
     let flag = true;
 
     const click = () => {

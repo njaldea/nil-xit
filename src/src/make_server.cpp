@@ -20,6 +20,14 @@ namespace nil::xit
                 {
                     set_content_type(transaction, "text/html");
                 }
+                else if (file.ends_with(".svelte"))
+                {
+                    set_content_type(transaction, "text/plain");
+                }
+                else if (file.ends_with(".json"))
+                {
+                    set_content_type(transaction, "application/json");
+                }
                 else if (file.ends_with(".js"))
                 {
                     set_content_type(transaction, "application/javascript");

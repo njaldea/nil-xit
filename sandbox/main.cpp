@@ -15,7 +15,7 @@ std::thread run_input_loop(nil::xit::unique::Value<std::string>& str_value)
             std::cout << "input here: ";
             while (std::getline(std::cin, line))
             {
-                post(str_value, line);
+                nil::xit::unique::post(str_value, line);
                 std::cout << "input here: ";
             }
         }
@@ -32,7 +32,13 @@ int main()
         .buffer = 1024ul * 1024ul * 100ul //
     });
 
-    nil::xit::setup_server(*server, {"assets/xit/assets"});
+    nil::xit::setup_server(
+        *server,
+        {
+            "assets",           // for dev testing (locally served @nil-/xit)
+            "assets/xit/assets" // for html/js/css + bundler
+        }
+    );
     auto core = nil::xit::make_core(*server, *server->use_ws("/ws"));
     set_groups(*core, {{"base", source_path}, {"components", source_path / "gui/components"}});
 

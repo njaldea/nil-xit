@@ -1,7 +1,39 @@
 #include "utils.hpp"
 
+#include "../codec.hpp" // IWYU pragma: keep
+#include "../structs.hpp"
+#include <ranges>
+
 namespace nil::xit::tagged
 {
+    void post_impl(
+        std::string_view tag,
+        const Value<std::vector<std::uint8_t>>& value,
+        std::vector<std::uint8_t> new_value,
+        std::vector<nil::service::ID> ids
+    )
+    {
+        if (!ids.empty())
+        {
+            fbs::TaggedValueUpdateT msg;
+            msg.id = value.frame->id;
+            msg.tag = tag;
+            msg.value = std::make_unique<fbs::ValueT>();
+            msg.value->id = value.id;
+            msg.value->value = new_value;
+
+            flatbuffers::FlatBufferBuilder builder;
+            builder.Finish(fbs::TaggedValueUpdate::Pack(builder, &msg));
+            constexpr auto header = fbs::MessageType_Tagged_Value_Update;
+            value.frame->core->msg_service->send(
+                std::move(ids),
+                nil::service::concat(header, builder)
+            );
+        }
+
+        value.accessor->set(tag, std::move(new_value));
+    }
+
     void subscribe(Frame& frame, std::string_view tag, const nil::service::ID& id)
     {
         auto it = frame.subscribers.find(tag);
@@ -61,6 +93,47 @@ namespace nil::xit::tagged
         if (frame.on_load)
         {
             frame.on_load(tag);
+        }
+    }
+
+    void value_set(
+        Value<std::vector<std::uint8_t>>& value,
+        const fbs::Value& msg,
+        std::string_view tag,
+        const nil::service::ID& id
+    )
+    {
+        constexpr auto get_fid
+            = [](auto& x_value, auto i_tag, auto& ex_tag) -> std::vector<nil::service::ID>
+        {
+            const auto not_ex_tag = [&ex_tag](const auto& sub_id) { return ex_tag != sub_id; };
+            auto& subs = x_value.frame->subscribers;
+            if (auto it = subs.find(i_tag); it != subs.end())
+            {
+                auto view = it->second | std::ranges::views::filter(not_ex_tag);
+                return std::vector<nil::service::ID>(view.begin(), view.end());
+            }
+            return {};
+        };
+
+        post_impl(tag, value, {msg.value()->begin(), msg.value()->end()}, get_fid(value, tag, id));
+    }
+
+    void invoke(
+        const Signal<std::span<const std::uint8_t>>& signal,
+        const fbs::TaggedSignalNotify& msg,
+        std::string_view tag
+    )
+    {
+        if (signal.on_call)
+        {
+            const auto* ptr = msg.value();
+            const auto span = std::span<const std::uint8_t>(
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                reinterpret_cast<const std::uint8_t*>(ptr->data()),
+                ptr->size()
+            );
+            signal.on_call(tag, span);
         }
     }
 }

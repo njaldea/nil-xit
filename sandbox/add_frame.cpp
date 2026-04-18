@@ -14,7 +14,7 @@
 nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core)
 {
     auto& frame = add_unique_frame(core, "base", "$base/gui/Base.svelte");
-    auto& value = add_value(
+    auto& value = nil::xit::unique::add_value(
         frame,
         "value_0_1",
         []() { return std::string("hello world"); },
@@ -26,7 +26,7 @@ nil::xit::unique::Value<std::string>& add_base(nil::xit::Core& core)
         [&value]()
         {
             std::cout << "signal-1 is notified, forcing value_0_1 value" << std::endl;
-            post(value, "new stuff here");
+            nil::xit::unique::post(value, "new stuff here");
         }
     );
     add_signal(

@@ -195,8 +195,8 @@ int main(void)
     nil_service_web web = nil_service_create_http_server("127.0.0.1", 1101, 4096);
     nil_service_event ws = nil_service_web_use_ws(web, "/ws");
     nil_service_runnable run = nil_service_web_to_runnable(web);
-    const char* assets[] = { "assets/xit/assets" };
-    nil_xit_setup_server(web, assets, 1);
+    const char* assets[] = { "assets", "assets/xit/assets" };
+    nil_xit_setup_server(web, assets, 2);
 
     nil_xit_core core = nil_xit_core_create(run, ws);
     nil_xit_set_cache_directory(core, "/tmp/nil-xit-sandbox-c");

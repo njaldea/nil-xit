@@ -1,3 +1,4 @@
+#pragma once
 #include "messages/message.fbs.h"
 
 #include <nil/service/codec.hpp>

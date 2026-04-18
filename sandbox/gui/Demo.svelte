@@ -1,4 +1,5 @@
 <script>
+    import Container from "@nil-/xit/components/layouts/Container.svelte";
     import { xit } from "@nil-/xit";
 
     /** @type {{ frame: string; tag?: string }[]} */
@@ -15,6 +16,8 @@
     let selected = $state(0);
 </script>
 
+<Container>
+Container
 <div class="root">
     <select bind:value={selected}>
         {#each frames as frame, i}
@@ -33,6 +36,7 @@
         {/if}
     {/key}
 </div>
+</Container>
 
 <style>
     .root {

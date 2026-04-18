@@ -33,15 +33,6 @@ enum MessageType: int {
     Client_Tagged_Signal_Notify = 29
 }
 
-enum SignalType: int {
-    None = 0,
-    Boolean = 1,
-    Number = 2,
-    Double = 3,
-    String = 4,
-    Buffer = 5
-}
-
 table UniqueFrameInfoRequest {
     id: string (required);
 }
@@ -133,37 +124,9 @@ table TaggedFrameNotify {
     tag: string (required);
 }
 
-table ValueBoolean {
-    value: bool;
-}
-
-table ValueNumber {
-    value: long;
-}
-
-table ValueDouble {
-    value: double;
-}
-
-table ValueString {
-    value: string;
-}
-
-table ValueBuffer {
-    value: [ubyte];
-}
-
-union ValueUnion {
-    ValueBoolean,
-    ValueNumber,
-    ValueDouble,
-    ValueString,
-    ValueBuffer
-}
-
 table Value {
     id: string (required);
-    value: ValueUnion (required);
+    value: [ubyte] (required);
 }
 
 table UniqueValueRequest {
@@ -199,7 +162,6 @@ table TaggedValueUpdate {
 
 table Signal {
     id: string (required);
-    type: SignalType;
 }
 
 table UniqueSignalRequest {
@@ -225,12 +187,12 @@ table TaggedSignalResponse {
 table UniqueSignalNotify {
     frame_id: string (required);
     signal_id: string (required);
-    value: ValueUnion;
+    value: [ubyte];
 }
 
 table TaggedSignalNotify {
     frame_id: string (required);
     tag: string (required);
     signal_id: string (required);
-    value: ValueUnion;
+    value: [ubyte];
 }

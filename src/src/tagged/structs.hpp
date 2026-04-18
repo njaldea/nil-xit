@@ -11,8 +11,6 @@
 #include <optional>
 #include <span>
 #include <string>
-#include <variant>
-#include <vector>
 
 namespace nil::xit
 {
@@ -35,12 +33,6 @@ namespace nil::xit::tagged
         std::function<void(std::string_view, const T&)> on_call;
     };
 
-    template <>
-    struct Signal<void>
-    {
-        std::function<void(std::string_view)> on_call;
-    };
-
     struct Frame
     {
         Core* core;
@@ -50,21 +42,7 @@ namespace nil::xit::tagged
         std::function<void(std::string_view, std::size_t)> on_sub;
         nil::xalt::transparent_umap<std::vector<nil::service::ID>> subscribers;
 
-        using Value_t = std::variant<
-            Value<bool>,
-            Value<std::int64_t>,
-            Value<double>,
-            Value<std::string>,
-            Value<std::vector<std::uint8_t>>>;
-        nil::xalt::transparent_umap<Value_t> values;
-
-        using Signal_t = std::variant<
-            Signal<void>,
-            Signal<bool>,
-            Signal<std::int64_t>,
-            Signal<double>,
-            Signal<std::string_view>,
-            Signal<std::span<const std::uint8_t>>>;
-        nil::xalt::transparent_umap<Signal_t> signals;
+        nil::xalt::transparent_umap<Value<std::vector<std::uint8_t>>> values;
+        nil::xalt::transparent_umap<Signal<std::span<const std::uint8_t>>> signals;
     };
 }

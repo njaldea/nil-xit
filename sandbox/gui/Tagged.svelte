@@ -1,11 +1,11 @@
 <script>
-    import { xit, json_string } from "@nil-/xit";
+    import { xit, codec_json_from_string } from "@nil-/xit";
 
     const { values, signals } = xit();
     
-    const int_value = values.number('tagged_value', 1101);
-    const json_value = values.json('tagged_json', {}, json_string);
-    const string_signal = signals.string('tagged_signal');
+    const int_value = values('tagged_value', 1101, codec_number);
+    const json_value = values('tagged_json', {}, codec_json_from_string);
+    const string_signal = signals('tagged_signal', codec_string);
 
     const click = () => {
         int_value.update(v => v + 1);

@@ -6,7 +6,6 @@ set(
     SOURCES
         src/codec.hpp
         src/structs.hpp
-        src/utils.hpp
         src/create_core.cpp
         src/add_frame.cpp
         src/make_server.cpp

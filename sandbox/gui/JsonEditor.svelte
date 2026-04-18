@@ -1,10 +1,10 @@
 <script>
     import { createJSONEditor } from 'vanilla-jsoneditor/standalone.js'
-    import { xit, json_string } from "@nil-/xit";
+    import { xit, codec_json_from_string } from "@nil-/xit";
 
     const { values } = xit();
 
-    const buf_value = values.json('json_value', {}, json_string);
+    const buf_value = values('json_value', {}, codec_json_from_string);
 
     const json_editor = (target) => {
         let is_notified_from_store = false;

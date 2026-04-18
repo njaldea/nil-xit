@@ -24,11 +24,6 @@ namespace nil::xit::tagged
         concept arg_none = xalt::fn_sign<T>::arg_types::size == 1;
 
         // clang-format off
-        void add_signal(Frame& frame, std::string id, std::function<void(std::string_view)> callback);
-        void add_signal(Frame& frame, std::string id, std::function<void(std::string_view, bool)> callback);
-        void add_signal(Frame& frame, std::string id, std::function<void(std::string_view, double)> callback);
-        void add_signal(Frame& frame, std::string id, std::function<void(std::string_view, std::int64_t)> callback);
-        void add_signal(Frame& frame, std::string id, std::function<void(std::string_view, std::string_view)> callback);
         void add_signal(Frame& frame, std::string id, std::function<void(std::string_view, std::span<const std::uint8_t>)> callback);
         // clang-format on
     }
@@ -39,7 +34,12 @@ namespace nil::xit::tagged
         impl::add_signal(
             frame,
             std::move(id),
-            std::function<void(std::string_view)>(std::move(callback))
+            [callback = std::move(callback)] //
+            (std::string_view tag, std::span<const std::uint8_t> data)
+            {
+                (void)data;
+                callback(tag);
+            }
         );
     }
 

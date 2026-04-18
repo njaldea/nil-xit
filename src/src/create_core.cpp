@@ -1,10 +1,8 @@
 #include "codec.hpp"
 #include "messages/message.fbs.h"
-#include "nil/xit/structs.hpp"
 #include "structs.hpp"
 #include "tagged/utils.hpp" // IWYU pragma: keep
 #include "unique/utils.hpp" // IWYU pragma: keep
-#include "utils.hpp"        // IWYU pragma: keep
 
 #include <nil/xalt/literal.hpp>
 #include <nil/xalt/transparent_stl.hpp>
@@ -305,18 +303,13 @@ namespace nil::xit::fbs
             for (const auto& [value_id, value] : frame.values)
             {
                 auto& new_value = values.emplace_back();
-                std::visit(
-                    [&new_value, &value_offsets, &builder](const auto& v)
-                    {
-                        value_offsets.emplace_back(CreateValue(
-                            builder,
-                            builder.CreateString(new_value.id),
-                            new_value.value.type,
-                            msg_set(v, new_value, builder).Union()
-                        ));
-                    },
-                    value
-                );
+                new_value.id = value_id;
+                new_value.value = value.accessor->get();
+                value_offsets.emplace_back(CreateValue(
+                    builder,
+                    builder.CreateString(new_value.id),
+                    builder.CreateVector(new_value.value)
+                ));
             }
 
             builder.Finish(CreateUniqueValueResponse(
@@ -347,18 +340,13 @@ namespace nil::xit::fbs
             for (const auto& [value_id, value] : frame.values)
             {
                 auto& new_value = values.emplace_back();
-                std::visit(
-                    [&new_value, &value_offsets, &builder, &request](const auto& v)
-                    {
-                        value_offsets.emplace_back(CreateValue(
-                            builder,
-                            builder.CreateString(new_value.id),
-                            new_value.value.type,
-                            msg_set(v, new_value, builder, request.tag()->string_view()).Union()
-                        ));
-                    },
-                    value
-                );
+                new_value.id = value_id;
+                new_value.value = value.accessor->get(request.tag()->string_view());
+                value_offsets.emplace_back(CreateValue(
+                    builder,
+                    builder.CreateString(new_value.id),
+                    builder.CreateVector(new_value.value)
+                ));
             }
 
             builder.Finish(CreateTaggedValueResponse(
@@ -391,18 +379,10 @@ namespace nil::xit::fbs
             for (const auto& [signal_id, signal] : frame.signals)
             {
                 auto& new_signal = signals.emplace_back();
-                using nil::xit::utils::msg_set;
-                std::visit(
-                    [&new_signal, &signal_id](const auto& s)
-                    {
-                        new_signal.id = signal_id;
-                        msg_set(s, new_signal);
-                    },
-                    signal
-                );
+                new_signal.id = signal_id;
 
                 signal_offsets.emplace_back(
-                    CreateSignal(builder, builder.CreateString(new_signal.id), new_signal.type)
+                    CreateSignal(builder, builder.CreateString(new_signal.id))
                 );
             }
 
@@ -435,18 +415,10 @@ namespace nil::xit::fbs
             for (const auto& [signal_id, signal] : frame.signals)
             {
                 auto& new_signal = signals.emplace_back();
-                using nil::xit::utils::msg_set;
-                std::visit(
-                    [&new_signal, &signal_id](const auto& s)
-                    {
-                        new_signal.id = signal_id;
-                        msg_set(s, new_signal);
-                    },
-                    signal
-                );
+                new_signal.id = signal_id;
 
                 signal_offsets.emplace_back(
-                    CreateSignal(builder, builder.CreateString(new_signal.id), new_signal.type)
+                    CreateSignal(builder, builder.CreateString(new_signal.id))
                 );
             }
 
@@ -471,11 +443,7 @@ namespace nil::xit::fbs
             auto v_it = it->second.values.find(request.value()->id()->string_view());
             if (v_it != it->second.values.end())
             {
-                std::visit(
-                    [&request, &id](auto& v)
-                    { value_set(v, *request.value(), request.tag()->string_view(), id); },
-                    v_it->second
-                );
+                value_set(v_it->second, *request.value(), request.tag()->string_view(), id);
             }
         }
     }
@@ -488,10 +456,7 @@ namespace nil::xit::fbs
             auto v_it = it->second.values.find(request.value()->id()->string_view());
             if (v_it != it->second.values.end())
             {
-                std::visit(
-                    [&request, &id](auto& v) { value_set(v, *request.value(), id); },
-                    v_it->second
-                );
+                value_set(v_it->second, *request.value(), id);
             }
         }
     }
@@ -504,8 +469,7 @@ namespace nil::xit::fbs
             auto s_it = it->second.signals.find(request.signal_id()->string_view());
             if (s_it != it->second.signals.end())
             {
-                auto& s = s_it->second;
-                std::visit([&request](const auto& ss) { invoke(ss, request); }, s);
+                invoke(s_it->second, request);
             }
         }
     }
@@ -518,12 +482,7 @@ namespace nil::xit::fbs
             auto s_it = it->second.signals.find(request.signal_id()->string_view());
             if (s_it != it->second.signals.end())
             {
-                auto& s = s_it->second;
-                std::visit(
-                    [&request](const auto& ss)
-                    { invoke(ss, request, request.tag()->string_view()); },
-                    s
-                );
+                invoke(s_it->second, request, request.tag()->string_view());
             }
         }
     }

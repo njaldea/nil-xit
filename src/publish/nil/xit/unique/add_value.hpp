@@ -13,35 +13,25 @@
 
 namespace nil::xit::unique
 {
-    Value<bool>& add_value(
-        Frame& frame,
-        std::string id,
-        std::unique_ptr<IAccessor<bool>> accessor //
-    );
+    namespace impl
+    {
+        Value<std::vector<std::uint8_t>>& add_value(
+            Frame& frame,
+            std::string id,
+            std::unique_ptr<IAccessor<std::vector<std::uint8_t>>> accessor
+        );
+    }
 
-    Value<double>& add_value(
-        Frame& frame,
-        std::string id,
-        std::unique_ptr<IAccessor<double>> accessor
-    );
-
-    Value<std::int64_t>& add_value(
-        Frame& frame,
-        std::string id,
-        std::unique_ptr<IAccessor<std::int64_t>> accessor
-    );
-
-    Value<std::string>& add_value(
-        Frame& frame,
-        std::string id,
-        std::unique_ptr<IAccessor<std::string>> accessor
-    );
-
+    template <typename T>
+        requires(is_built_in_value<T>)
     Value<std::vector<std::uint8_t>>& add_value(
         Frame& frame,
         std::string id,
-        std::unique_ptr<IAccessor<std::vector<std::uint8_t>>> accessor
-    );
+        std::unique_ptr<IAccessor<T>> accessor
+    )
+    {
+        return impl::add_value(frame, std::move(id), std::move(accessor));
+    }
 
     template <typename T>
         requires(!is_built_in_value<T>)
