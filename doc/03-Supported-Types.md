@@ -1,18 +1,18 @@
+
+
 # Supported Types
 
-Supported types are the following:
+Supported types are resolved as follows (according to the resolver logic):
 
-- boolean
-    - `bool`
-- double
-    - `double`
-- number
-    - `std::int64_t`
-- string
+- **Boolean and 1-byte types**
+    - `bool` and all 1-byte types (e.g., `char`, `signed char`, `unsigned char`, `std::int8_t`, `std::uint8_t`, `char8_t`) are retained as-is.
+- **Numbers**
+    - Any integral type (except 1-byte types) is promoted to `std::int64_t`.
+    - Any floating-point type is promoted to `double`.
+- **String**
     - `std::string` for values
     - `std::string_view` for signals
-
-- buffer
+- **Buffer**
     - `std::vector<std::uint8_t>` for values
     - `std::span<const std::uint8_t>` for signals
 

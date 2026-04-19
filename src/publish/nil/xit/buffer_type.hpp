@@ -70,7 +70,14 @@ namespace nil::xit
         };
 
         template <typename T>
-            requires std::is_integral_v<T>
+            requires(sizeof(T) == 1)
+        struct resolver<T>
+        {
+            using type = T;
+        };
+
+        template <typename T>
+            requires std::is_integral_v<T> && (sizeof(T) != 1)
         struct resolver<T>
         {
             using type = std::int64_t;
