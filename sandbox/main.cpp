@@ -1,4 +1,6 @@
 #include <nil/service.hpp>
+#include <nil/service/concat.hpp>
+#include <nil/service/consume.hpp>
 #include <nil/xit.hpp>
 
 #include "add_frame.hpp"

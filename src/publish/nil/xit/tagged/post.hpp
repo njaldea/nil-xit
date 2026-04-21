@@ -19,21 +19,21 @@ namespace nil::xit::tagged
     }
 
     template <typename T>
-        requires(is_built_in_value<T>)
+        requires(detail::is_built_in_value<T>)
     void post(const Value<T>& value, std::string tag, const std::type_identity_t<T>& new_value)
     {
         impl::post(value, std::move(tag), std::move(new_value));
     }
 
-    template <has_serialize T>
-        requires(!is_built_in_value<T>)
+    template <detail::has_serialize T>
+        requires(!detail::is_built_in_value<T>)
     void post(const Value<T>& value, std::string tag, const std::type_identity_t<T>& new_value)
     {
         post(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const Value<std::vector<std::uint8_t>>&>(value),
             std::move(tag),
-            buffer_type<T>::serialize(std::move(new_value))
+            detail::buffer_type<T>::serialize(std::move(new_value))
         );
     }
 }

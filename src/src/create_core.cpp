@@ -1,5 +1,4 @@
-#include "codec.hpp"
-#include "messages/message.fbs.h"
+#include "codec.hpp" // IWYU pragma: keep
 #include "structs.hpp"
 #include "tagged/utils.hpp" // IWYU pragma: keep
 #include "unique/utils.hpp" // IWYU pragma: keep

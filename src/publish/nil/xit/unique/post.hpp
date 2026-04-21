@@ -18,20 +18,20 @@ namespace nil::xit::unique
     }
 
     template <typename T>
-        requires(is_built_in_value<T>)
+        requires(detail::is_built_in_value<T>)
     void post(const Value<T>& value, const typename std::type_identity_t<T>& new_value)
     {
         impl::post(value, std::move(new_value));
     }
 
-    template <has_serialize T>
-        requires(!is_built_in_value<T>)
+    template <detail::has_serialize T>
+        requires(!detail::is_built_in_value<T>)
     void post(const Value<T>& value, const std::type_identity_t<T>& new_value)
     {
         impl::post(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const Value<std::vector<std::uint8_t>>&>(value),
-            buffer_type<T>::serialize(std::move(new_value))
+            detail::buffer_type<T>::serialize(std::move(new_value))
         );
     }
 }

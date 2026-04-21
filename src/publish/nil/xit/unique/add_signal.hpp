@@ -37,7 +37,7 @@ namespace nil::xit::unique
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && is_built_in_signal<impl::arg_type_t<CB>>)
+        requires(!impl::arg_none<CB> && detail::is_built_in_signal<impl::arg_type_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
         impl::add_signal(
@@ -48,17 +48,17 @@ namespace nil::xit::unique
     }
 
     template <typename CB>
-        requires(!impl::arg_none<CB> && !is_built_in_signal<impl::arg_type_t<CB>>)
+        requires(!impl::arg_none<CB> && !detail::is_built_in_signal<impl::arg_type_t<CB>>)
     void add_signal(Frame& frame, std::string id, CB callback)
     {
         using type = impl::arg_type_t<CB>;
-        static_assert(has_deserialize<type>, "requires buffer_type<T>::deserialize");
+        static_assert(detail::has_deserialize<type>, "requires buffer_type<T>::deserialize");
         add_signal(
             frame,
             std::move(id),
             [callback = std::move(callback)] //
             (std::span<const std::uint8_t> data)
-            { callback(buffer_type<type>::deserialize(data.data(), data.size())); }
+            { callback(detail::buffer_type<type>::deserialize(data.data(), data.size())); }
         );
     }
 }

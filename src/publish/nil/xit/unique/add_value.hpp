@@ -23,7 +23,7 @@ namespace nil::xit::unique
     }
 
     template <typename T>
-        requires(is_built_in_value<T>)
+        requires(detail::is_built_in_value<T>)
     Value<std::vector<std::uint8_t>>& add_value(
         Frame& frame,
         std::string id,
@@ -34,10 +34,11 @@ namespace nil::xit::unique
     }
 
     template <typename T>
-        requires(!is_built_in_value<T>)
+        requires(!detail::is_built_in_value<T>)
     Value<T>& add_value(Frame& frame, std::string id, std::unique_ptr<IAccessor<T>> accessor)
     {
-        static_assert(has_codec<T>, "requires buffer_type<T> serialize/deserialize");
+        static_assert(detail::has_deserialize<T>, "requires buffer_type<T>::deserialize");
+        static_assert(detail::has_serialize<T>, "requires buffer_type<T>::serialize");
 
         struct Accessor: IAccessor<std::vector<std::uint8_t>>
         {
@@ -48,12 +49,12 @@ namespace nil::xit::unique
 
             std::vector<std::uint8_t> get() const override
             {
-                return buffer_type<T>::serialize(accessor->get());
+                return detail::buffer_type<T>::serialize(accessor->get());
             }
 
             void set(std::vector<std::uint8_t> value) override
             {
-                accessor->set(buffer_type<T>::deserialize(value.data(), value.size()));
+                accessor->set(detail::buffer_type<T>::deserialize(value.data(), value.size()));
             }
 
             std::unique_ptr<IAccessor<T>> accessor;

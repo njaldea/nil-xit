@@ -107,22 +107,63 @@ namespace nil::xit
         }
     };
 
-    template <typename T>
-    concept is_built_in_value = std::is_same_v<T, std::vector<std::uint8_t>>;
+    namespace detail
+    {
+        template <typename T>
+        struct buffer_type: xit::buffer_type<T>
+        {
+        };
 
-    template <typename T>
-    concept is_built_in_signal = std::is_same_v<T, std::span<const std::uint8_t>>;
+        template <typename T>
+            requires((
+                std::is_same_v<bool, T>                             //
+                || std::is_floating_point_v<T>                      //
+                || std::is_integral_v<T>                            //
+                || std::is_same_v<std::string, T>                   //
+                || std::is_same_v<std::string_view, T>              //
+                || std::is_same_v<std::vector<std::uint8_t>, T>     //
+                || std::is_same_v<std::span<const std::uint8_t>, T> //
+            ))
+        struct buffer_type<T>
+        {
+            static T deserialize(const void* data, std::uint64_t size)
+                requires detail::service_codec_has_derialize<T>
+            {
+                return nil::service::codec<typename detail::resolver<T>::type>::deserialize(
+                    data,
+                    size
+                );
+            }
 
-    template <typename T>
-    concept has_serialize = requires(T value) {
-        { buffer_type<T>::serialize(value) } -> std::same_as<std::vector<std::uint8_t>>;
-    };
+            static std::vector<std::uint8_t> serialize(const T& value)
+                requires detail::service_codec_has_serialize<T>
+            {
+                std::vector<std::uint8_t> buffer(
+                    nil::service::codec<typename detail::resolver<T>::type>::size(value)
+                );
+                nil::service::codec<typename detail::resolver<T>::type>::serialize(
+                    buffer.data(),
+                    value
+                );
+                return buffer;
+            }
+        };
 
-    template <typename T>
-    concept has_deserialize = requires(T value) {
-        { buffer_type<T>::deserialize(nullptr, 0) } -> std::same_as<T>;
-    };
+        template <typename T>
+        concept is_built_in_value = std::is_same_v<T, std::vector<std::uint8_t>>;
 
-    template <typename T>
-    concept has_codec = has_deserialize<T> && has_serialize<T>;
+        template <typename T>
+        concept is_built_in_signal = std::is_same_v<T, std::span<const std::uint8_t>>;
+
+        template <typename T>
+        concept has_serialize = requires(T value) {
+            { buffer_type<T>::serialize(value) } -> std::same_as<std::vector<std::uint8_t>>;
+        };
+
+        template <typename T>
+        concept has_deserialize = requires(T value) {
+            { buffer_type<T>::deserialize(nullptr, 0) } -> std::same_as<T>;
+        };
+    }
+
 }
