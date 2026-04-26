@@ -1,5 +1,5 @@
 <script>
-    import { xit, codec_json_from_string } from "@nil-/xit";
+    import { xit, codec_number, codec_string, codec_json_from_string } from "@nil-/xit";
 
     const { values, signals } = xit();
     
