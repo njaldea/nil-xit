@@ -278,7 +278,7 @@ int main(void)
     pthread_create(&tid, NULL, post_value_thread, &context);
     pthread_detach(tid);
 
-    nil_service_runnable_start(run);
+    nil_service_runnable_run(run);
     nil_xit_core_destroy(core);
     nil_service_web_destroy(web);
     return 0;
