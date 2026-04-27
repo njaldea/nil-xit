@@ -582,7 +582,7 @@ class Core:
 
 class Module:
     def __init__(self) -> None:
-        lib_path = Path(__file__).resolve().parent / "libxit-c-api.so"
+        lib_path = Path(__file__).resolve().parent / "libnil-xit-c-api.so"
         self._lib = ctypes.CDLL(str(lib_path))
         _configure_signatures(self._lib)
         self._refs: Dict[int, Any] = {}

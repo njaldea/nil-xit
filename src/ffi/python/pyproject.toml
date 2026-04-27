@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nil-xit"
+version = "0.3.10.rc2"
+description = "Python binding for nil/xit: C++ bridge to frontend with frames, values, and signals"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = { text = "CC BY-NC-ND 4.0" }
+dependencies = [
+    "nil-service"
+]
+keywords = [
+    "nil",
+    "xit",
+    "bridge",
+    "c++",
+    "binding",
+    "frontend",
+    "protocol",
+    "frames",
+    "signals"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nil_xit*"]
+
+[tool.setuptools.package-data]
+nil_xit = ["libnil-xit-c-api.so"]
