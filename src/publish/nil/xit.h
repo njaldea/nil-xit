@@ -58,7 +58,6 @@ extern "C"
      * Used for registering callbacks with context and cleanup.
      */
     // NOLINTNEXTLINE(modernize-use-using)
-
     typedef struct nil_xit_callback_info
     {
         void (*exec)(void*);    ///< Callback function.

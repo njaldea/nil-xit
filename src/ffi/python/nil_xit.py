@@ -5,12 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from nil_service import (
-    NilServiceRunnable,
-    NilServiceEvent,
-    NilServiceStandalone,
-    NilServiceWeb,
-)
+import nil_service
 
 
 # ---------------------------------------------------------------------------
@@ -168,14 +163,14 @@ class _AccessorState:
 
 
 def _configure_signatures(lib: Any) -> None:
-    lib.nil_xit_core_create.argtypes = [NilServiceRunnable, NilServiceEvent]
+    lib.nil_xit_core_create.argtypes = [nil_service.NilServiceRunnable, nil_service.NilServiceEvent]
     lib.nil_xit_core_create.restype = NilXitCore
 
-    lib.nil_xit_core_create_from_standalone.argtypes = [NilServiceStandalone]
+    lib.nil_xit_core_create_from_standalone.argtypes = [nil_service.NilServiceStandalone]
     lib.nil_xit_core_create_from_standalone.restype = NilXitCore
 
     lib.nil_xit_setup_server.argtypes = [
-        NilServiceWeb,
+        nil_service.NilServiceWeb,
         ctypes.POINTER(ctypes.c_char_p),
         ctypes.c_size_t,
     ]
@@ -588,15 +583,15 @@ class Module:
         self._refs: Dict[int, Any] = {}
         self._fns = _create_lib_fns(self._refs, self._lib)
 
-    def create_core(self, runnable: Any, event: Any) -> Core:
+    def create_core(self, runnable: nil_service.Runnable, event: nil_service.Event) -> Core:
         core = self._lib.nil_xit_core_create(runnable._runnable, event._event)
         return Core(core, self._lib, self._fns)
 
-    def create_core_from_standalone(self, standalone: Any) -> Core:
+    def create_core_from_standalone(self, standalone: nil_service.Standalone) -> Core:
         core = self._lib.nil_xit_core_create_from_standalone(standalone._standalone)
         return Core(core, self._lib, self._fns)
 
-    def setup_server(self, web: Any, paths: List[str]) -> None:
+    def setup_server(self, web: nil_service.Web, paths: List[str]) -> None:
         count = len(paths)
         arr = (ctypes.c_char_p * count)(*[p.encode("utf-8") for p in paths])
         self._lib.nil_xit_setup_server(web._web, arr, count)
@@ -605,15 +600,15 @@ class Module:
 _XIT = Module()
 
 
-def create_core(runnable: Any, event: Any) -> Core:
+def create_core(runnable: nil_service.Runnable, event: nil_service.Event) -> Core:
     return _XIT.create_core(runnable, event)
 
 
-def create_core_from_standalone(standalone: Any) -> Core:
+def create_core_from_standalone(standalone: nil_service.Standalone) -> Core:
     return _XIT.create_core_from_standalone(standalone)
 
 
-def setup_server(web: Any, paths: List[str]) -> None:
+def setup_server(web: nil_service.Web, paths: List[str]) -> None:
     _XIT.setup_server(web, paths)
 
 

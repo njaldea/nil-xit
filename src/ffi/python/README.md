@@ -1,6 +1,6 @@
-# nil-xit Python Binding
+# nil-xit
 
-Python binding for **nil/xit** – a C++ bridge that connects backends to frontend UIs with a tiny, explicit protocol.
+Python binding for **nil-xit** – a C++ bridge that connects backends to frontend UIs with a tiny, explicit protocol.
 
 Define frames, values, and signals in C++; interact with them from Python. The client can be web, desktop, or any runtime that speaks the protocol.
 
