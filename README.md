@@ -8,10 +8,10 @@ Bridge C++ backends and any UI/client with a tiny, explicit protocol. Define fra
 - Signals represent UI → C++ events (optionally with payload)
 
 See also:
-- [How It Works](./doc/01-How-It-Works.md)
-- [Frames](./doc/02-Frames.md)
-- [Supported Types](./doc/03-Supported-Types.md)
-- [Number Issues](./doc/04-Number-Issues.md)
+- [How It Works](./docs/01-How-It-Works.md)
+- [Frames](./docs/02-Frames.md)
+- [Supported Types](./docs/03-Supported-Types.md)
+- [Number Issues](./docs/04-Number-Issues.md)
 
 Protocol note
 - Messages are defined in FlatBuffers (see `src/src/messages/message.fbs`).
@@ -21,8 +21,16 @@ Protocol note
 nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
 auto* ws = server->use_ws("/ws");
 auto core = nil::xit::make_core(*ws);
-auto& uframe = add_unique_frame(*core, "base", "$base/gui/Base.svelte");
-auto& tframe = add_tagged_frame(*core, "tagged", "$base/gui/Tagged.svelte");
+auto& uframe = add_unique_frame(
+    *core,
+    "base",
+    {.group = "base", .path = "gui/Base.svelte"}
+);
+auto& tframe = add_tagged_frame(
+    *core,
+    "tagged",
+    {.group = "base", .path = "gui/Tagged.svelte"}
+);
 nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
 
 ## Core
@@ -33,8 +41,8 @@ Create a core on top of a messaging service and (optionally) map UI asset groups
 Key helpers (headers under `src/publish/nil/xit/`):
 - `make_core(...)` – construct the core (C++ API)
 - `destroy_core(...)` - cleanup
-- `add_unique_frame(core, id [, path])`
-- `add_tagged_frame(core, id [, path])`
+- `add_unique_frame(core, id [, file_info])`
+- `add_tagged_frame(core, id [, file_info])`
 - `set_groups(core, { {group, path}, ... })`
 - `set_cache_directory(core, path)`
 
@@ -48,8 +56,16 @@ nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
 auto* ws = server->use_ws("/ws");
 auto core = nil::xit::make_core(*ws);
 
-auto& uframe = add_unique_frame(*core, "base", "$base/gui/Base.svelte");
-auto& tframe = add_tagged_frame(*core, "tagged", "$base/gui/Tagged.svelte");
+auto& uframe = add_unique_frame(
+    *core,
+    "base",
+    {.group = "base", .path = "gui/Base.svelte"}
+);
+auto& tframe = add_tagged_frame(
+    *core,
+    "tagged",
+    {.group = "base", .path = "gui/Tagged.svelte"}
+);
 
 server->start(); // service thread handles UI messages
 ```

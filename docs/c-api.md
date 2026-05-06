@@ -30,10 +30,10 @@ The C API provides opaque handles and functions for creating and managing the ni
 
 ## Frame Management
 
-- `nil_xit_core_add_unique_frame(nil_xit_core core, const char* id, const char* path)`
-  - Add a unique frame to the core.
-- `nil_xit_core_add_tagged_frame(nil_xit_core core, const char* id, const char* path)`
-  - Add a tagged frame to the core.
+- `nil_xit_core_add_unique_frame(nil_xit_core core, const char* id, const nil_xit_file_info* file_info)`
+  - Add a unique frame to the core. Pass `NULL` to omit file info.
+- `nil_xit_core_add_tagged_frame(nil_xit_core core, const char* id, const nil_xit_file_info* file_info)`
+  - Add a tagged frame to the core. Pass `NULL` to omit file info.
 
 ---
 
@@ -78,6 +78,14 @@ The C API provides opaque handles and functions for creating and managing the ni
 - `nil_xit_unique_on_sub_info`, `nil_xit_tagged_on_sub_info` (subscription callbacks)
 - `nil_xit_unique_value_accessor`, `nil_xit_tagged_value_accessor` (custom value encoding/decoding)
 - `nil_xit_group_entry` (group configuration)
+- `nil_xit_file_info` (frame file info: group + path)
+## Options
+
+- `nil_xit_unique_frame_add_option(nil_xit_unique_frame frame, const char* key, const char* value)`
+  - Add an option to a unique frame.
+- `nil_xit_tagged_frame_add_option(nil_xit_tagged_frame frame, const char* key, const char* value)`
+  - Add an option to a tagged frame.
+
 
 ### Callback Structs
 
@@ -89,18 +97,21 @@ The C API provides opaque handles and functions for creating and managing the ni
 
 ## Example
 
-nil_xit_group_entry groups[] = { {"base", "/path/to/assets"} };
-nil_xit_set_groups(core, groups, 1);
-nil_xit_unique_frame uframe = nil_xit_core_add_unique_frame(core, "base", "/path/to/component.svelte");
-nil_xit_core_destroy(core);
 ```c
 // Example: Creating a core, setting up server, and adding a unique frame
 nil_xit_core core = nil_xit_core_create(run_service, event_service);
 const char* assets[] = { "/path/to/assets1", "/path/to/assets2" };
 nil_xit_setup_server(web_service, assets, 2);
+
 nil_xit_group_entry groups[] = { {"base", "/path/to/assets1"} };
 nil_xit_set_groups(core, groups, 1);
-nil_xit_unique_frame uframe = nil_xit_core_add_unique_frame(core, "base", "/path/to/component.svelte");
+
+nil_xit_file_info info = {"base", "gui/Component.svelte"};
+nil_xit_unique_frame uframe = nil_xit_core_add_unique_frame(core, "base", &info);
+
+// Optional: attach a preprocessing option
+nil_xit_unique_frame_add_option(uframe, "theme", "dark");
+
 // ... add values, signals, etc ...
 nil_xit_core_destroy(core);
 ```

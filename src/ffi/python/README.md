@@ -10,6 +10,7 @@ Define frames, values, and signals in C++; interact with them from Python. The c
 - **Two flavors** – Unique (one instance) and tagged (keyed by a tag)
 - **Values** – Bidirectional data binding with buffer types (bytes)
 - **Signals** – Events from UI to backend with optional byte payloads
+- **Options** – Key/value preprocessing hints for the frontend
 
 ## Installation
 
@@ -36,7 +37,11 @@ ws = http.use_ws("/ws")
 core = nil_xit.create_core(http, ws)
 
 # Add a frame
-frame = core.add_unique_frame("index", "$base/gui/Demo.svelte")
+frame = core.add_unique_frame(
+    "index",
+    nil_xit.FileInfo(group="base", path="gui/Demo.svelte"),
+)
+frame.add_option("index_mode", "demo")
 
 # Add a value with getter and setter (buffer type)
 def encode_value() -> bytes:
@@ -54,6 +59,9 @@ def on_button_click() -> None:
 
 frame.add_signal("click", on_button_click)
 
+# Add preprocessing options for the frontend
+frame.add_option("theme", "dark")
+
 # Main loop
 while True:
     http.poll()
@@ -68,6 +76,18 @@ The Python binding supports **buffer types** only:
 - `bytes` – Binary data passed as `buffer_type<T>` in C++
   - Values use getter/setter functions that work with bytes
   - Signals pass optional byte payloads
+
+## Frames and FileInfo
+
+Frame creation accepts an optional `FileInfo` that defines the asset group and
+relative path used by the frontend.
+
+```python
+frame = core.add_unique_frame(
+    "index",
+    nil_xit.FileInfo(group="base", path="gui/Demo.svelte"),
+)
+```
 
 ## Architecture
 

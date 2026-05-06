@@ -36,6 +36,7 @@ set_groups(
         {"group2", "paths..."}
     }
 );
+
 ```
 
 ## Values
@@ -75,9 +76,13 @@ Note: Calling post updates the frontend store, but does not trigger the C++ sett
 
 ### Accessing Values in the UI
 
-Values are provided by the xit context. They are stores from Svelte which are reactive.
-Any changes to the store, will be sent to the C++ application.
-Any changes in the C++ application will be synchronized with the stores.
+Values are provided by the `xit` context. They are Svelte stores and are reactive.
+Any changes to the store are sent to the C++ application. Any changes in the C++
+application are synchronized with the stores.
+
+The `values` accessor is a callable. The first argument is the value id. The second
+argument is an optional codec object that has `encode` and `decode` methods. When a
+codec is provided, it is used to convert between your custom type and a buffer.
 
 ```svelte
 <script>
@@ -85,18 +90,27 @@ Any changes in the C++ application will be synchronized with the stores.
 
     const { values } = xit();
 
-    // the 2nd argument is the default value and is going to be used
-    // if the value is not available
-    const store_boolean = values.boolean("id-bool", true);              // bool
-    const store_double  = values.double("id-double", 1101.0);           // number
-    const store_string  = values.string("id-string", "default_value");  // string
-    const store_number  = values.number("id-number", 1101);             // number
-    const store_buffer  = values.buffer("id-buffer", []);               // UInt8Array
+    // No codec: use built-in buffer values.
+    const store_buffer = values("id-buffer"); // Uint8Array or null
+
+    // With codec: use your custom type.
+    const point_codec = {
+        encode(point) {
+            const view = new DataView(new ArrayBuffer(16));
+            view.setFloat64(0, point.x, true);
+            view.setFloat64(8, point.y, true);
+            return new Uint8Array(view.buffer);
+        },
+        decode(buffer) {
+            const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+            return { x: view.getFloat64(0, true), y: view.getFloat64(8, true) };
+        },
+    };
+
+    const store_point = values("id-point", point_codec);
 
     // Use Svelte store API to access and update the data.
-
-    // this will set the data and C++ setter will be called
-    $store_boolean = false;
+    $store_point = { x: 1.5, y: -2.0 };
 </script>
 ```
 
@@ -122,11 +136,31 @@ add_signal(tagged_frame, "id-buffer",  [](std::string_view, std::span<const std:
 
 The only difference between unique/tagged frame is the first std::string_view requirement of tagged frame.
 
+## Options
+
+Options are key/value pairs attached to a frame and sent to the frontend to drive preprocessing.
+The meaning of options is frontend-specific and can vary across UI layers.
+
+```cpp
+add_option(unique_frame, "theme", "dark");
+add_option(tagged_frame, "layout", "grid");
+```
+
+### Svelte frontend behavior
+
+In the current Svelte frontend, options are used for text replacement: keys are replaced with
+their values in the Svelte files before rendering. Other frontends may interpret options
+in different ways.
+
 ### Emitting Signals from the UI
 
-Signals are provided by the `xit` context. Simply call them like a function.
+Signals are provided by the `xit` context as a callable. The first argument is the signal id.
+You can pass an optional encoder as the second argument. When an encoder is provided, you can
+pass your custom type and it will be encoded automatically as a buffer. Without an encoder,
+the callable accepts no argument or a buffer.
 
-Signals allow the frontend to notify the backend of events (e.g. button clicks, data submissions). They're defined in C++ and emitted from the GUI.
+Signals allow the frontend to notify the backend of events (e.g. button clicks, data submissions).
+They're defined in C++ and emitted from the GUI.
 
 ```svelte
 <script>
@@ -134,16 +168,21 @@ Signals allow the frontend to notify the backend of events (e.g. button clicks, 
 
     const { signals } = xit();
 
-    const signal         = signals.none("id-none");     // void
-    const signal_boolean = signals.boolean("id-bool");  // bool
-    const signal_double  = signals.double("id-double"); // number
-    const signal_number  = signals.number("id-number"); // number
-    const signal_string  = signals.string("id-string"); // string
-    const signal_buffer  = signals.buffer("id-buffer"); // UInt8Array
+    // No encoder: accepts no args or a buffer.
+    const signal_none = signals("id-none");
+    const signal_buffer = signals("id-buffer");
 
-    // invoke with the right data.
-    signal();
-    signal_boolean(false);
+    // With encoder: accepts your custom type and encodes to a buffer.
+    const signal_point = signals("id-point", (point) => {
+        const view = new DataView(new ArrayBuffer(16));
+        view.setFloat64(0, point.x, true);
+        view.setFloat64(8, point.y, true);
+        return new Uint8Array(view.buffer);
+    });
+
+    signal_none();
+    signal_buffer(new Uint8Array([0, 1, 2]));
+    signal_point({ x: 1.5, y: -2.0 });
 </script>
 ```
 
