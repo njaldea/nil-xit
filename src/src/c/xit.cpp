@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 namespace
@@ -74,6 +75,12 @@ extern "C"
 
     void nil_xit_set_cache_directory(nil_xit_core core, const char* tmp_path)
     {
+        if (tmp_path == nullptr)
+        {
+            set_cache_directory(*from_c(core), std::nullopt);
+            return;
+        }
+
         set_cache_directory(*from_c(core), std::filesystem::path(tmp_path));
     }
 

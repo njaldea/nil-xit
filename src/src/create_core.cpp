@@ -816,14 +816,9 @@ namespace nil::xit
         std::default_delete<Core>()(core);
     }
 
-    void set_cache_directory(Core& core, std::filesystem::path tmp_path) // NOLINT
+    void set_cache_directory(Core& core, std::optional<std::filesystem::path> tmp_path) // NOLINT
     {
         core.cache_location = std::move(tmp_path);
-    }
-
-    void unset_cache_directory(Core& core) // NOLINT
-    {
-        core.cache_location = {};
     }
 
     void set_groups(Core& core, nil::xalt::transparent_umap<std::filesystem::path> groups)

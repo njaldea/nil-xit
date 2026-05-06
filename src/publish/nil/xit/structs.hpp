@@ -4,6 +4,7 @@
 #include <nil/xalt/transparent_stl.hpp>
 
 #include <filesystem>
+#include <optional>
 
 namespace nil::xit
 {
@@ -37,7 +38,7 @@ namespace nil::xit
         std::filesystem::path path;
     };
 
-    void set_cache_directory(Core& core, std::filesystem::path tmp_path);
+    void set_cache_directory(Core& core, std::optional<std::filesystem::path> tmp_path);
 
     void set_groups(Core& core, nil::xalt::transparent_umap<std::filesystem::path> groups);
 

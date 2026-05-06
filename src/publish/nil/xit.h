@@ -194,7 +194,7 @@ extern "C"
      * @brief Sets the cache directory for the core.
      *
      * @param core Core handle.
-     * @param tmp_path Path to cache directory.
+     * @param tmp_path Path to cache directory or NULL to disable caching.
      */
     void nil_xit_set_cache_directory(nil_xit_core core, const char* tmp_path);
 

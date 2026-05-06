@@ -580,7 +580,10 @@ class Core:
         self._lib = lib
         self._fns = fns
 
-    def set_cache_directory(self, path: str) -> None:
+    def set_cache_directory(self, path: Optional[str]) -> None:
+        if path is None:
+            self._lib.nil_xit_set_cache_directory(self._core, None)
+            return
         self._lib.nil_xit_set_cache_directory(self._core, path.encode("utf-8"))
 
     def set_groups(self, groups: Dict[str, str]) -> None:

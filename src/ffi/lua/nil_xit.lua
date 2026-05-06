@@ -141,7 +141,7 @@ end
 ---@field add_signal fun(self: nil_xit.TaggedFrame, id: string, fn: fun(tag: string))
 
 ---@class nil_xit.Core
----@field set_cache_directory fun(self: nil_xit.Core, path: string)
+---@field set_cache_directory fun(self: nil_xit.Core, path: string|nil)
 ---@field set_groups          fun(self: nil_xit.Core, groups: table<string, string>)
 ---@field add_unique_frame    fun(self: nil_xit.Core, id: string, info: { group: string, path: string }|nil): nil_xit.UniqueFrame
 ---@field add_tagged_frame    fun(self: nil_xit.Core, id: string, info: { group: string, path: string }|nil): nil_xit.TaggedFrame
@@ -255,6 +255,13 @@ local function create_core(refs, fns, lib, core)
     return {
         _core = core,
         set_cache_directory = function(self, path)
+            if path == nil then
+                lib.nil_xit_set_cache_directory(self._core, nil)
+                return
+            end
+            if type(path) ~= "string" then
+                error("path must be a string or nil")
+            end
             lib.nil_xit_set_cache_directory(self._core, path)
         end,
         set_groups = function(self, groups)
