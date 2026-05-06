@@ -44,5 +44,6 @@ namespace nil::xit::tagged
 
         nil::xalt::transparent_umap<Value<std::vector<std::uint8_t>>> values;
         nil::xalt::transparent_umap<Signal<std::span<const std::uint8_t>>> signals;
+        nil::xalt::transparent_umap<std::string> options;
     };
 }

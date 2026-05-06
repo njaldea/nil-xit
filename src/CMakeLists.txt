@@ -13,6 +13,7 @@ set(
         src/unique/structs.hpp
         src/unique/add_value.cpp
         src/unique/add_signal.cpp
+        src/unique/add_option.cpp
         src/unique/on_load.cpp
         src/unique/on_sub.cpp
         src/unique/post.cpp
@@ -22,6 +23,7 @@ set(
         src/tagged/structs.hpp
         src/tagged/add_value.cpp
         src/tagged/add_signal.cpp
+        src/tagged/add_option.cpp
         src/tagged/on_load.cpp
         src/tagged/on_sub.cpp
         src/tagged/post.cpp
@@ -38,12 +40,14 @@ set(
         publish/nil/xit/buffer_type.hpp
         publish/nil/xit/unique/add_value.hpp
         publish/nil/xit/unique/add_signal.hpp
+        publish/nil/xit/unique/add_option.hpp
         publish/nil/xit/unique/on_load.hpp
         publish/nil/xit/unique/on_sub.hpp
         publish/nil/xit/unique/post.hpp
         publish/nil/xit/unique/structs.hpp
         publish/nil/xit/tagged/add_value.hpp
         publish/nil/xit/tagged/add_signal.hpp
+        publish/nil/xit/tagged/add_option.hpp
         publish/nil/xit/tagged/on_load.hpp
         publish/nil/xit/tagged/on_sub.hpp
         publish/nil/xit/tagged/post.hpp

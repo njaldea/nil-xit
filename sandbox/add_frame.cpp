@@ -1,8 +1,10 @@
 #include "add_frame.hpp"
 
 #include <nil/xit/add_frame.hpp>
+#include <nil/xit/tagged/add_option.hpp>
 #include <nil/xit/tagged/add_signal.hpp>
 #include <nil/xit/tagged/add_value.hpp>
+#include <nil/xit/unique/add_option.hpp>
 #include <nil/xit/unique/add_signal.hpp>
 #include <nil/xit/unique/add_value.hpp>
 #include <nil/xit/unique/post.hpp>
@@ -101,5 +103,6 @@ void add_json_editor(nil::xit::Core& core)
 
 void add_demo(nil::xit::Core& core)
 {
-    add_unique_frame(core, "index", {"base", "gui/Demo.svelte"});
+    auto& frame = add_unique_frame(core, "index", {"base", "gui/Demo.svelte"});
+    add_option(frame, "hello", "--world--");
 }

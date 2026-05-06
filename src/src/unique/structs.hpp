@@ -42,7 +42,9 @@ namespace nil::xit::unique
         std::function<void()> on_load;
         std::function<void(std::size_t)> on_sub;
         std::vector<nil::service::ID> subscribers;
+
         nil::xalt::transparent_umap<Value<std::vector<std::uint8_t>>> values;
         nil::xalt::transparent_umap<Signal<std::span<const std::uint8_t>>> signals;
+        nil::xalt::transparent_umap<std::string> options;
     };
 }

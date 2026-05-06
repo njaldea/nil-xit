@@ -25,6 +25,10 @@ struct TaggedFrameInfoRequest;
 struct TaggedFrameInfoRequestBuilder;
 struct TaggedFrameInfoRequestT;
 
+struct Option;
+struct OptionBuilder;
+struct OptionT;
+
 struct UniqueFrameInfoResponse;
 struct UniqueFrameInfoResponseBuilder;
 struct UniqueFrameInfoResponseT;
@@ -393,12 +397,96 @@ inline ::flatbuffers::Offset<TaggedFrameInfoRequest> CreateTaggedFrameInfoReques
 
 ::flatbuffers::Offset<TaggedFrameInfoRequest> CreateTaggedFrameInfoRequest(::flatbuffers::FlatBufferBuilder &_fbb, const TaggedFrameInfoRequestT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct OptionT : public ::flatbuffers::NativeTable {
+  typedef Option TableType;
+  std::string key{};
+  std::string value{};
+};
+
+struct Option FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef OptionT NativeTableType;
+  typedef OptionBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_KEY = 4,
+    VT_VALUE = 6
+  };
+  const ::flatbuffers::String *key() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_KEY);
+  }
+  const ::flatbuffers::String *value() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_VALUE);
+  }
+  bool Verify(::flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_KEY) &&
+           verifier.VerifyString(key()) &&
+           VerifyOffsetRequired(verifier, VT_VALUE) &&
+           verifier.VerifyString(value()) &&
+           verifier.EndTable();
+  }
+  OptionT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(OptionT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<Option> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const OptionT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct OptionBuilder {
+  typedef Option Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_key(::flatbuffers::Offset<::flatbuffers::String> key) {
+    fbb_.AddOffset(Option::VT_KEY, key);
+  }
+  void add_value(::flatbuffers::Offset<::flatbuffers::String> value) {
+    fbb_.AddOffset(Option::VT_VALUE, value);
+  }
+  explicit OptionBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<Option> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<Option>(end);
+    fbb_.Required(o, Option::VT_KEY);
+    fbb_.Required(o, Option::VT_VALUE);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<Option> CreateOption(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> key = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> value = 0) {
+  OptionBuilder builder_(_fbb);
+  builder_.add_value(value);
+  builder_.add_key(key);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<Option> CreateOptionDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *key = nullptr,
+    const char *value = nullptr) {
+  auto key__ = key ? _fbb.CreateString(key) : 0;
+  auto value__ = value ? _fbb.CreateString(value) : 0;
+  return nil::xit::fbs::CreateOption(
+      _fbb,
+      key__,
+      value__);
+}
+
+::flatbuffers::Offset<Option> CreateOption(::flatbuffers::FlatBufferBuilder &_fbb, const OptionT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct UniqueFrameInfoResponseT : public ::flatbuffers::NativeTable {
   typedef UniqueFrameInfoResponse TableType;
   std::string id{};
   std::string group{};
   std::string path{};
+  std::vector<std::unique_ptr<nil::xit::fbs::OptionT>> options{};
   std::string cache{};
+  UniqueFrameInfoResponseT() = default;
+  UniqueFrameInfoResponseT(const UniqueFrameInfoResponseT &o);
+  UniqueFrameInfoResponseT(UniqueFrameInfoResponseT&&) FLATBUFFERS_NOEXCEPT = default;
+  UniqueFrameInfoResponseT &operator=(UniqueFrameInfoResponseT o) FLATBUFFERS_NOEXCEPT;
 };
 
 struct UniqueFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -408,7 +496,8 @@ struct UniqueFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
     VT_ID = 4,
     VT_GROUP = 6,
     VT_PATH = 8,
-    VT_CACHE = 10
+    VT_OPTIONS = 10,
+    VT_CACHE = 12
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
@@ -418,6 +507,9 @@ struct UniqueFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
   }
   const ::flatbuffers::String *path() const {
     return GetPointer<const ::flatbuffers::String *>(VT_PATH);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *options() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *>(VT_OPTIONS);
   }
   const ::flatbuffers::String *cache() const {
     return GetPointer<const ::flatbuffers::String *>(VT_CACHE);
@@ -430,6 +522,9 @@ struct UniqueFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
            verifier.VerifyString(group()) &&
            VerifyOffsetRequired(verifier, VT_PATH) &&
            verifier.VerifyString(path()) &&
+           VerifyOffsetRequired(verifier, VT_OPTIONS) &&
+           verifier.VerifyVector(options()) &&
+           verifier.VerifyVectorOfTables(options()) &&
            VerifyOffset(verifier, VT_CACHE) &&
            verifier.VerifyString(cache()) &&
            verifier.EndTable();
@@ -452,6 +547,9 @@ struct UniqueFrameInfoResponseBuilder {
   void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
     fbb_.AddOffset(UniqueFrameInfoResponse::VT_PATH, path);
   }
+  void add_options(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>>> options) {
+    fbb_.AddOffset(UniqueFrameInfoResponse::VT_OPTIONS, options);
+  }
   void add_cache(::flatbuffers::Offset<::flatbuffers::String> cache) {
     fbb_.AddOffset(UniqueFrameInfoResponse::VT_CACHE, cache);
   }
@@ -465,6 +563,7 @@ struct UniqueFrameInfoResponseBuilder {
     fbb_.Required(o, UniqueFrameInfoResponse::VT_ID);
     fbb_.Required(o, UniqueFrameInfoResponse::VT_GROUP);
     fbb_.Required(o, UniqueFrameInfoResponse::VT_PATH);
+    fbb_.Required(o, UniqueFrameInfoResponse::VT_OPTIONS);
     return o;
   }
 };
@@ -474,9 +573,11 @@ inline ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoRespo
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
     ::flatbuffers::Offset<::flatbuffers::String> group = 0,
     ::flatbuffers::Offset<::flatbuffers::String> path = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>>> options = 0,
     ::flatbuffers::Offset<::flatbuffers::String> cache = 0) {
   UniqueFrameInfoResponseBuilder builder_(_fbb);
   builder_.add_cache(cache);
+  builder_.add_options(options);
   builder_.add_path(path);
   builder_.add_group(group);
   builder_.add_id(id);
@@ -488,16 +589,19 @@ inline ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoRespo
     const char *id = nullptr,
     const char *group = nullptr,
     const char *path = nullptr,
+    const std::vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *options = nullptr,
     const char *cache = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
   auto group__ = group ? _fbb.CreateString(group) : 0;
   auto path__ = path ? _fbb.CreateString(path) : 0;
+  auto options__ = options ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>>(*options) : 0;
   auto cache__ = cache ? _fbb.CreateString(cache) : 0;
   return nil::xit::fbs::CreateUniqueFrameInfoResponse(
       _fbb,
       id__,
       group__,
       path__,
+      options__,
       cache__);
 }
 
@@ -509,7 +613,12 @@ struct TaggedFrameInfoResponseT : public ::flatbuffers::NativeTable {
   std::string tag{};
   std::string group{};
   std::string path{};
+  std::vector<std::unique_ptr<nil::xit::fbs::OptionT>> options{};
   std::string cache{};
+  TaggedFrameInfoResponseT() = default;
+  TaggedFrameInfoResponseT(const TaggedFrameInfoResponseT &o);
+  TaggedFrameInfoResponseT(TaggedFrameInfoResponseT&&) FLATBUFFERS_NOEXCEPT = default;
+  TaggedFrameInfoResponseT &operator=(TaggedFrameInfoResponseT o) FLATBUFFERS_NOEXCEPT;
 };
 
 struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -520,7 +629,8 @@ struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
     VT_TAG = 6,
     VT_GROUP = 8,
     VT_PATH = 10,
-    VT_CACHE = 12
+    VT_OPTIONS = 12,
+    VT_CACHE = 14
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
@@ -533,6 +643,9 @@ struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
   }
   const ::flatbuffers::String *path() const {
     return GetPointer<const ::flatbuffers::String *>(VT_PATH);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *options() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *>(VT_OPTIONS);
   }
   const ::flatbuffers::String *cache() const {
     return GetPointer<const ::flatbuffers::String *>(VT_CACHE);
@@ -547,6 +660,9 @@ struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
            verifier.VerifyString(group()) &&
            VerifyOffsetRequired(verifier, VT_PATH) &&
            verifier.VerifyString(path()) &&
+           VerifyOffsetRequired(verifier, VT_OPTIONS) &&
+           verifier.VerifyVector(options()) &&
+           verifier.VerifyVectorOfTables(options()) &&
            VerifyOffset(verifier, VT_CACHE) &&
            verifier.VerifyString(cache()) &&
            verifier.EndTable();
@@ -572,6 +688,9 @@ struct TaggedFrameInfoResponseBuilder {
   void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
     fbb_.AddOffset(TaggedFrameInfoResponse::VT_PATH, path);
   }
+  void add_options(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>>> options) {
+    fbb_.AddOffset(TaggedFrameInfoResponse::VT_OPTIONS, options);
+  }
   void add_cache(::flatbuffers::Offset<::flatbuffers::String> cache) {
     fbb_.AddOffset(TaggedFrameInfoResponse::VT_CACHE, cache);
   }
@@ -586,6 +705,7 @@ struct TaggedFrameInfoResponseBuilder {
     fbb_.Required(o, TaggedFrameInfoResponse::VT_TAG);
     fbb_.Required(o, TaggedFrameInfoResponse::VT_GROUP);
     fbb_.Required(o, TaggedFrameInfoResponse::VT_PATH);
+    fbb_.Required(o, TaggedFrameInfoResponse::VT_OPTIONS);
     return o;
   }
 };
@@ -596,9 +716,11 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
     ::flatbuffers::Offset<::flatbuffers::String> tag = 0,
     ::flatbuffers::Offset<::flatbuffers::String> group = 0,
     ::flatbuffers::Offset<::flatbuffers::String> path = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>>> options = 0,
     ::flatbuffers::Offset<::flatbuffers::String> cache = 0) {
   TaggedFrameInfoResponseBuilder builder_(_fbb);
   builder_.add_cache(cache);
+  builder_.add_options(options);
   builder_.add_path(path);
   builder_.add_group(group);
   builder_.add_tag(tag);
@@ -612,11 +734,13 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
     const char *tag = nullptr,
     const char *group = nullptr,
     const char *path = nullptr,
+    const std::vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *options = nullptr,
     const char *cache = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
   auto tag__ = tag ? _fbb.CreateString(tag) : 0;
   auto group__ = group ? _fbb.CreateString(group) : 0;
   auto path__ = path ? _fbb.CreateString(path) : 0;
+  auto options__ = options ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>>(*options) : 0;
   auto cache__ = cache ? _fbb.CreateString(cache) : 0;
   return nil::xit::fbs::CreateTaggedFrameInfoResponse(
       _fbb,
@@ -624,6 +748,7 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
       tag__,
       group__,
       path__,
+      options__,
       cache__);
 }
 
@@ -919,6 +1044,7 @@ struct FrameCacheT : public ::flatbuffers::NativeTable {
   std::string id{};
   std::vector<std::unique_ptr<nil::xit::fbs::FileInfoT>> files{};
   std::vector<std::string> groups{};
+  std::vector<std::unique_ptr<nil::xit::fbs::OptionT>> options{};
   std::string content{};
   FrameCacheT() = default;
   FrameCacheT(const FrameCacheT &o);
@@ -933,7 +1059,8 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_ID = 4,
     VT_FILES = 6,
     VT_GROUPS = 8,
-    VT_CONTENT = 10
+    VT_OPTIONS = 10,
+    VT_CONTENT = 12
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
@@ -943,6 +1070,9 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   }
   const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *groups() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_GROUPS);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *options() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *>(VT_OPTIONS);
   }
   const ::flatbuffers::String *content() const {
     return GetPointer<const ::flatbuffers::String *>(VT_CONTENT);
@@ -957,6 +1087,9 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyOffsetRequired(verifier, VT_GROUPS) &&
            verifier.VerifyVector(groups()) &&
            verifier.VerifyVectorOfStrings(groups()) &&
+           VerifyOffsetRequired(verifier, VT_OPTIONS) &&
+           verifier.VerifyVector(options()) &&
+           verifier.VerifyVectorOfTables(options()) &&
            VerifyOffsetRequired(verifier, VT_CONTENT) &&
            verifier.VerifyString(content()) &&
            verifier.EndTable();
@@ -979,6 +1112,9 @@ struct FrameCacheBuilder {
   void add_groups(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> groups) {
     fbb_.AddOffset(FrameCache::VT_GROUPS, groups);
   }
+  void add_options(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>>> options) {
+    fbb_.AddOffset(FrameCache::VT_OPTIONS, options);
+  }
   void add_content(::flatbuffers::Offset<::flatbuffers::String> content) {
     fbb_.AddOffset(FrameCache::VT_CONTENT, content);
   }
@@ -992,6 +1128,7 @@ struct FrameCacheBuilder {
     fbb_.Required(o, FrameCache::VT_ID);
     fbb_.Required(o, FrameCache::VT_FILES);
     fbb_.Required(o, FrameCache::VT_GROUPS);
+    fbb_.Required(o, FrameCache::VT_OPTIONS);
     fbb_.Required(o, FrameCache::VT_CONTENT);
     return o;
   }
@@ -1002,9 +1139,11 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> groups = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>>> options = 0,
     ::flatbuffers::Offset<::flatbuffers::String> content = 0) {
   FrameCacheBuilder builder_(_fbb);
   builder_.add_content(content);
+  builder_.add_options(options);
   builder_.add_groups(groups);
   builder_.add_files(files);
   builder_.add_id(id);
@@ -1016,16 +1155,19 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCacheDirect(
     const char *id = nullptr,
     const std::vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files = nullptr,
     const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *groups = nullptr,
+    const std::vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *options = nullptr,
     const char *content = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
   auto files__ = files ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>(*files) : 0;
   auto groups__ = groups ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*groups) : 0;
+  auto options__ = options ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>>(*options) : 0;
   auto content__ = content ? _fbb.CreateString(content) : 0;
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       id__,
       files__,
       groups__,
+      options__,
       content__);
 }
 
@@ -2994,6 +3136,53 @@ inline ::flatbuffers::Offset<TaggedFrameInfoRequest> CreateTaggedFrameInfoReques
       _tag);
 }
 
+inline OptionT *Option::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<OptionT>(new OptionT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void Option::UnPackTo(OptionT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = key(); if (_e) _o->key = _e->str(); }
+  { auto _e = value(); if (_e) _o->value = _e->str(); }
+}
+
+inline ::flatbuffers::Offset<Option> Option::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const OptionT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateOption(_fbb, _o, _rehasher);
+}
+
+inline ::flatbuffers::Offset<Option> CreateOption(::flatbuffers::FlatBufferBuilder &_fbb, const OptionT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const OptionT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _key = _fbb.CreateString(_o->key);
+  auto _value = _fbb.CreateString(_o->value);
+  return nil::xit::fbs::CreateOption(
+      _fbb,
+      _key,
+      _value);
+}
+
+inline UniqueFrameInfoResponseT::UniqueFrameInfoResponseT(const UniqueFrameInfoResponseT &o)
+      : id(o.id),
+        group(o.group),
+        path(o.path),
+        cache(o.cache) {
+  options.reserve(o.options.size());
+  for (const auto &options_ : o.options) { options.emplace_back((options_) ? new nil::xit::fbs::OptionT(*options_) : nullptr); }
+}
+
+inline UniqueFrameInfoResponseT &UniqueFrameInfoResponseT::operator=(UniqueFrameInfoResponseT o) FLATBUFFERS_NOEXCEPT {
+  std::swap(id, o.id);
+  std::swap(group, o.group);
+  std::swap(path, o.path);
+  std::swap(options, o.options);
+  std::swap(cache, o.cache);
+  return *this;
+}
+
 inline UniqueFrameInfoResponseT *UniqueFrameInfoResponse::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::unique_ptr<UniqueFrameInfoResponseT>(new UniqueFrameInfoResponseT());
   UnPackTo(_o.get(), _resolver);
@@ -3006,6 +3195,7 @@ inline void UniqueFrameInfoResponse::UnPackTo(UniqueFrameInfoResponseT *_o, cons
   { auto _e = id(); if (_e) _o->id = _e->str(); }
   { auto _e = group(); if (_e) _o->group = _e->str(); }
   { auto _e = path(); if (_e) _o->path = _e->str(); }
+  { auto _e = options(); if (_e) { _o->options.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->options[_i]) { _e->Get(_i)->UnPackTo(_o->options[_i].get(), _resolver); } else { _o->options[_i] = std::unique_ptr<nil::xit::fbs::OptionT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->options.resize(0); } }
   { auto _e = cache(); if (_e) _o->cache = _e->str(); }
 }
 
@@ -3020,13 +3210,35 @@ inline ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoRespo
   auto _id = _fbb.CreateString(_o->id);
   auto _group = _fbb.CreateString(_o->group);
   auto _path = _fbb.CreateString(_o->path);
+  auto _options = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>> (_o->options.size(), [](size_t i, _VectorArgs *__va) { return CreateOption(*__va->__fbb, __va->__o->options[i].get(), __va->__rehasher); }, &_va );
   auto _cache = _o->cache.empty() ? 0 : _fbb.CreateString(_o->cache);
   return nil::xit::fbs::CreateUniqueFrameInfoResponse(
       _fbb,
       _id,
       _group,
       _path,
+      _options,
       _cache);
+}
+
+inline TaggedFrameInfoResponseT::TaggedFrameInfoResponseT(const TaggedFrameInfoResponseT &o)
+      : id(o.id),
+        tag(o.tag),
+        group(o.group),
+        path(o.path),
+        cache(o.cache) {
+  options.reserve(o.options.size());
+  for (const auto &options_ : o.options) { options.emplace_back((options_) ? new nil::xit::fbs::OptionT(*options_) : nullptr); }
+}
+
+inline TaggedFrameInfoResponseT &TaggedFrameInfoResponseT::operator=(TaggedFrameInfoResponseT o) FLATBUFFERS_NOEXCEPT {
+  std::swap(id, o.id);
+  std::swap(tag, o.tag);
+  std::swap(group, o.group);
+  std::swap(path, o.path);
+  std::swap(options, o.options);
+  std::swap(cache, o.cache);
+  return *this;
 }
 
 inline TaggedFrameInfoResponseT *TaggedFrameInfoResponse::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
@@ -3042,6 +3254,7 @@ inline void TaggedFrameInfoResponse::UnPackTo(TaggedFrameInfoResponseT *_o, cons
   { auto _e = tag(); if (_e) _o->tag = _e->str(); }
   { auto _e = group(); if (_e) _o->group = _e->str(); }
   { auto _e = path(); if (_e) _o->path = _e->str(); }
+  { auto _e = options(); if (_e) { _o->options.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->options[_i]) { _e->Get(_i)->UnPackTo(_o->options[_i].get(), _resolver); } else { _o->options[_i] = std::unique_ptr<nil::xit::fbs::OptionT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->options.resize(0); } }
   { auto _e = cache(); if (_e) _o->cache = _e->str(); }
 }
 
@@ -3057,6 +3270,7 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
   auto _tag = _fbb.CreateString(_o->tag);
   auto _group = _fbb.CreateString(_o->group);
   auto _path = _fbb.CreateString(_o->path);
+  auto _options = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>> (_o->options.size(), [](size_t i, _VectorArgs *__va) { return CreateOption(*__va->__fbb, __va->__o->options[i].get(), __va->__rehasher); }, &_va );
   auto _cache = _o->cache.empty() ? 0 : _fbb.CreateString(_o->cache);
   return nil::xit::fbs::CreateTaggedFrameInfoResponse(
       _fbb,
@@ -3064,6 +3278,7 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
       _tag,
       _group,
       _path,
+      _options,
       _cache);
 }
 
@@ -3169,12 +3384,15 @@ inline FrameCacheT::FrameCacheT(const FrameCacheT &o)
         content(o.content) {
   files.reserve(o.files.size());
   for (const auto &files_ : o.files) { files.emplace_back((files_) ? new nil::xit::fbs::FileInfoT(*files_) : nullptr); }
+  options.reserve(o.options.size());
+  for (const auto &options_ : o.options) { options.emplace_back((options_) ? new nil::xit::fbs::OptionT(*options_) : nullptr); }
 }
 
 inline FrameCacheT &FrameCacheT::operator=(FrameCacheT o) FLATBUFFERS_NOEXCEPT {
   std::swap(id, o.id);
   std::swap(files, o.files);
   std::swap(groups, o.groups);
+  std::swap(options, o.options);
   std::swap(content, o.content);
   return *this;
 }
@@ -3191,6 +3409,7 @@ inline void FrameCache::UnPackTo(FrameCacheT *_o, const ::flatbuffers::resolver_
   { auto _e = id(); if (_e) _o->id = _e->str(); }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->files[_i]) { _e->Get(_i)->UnPackTo(_o->files[_i].get(), _resolver); } else { _o->files[_i] = std::unique_ptr<nil::xit::fbs::FileInfoT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->files.resize(0); } }
   { auto _e = groups(); if (_e) { _o->groups.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->groups[_i] = _e->Get(_i)->str(); } } else { _o->groups.resize(0); } }
+  { auto _e = options(); if (_e) { _o->options.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->options[_i]) { _e->Get(_i)->UnPackTo(_o->options[_i].get(), _resolver); } else { _o->options[_i] = std::unique_ptr<nil::xit::fbs::OptionT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->options.resize(0); } }
   { auto _e = content(); if (_e) _o->content = _e->str(); }
 }
 
@@ -3205,12 +3424,14 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(::flatbuffers::FlatBuf
   auto _id = _fbb.CreateString(_o->id);
   auto _files = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfo(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va );
   auto _groups = _fbb.CreateVectorOfStrings(_o->groups);
+  auto _options = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>> (_o->options.size(), [](size_t i, _VectorArgs *__va) { return CreateOption(*__va->__fbb, __va->__o->options[i].get(), __va->__rehasher); }, &_va );
   auto _content = _fbb.CreateString(_o->content);
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       _id,
       _files,
       _groups,
+      _options,
       _content);
 }
 

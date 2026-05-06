@@ -38,10 +38,16 @@ table TaggedFrameInfoRequest {
     tag: string (required);
 }
 
+table Option {
+    key: string (required);
+    value: string (required);
+}
+
 table UniqueFrameInfoResponse {
     id: string (required);
     group: string (required);
     path: string (required);
+    options: [Option] (required);
     cache: string;
 }
 
@@ -50,6 +56,7 @@ table TaggedFrameInfoResponse {
     tag: string (required);
     group: string (required);
     path: string (required);
+    options: [Option] (required);
     cache: string;
 }
 
@@ -75,6 +82,7 @@ table FrameCache {
     id: string (required);
     files: [FileInfo] (required);
     groups: [string] (required);
+    options: [Option] (required);
     content: string (required);
 }
 

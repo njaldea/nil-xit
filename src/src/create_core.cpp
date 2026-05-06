@@ -25,6 +25,45 @@
 
 namespace nil::xit::fbs
 {
+    std::vector<flatbuffers::Offset<Option>> build_option_offsets(
+        flatbuffers::FlatBufferBuilder& builder,
+        const nil::xalt::transparent_umap<std::string>& options
+    )
+    {
+        std::vector<flatbuffers::Offset<Option>> option_offsets;
+        option_offsets.reserve(options.size());
+        for (const auto& [key, value] : options)
+        {
+            option_offsets.emplace_back(
+                CreateOption(builder, builder.CreateString(key), builder.CreateString(value))
+            );
+        }
+        return option_offsets;
+    }
+
+    std::vector<flatbuffers::Offset<Option>> build_option_offsets(
+        flatbuffers::FlatBufferBuilder& builder,
+        const flatbuffers::Vector<flatbuffers::Offset<Option>>* options
+    )
+    {
+        std::vector<flatbuffers::Offset<Option>> option_offsets;
+        if (options == nullptr)
+        {
+            return option_offsets;
+        }
+
+        option_offsets.reserve(options->size());
+        for (const auto* option : *options)
+        {
+            option_offsets.emplace_back(CreateOption(
+                builder,
+                builder.CreateString(option->key()->string_view()),
+                builder.CreateString(option->value()->string_view())
+            ));
+        }
+        return option_offsets;
+    }
+
     std::string load_file(const std::filesystem::path& path)
     {
         std::ifstream f(path, std::ios::binary | std::ios::in);
@@ -35,6 +74,8 @@ namespace nil::xit::fbs
         Core& core,
         const nil::service::ID& id,
         const std::filesystem::path& cache_path,
+        const nil::xalt::transparent_umap<std::string>& options,
+        const nil::xit::FileInfo& file_info,
         std::optional<std::string_view> tag = {}
     )
     {
@@ -58,12 +99,11 @@ namespace nil::xit::fbs
             return false;
         }
 
-        auto alias_path_for
-            = [aliases](std::string_view group) -> std::optional<std::filesystem::path>
+        auto alias_path_for = [aliases](std::string_view g) -> std::optional<std::filesystem::path>
         {
             for (const auto* alias : *aliases)
             {
-                if (alias->group()->string_view() == group)
+                if (alias->group()->string_view() == g)
                 {
                     return std::filesystem::path(alias->path()->string_view());
                 }
@@ -86,6 +126,28 @@ namespace nil::xit::fbs
         }
 
         const auto* cache = save->cache();
+        const auto* cache_options = cache->options();
+        if (cache_options == nullptr)
+        {
+            return false;
+        }
+        if (cache_options->size() != options.size())
+        {
+            return false;
+        }
+        for (const auto* option : *cache_options)
+        {
+            const auto key = option->key()->string_view();
+            const auto it = options.find(key);
+            if (it == options.end())
+            {
+                return false;
+            }
+            if (it->second != option->value()->string_view())
+            {
+                return false;
+            }
+        }
 
         // Validate file timestamps for cache contents.
         for (const auto& ff : *cache->files())
@@ -124,10 +186,14 @@ namespace nil::xit::fbs
         if (tag.has_value())
         {
             flatbuffers::FlatBufferBuilder builder;
+            auto option_offsets = build_option_offsets(builder, cache_options);
             builder.Finish(CreateTaggedFrameInfoResponse(
                 builder,
                 builder.CreateString(cache->id()),
                 builder.CreateString(tag.value()),
+                builder.CreateString(file_info.group),
+                builder.CreateString(file_info.path.c_str()),
+                builder.CreateVector(option_offsets),
                 builder.CreateString(cache->content())
             ));
 
@@ -138,9 +204,13 @@ namespace nil::xit::fbs
         else
         {
             flatbuffers::FlatBufferBuilder builder;
+            auto option_offsets = build_option_offsets(builder, cache_options);
             builder.Finish(CreateUniqueFrameInfoResponse(
                 builder,
                 builder.CreateString(cache->id()),
+                builder.CreateString(file_info.group),
+                builder.CreateString(file_info.path.c_str()),
+                builder.CreateVector(option_offsets),
                 builder.CreateString(cache->content())
             ));
 
@@ -166,18 +236,20 @@ namespace nil::xit::fbs
             if (core.cache_location.has_value())
             {
                 const auto dir = *core.cache_location / "unique" / frame_id;
-                if (validate_cache(core, id, dir))
+                if (validate_cache(core, id, dir.c_str(), frame.options, *frame.file_info))
                 {
                     return;
                 }
             }
 
             flatbuffers::FlatBufferBuilder builder;
+            auto option_offsets = build_option_offsets(builder, frame.options);
             builder.Finish(CreateUniqueFrameInfoResponse(
                 builder,
                 builder.CreateString(frame_id),
                 builder.CreateString(frame.file_info->group.c_str()),
-                builder.CreateString(frame.file_info->path.c_str())
+                builder.CreateString(frame.file_info->path.c_str()),
+                builder.CreateVector(option_offsets)
             ));
 
             const auto header = MessageType_Server_Unique_FrameInfo_Response;
@@ -202,19 +274,21 @@ namespace nil::xit::fbs
             {
                 const auto dir = *core.cache_location / "tagged" / frame_id;
                 const auto tag = message.tag()->string_view();
-                if (validate_cache(core, id, dir, tag))
+                if (validate_cache(core, id, dir.c_str(), frame.options, *frame.file_info, tag))
                 {
                     return;
                 }
             }
 
             flatbuffers::FlatBufferBuilder builder;
+            auto option_offsets = build_option_offsets(builder, frame.options);
             builder.Finish(CreateTaggedFrameInfoResponse(
                 builder,
                 builder.CreateString(frame_id),
                 builder.CreateString(message.tag()),
                 builder.CreateString(frame.file_info->group.c_str()),
-                builder.CreateString(frame.file_info->path.c_str())
+                builder.CreateString(frame.file_info->path.c_str()),
+                builder.CreateVector(option_offsets)
             ));
 
             const auto header = MessageType_Server_Tagged_FrameInfo_Response;
@@ -591,11 +665,27 @@ namespace nil::xit::fbs
                 }
             }
 
+            std::vector<flatbuffers::Offset<Option>> option_offsets;
+            const auto* option_source = message->options();
+            if (option_source != nullptr)
+            {
+                option_offsets.reserve(option_source->size());
+                for (const auto* option : *option_source)
+                {
+                    option_offsets.emplace_back(CreateOption(
+                        builder,
+                        builder.CreateString(option->key()->string_view()),
+                        builder.CreateString(option->value()->string_view())
+                    ));
+                }
+            }
+
             const auto cache_offset = CreateFrameCache(
                 builder,
                 builder.CreateString(message->id()->string_view()),
                 builder.CreateVector(file_offsets),
                 builder.CreateVector(group_offsets),
+                builder.CreateVector(option_offsets),
                 builder.CreateString(message->content()->string_view())
             );
             const auto groups_offset = builder.CreateVector(alias_offsets);

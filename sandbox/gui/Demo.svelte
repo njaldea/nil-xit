@@ -17,7 +17,6 @@
 </script>
 
 <Container>
-Container
 <div class="root">
     <select bind:value={selected}>
         {#each frames as frame, i}
@@ -35,10 +34,18 @@ Container
             {/await}
         {/if}
     {/key}
+
+    <table>
+        <thead><tr><td>key</td><td>value</td></tr></thead>
+        <tbody><tr><td>hello</td><td>{{hello}}</td></tr></tbody>
+    </table>
 </div>
 </Container>
 
 <style>
+    td {
+        outline: 1px solid red;
+    }
     .root {
         display: flex;
         flex-direction: column;
