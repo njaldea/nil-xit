@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.27.1)
 
 project(
     nil-xit
-    VERSION 0.3.10
+    VERSION 0.3.11
     LANGUAGES CXX
     DESCRIPTION "C++ bridge to frontend"
 )

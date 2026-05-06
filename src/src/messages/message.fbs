@@ -3,14 +3,10 @@ namespace nil.xit.fbs;
 enum MessageType: int {
     Client_Unique_FrameInfo_Request = 0,
     Client_Tagged_FrameInfo_Request = 1,
-    Server_Unique_FrameInfo_File_Response = 2,
-    Server_Tagged_FrameInfo_File_Response = 3,
-    Server_Unique_FrameInfo_Content_Response = 4,
-    Server_Tagged_FrameInfo_Content_Response = 5,
+    Server_Unique_FrameInfo_Response = 2,
+    Server_Tagged_FrameInfo_Response = 3,
     Client_File_Request = 6,
     Server_File_Response = 7,
-    Client_File_Alias_Request = 8,
-    Server_File_Alias_Response = 9,
     Client_Unique_FrameCache = 10,
     Client_Tagged_FrameCache = 11,
     Client_Unique_Frame_Loaded = 12,
@@ -44,48 +40,52 @@ table TaggedFrameInfoRequest {
 
 table UniqueFrameInfoResponse {
     id: string (required);
-    value: string (required);
+    group: string (required);
+    path: string (required);
+    cache: string;
 }
 
 table TaggedFrameInfoResponse {
     id: string (required);
     tag: string (required);
-    value: string (required);
+    group: string (required);
+    path: string (required);
+    cache: string;
 }
 
 table FileRequest {
-    target: string (required);
-}
-
-table FileAliasRequest {
+    group: string (required);
+    path: string (required);
 }
 
 table FileInfo {
-    target: string (required);
+    group: string (required);
+    path: string (required);
     metadata: [ubyte] (required);
 }
 
 table FileResponse {
-    target: string (required);
+    group: string (required);
+    path: string (required);
     content: string (required);
     metadata: [ubyte] (required);
 }
 
-table FileAlias {
-    key: string (required);
-    value: string (required);
-}
-
-table FileAliasResponse {
-    aliases: [FileAlias] (required);
-}
-
 table FrameCache {
     id: string (required);
-    target: string (required);
-    full_target: string (required);
-    content: string (required);
     files: [FileInfo] (required);
+    groups: [string] (required);
+    content: string (required);
+}
+
+table Alias {
+    group: string (required);
+    path: string (required);
+}
+
+table FrameCacheSave {
+    cache: FrameCache (required);
+    groups: [Alias] (required);
 }
 
 table UniqueFrameLoaded {

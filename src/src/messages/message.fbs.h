@@ -37,10 +37,6 @@ struct FileRequest;
 struct FileRequestBuilder;
 struct FileRequestT;
 
-struct FileAliasRequest;
-struct FileAliasRequestBuilder;
-struct FileAliasRequestT;
-
 struct FileInfo;
 struct FileInfoBuilder;
 struct FileInfoT;
@@ -49,17 +45,17 @@ struct FileResponse;
 struct FileResponseBuilder;
 struct FileResponseT;
 
-struct FileAlias;
-struct FileAliasBuilder;
-struct FileAliasT;
-
-struct FileAliasResponse;
-struct FileAliasResponseBuilder;
-struct FileAliasResponseT;
-
 struct FrameCache;
 struct FrameCacheBuilder;
 struct FrameCacheT;
+
+struct Alias;
+struct AliasBuilder;
+struct AliasT;
+
+struct FrameCacheSave;
+struct FrameCacheSaveBuilder;
+struct FrameCacheSaveT;
 
 struct UniqueFrameLoaded;
 struct UniqueFrameLoadedBuilder;
@@ -152,14 +148,10 @@ struct TaggedSignalNotifyT;
 enum MessageType : int32_t {
   MessageType_Client_Unique_FrameInfo_Request = 0,
   MessageType_Client_Tagged_FrameInfo_Request = 1,
-  MessageType_Server_Unique_FrameInfo_File_Response = 2,
-  MessageType_Server_Tagged_FrameInfo_File_Response = 3,
-  MessageType_Server_Unique_FrameInfo_Content_Response = 4,
-  MessageType_Server_Tagged_FrameInfo_Content_Response = 5,
+  MessageType_Server_Unique_FrameInfo_Response = 2,
+  MessageType_Server_Tagged_FrameInfo_Response = 3,
   MessageType_Client_File_Request = 6,
   MessageType_Server_File_Response = 7,
-  MessageType_Client_File_Alias_Request = 8,
-  MessageType_Server_File_Alias_Response = 9,
   MessageType_Client_Unique_FrameCache = 10,
   MessageType_Client_Tagged_FrameCache = 11,
   MessageType_Client_Unique_Frame_Loaded = 12,
@@ -184,18 +176,14 @@ enum MessageType : int32_t {
   MessageType_MAX = MessageType_Client_Tagged_Signal_Notify
 };
 
-inline const MessageType (&EnumValuesMessageType())[30] {
+inline const MessageType (&EnumValuesMessageType())[26] {
   static const MessageType values[] = {
     MessageType_Client_Unique_FrameInfo_Request,
     MessageType_Client_Tagged_FrameInfo_Request,
-    MessageType_Server_Unique_FrameInfo_File_Response,
-    MessageType_Server_Tagged_FrameInfo_File_Response,
-    MessageType_Server_Unique_FrameInfo_Content_Response,
-    MessageType_Server_Tagged_FrameInfo_Content_Response,
+    MessageType_Server_Unique_FrameInfo_Response,
+    MessageType_Server_Tagged_FrameInfo_Response,
     MessageType_Client_File_Request,
     MessageType_Server_File_Response,
-    MessageType_Client_File_Alias_Request,
-    MessageType_Server_File_Alias_Response,
     MessageType_Client_Unique_FrameCache,
     MessageType_Client_Tagged_FrameCache,
     MessageType_Client_Unique_Frame_Loaded,
@@ -224,14 +212,14 @@ inline const char * const *EnumNamesMessageType() {
   static const char * const names[31] = {
     "Client_Unique_FrameInfo_Request",
     "Client_Tagged_FrameInfo_Request",
-    "Server_Unique_FrameInfo_File_Response",
-    "Server_Tagged_FrameInfo_File_Response",
-    "Server_Unique_FrameInfo_Content_Response",
-    "Server_Tagged_FrameInfo_Content_Response",
+    "Server_Unique_FrameInfo_Response",
+    "Server_Tagged_FrameInfo_Response",
+    "",
+    "",
     "Client_File_Request",
     "Server_File_Response",
-    "Client_File_Alias_Request",
-    "Server_File_Alias_Response",
+    "",
+    "",
     "Client_Unique_FrameCache",
     "Client_Tagged_FrameCache",
     "Client_Unique_Frame_Loaded",
@@ -408,7 +396,9 @@ inline ::flatbuffers::Offset<TaggedFrameInfoRequest> CreateTaggedFrameInfoReques
 struct UniqueFrameInfoResponseT : public ::flatbuffers::NativeTable {
   typedef UniqueFrameInfoResponse TableType;
   std::string id{};
-  std::string value{};
+  std::string group{};
+  std::string path{};
+  std::string cache{};
 };
 
 struct UniqueFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -416,20 +406,32 @@ struct UniqueFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
   typedef UniqueFrameInfoResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
-    VT_VALUE = 6
+    VT_GROUP = 6,
+    VT_PATH = 8,
+    VT_CACHE = 10
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
   }
-  const ::flatbuffers::String *value() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_VALUE);
+  const ::flatbuffers::String *group() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_GROUP);
+  }
+  const ::flatbuffers::String *path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PATH);
+  }
+  const ::flatbuffers::String *cache() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_CACHE);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_ID) &&
            verifier.VerifyString(id()) &&
-           VerifyOffsetRequired(verifier, VT_VALUE) &&
-           verifier.VerifyString(value()) &&
+           VerifyOffsetRequired(verifier, VT_GROUP) &&
+           verifier.VerifyString(group()) &&
+           VerifyOffsetRequired(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
+           VerifyOffset(verifier, VT_CACHE) &&
+           verifier.VerifyString(cache()) &&
            verifier.EndTable();
   }
   UniqueFrameInfoResponseT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -444,8 +446,14 @@ struct UniqueFrameInfoResponseBuilder {
   void add_id(::flatbuffers::Offset<::flatbuffers::String> id) {
     fbb_.AddOffset(UniqueFrameInfoResponse::VT_ID, id);
   }
-  void add_value(::flatbuffers::Offset<::flatbuffers::String> value) {
-    fbb_.AddOffset(UniqueFrameInfoResponse::VT_VALUE, value);
+  void add_group(::flatbuffers::Offset<::flatbuffers::String> group) {
+    fbb_.AddOffset(UniqueFrameInfoResponse::VT_GROUP, group);
+  }
+  void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
+    fbb_.AddOffset(UniqueFrameInfoResponse::VT_PATH, path);
+  }
+  void add_cache(::flatbuffers::Offset<::flatbuffers::String> cache) {
+    fbb_.AddOffset(UniqueFrameInfoResponse::VT_CACHE, cache);
   }
   explicit UniqueFrameInfoResponseBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -455,7 +463,8 @@ struct UniqueFrameInfoResponseBuilder {
     const auto end = fbb_.EndTable(start_);
     auto o = ::flatbuffers::Offset<UniqueFrameInfoResponse>(end);
     fbb_.Required(o, UniqueFrameInfoResponse::VT_ID);
-    fbb_.Required(o, UniqueFrameInfoResponse::VT_VALUE);
+    fbb_.Required(o, UniqueFrameInfoResponse::VT_GROUP);
+    fbb_.Required(o, UniqueFrameInfoResponse::VT_PATH);
     return o;
   }
 };
@@ -463,9 +472,13 @@ struct UniqueFrameInfoResponseBuilder {
 inline ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoResponse(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> value = 0) {
+    ::flatbuffers::Offset<::flatbuffers::String> group = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> path = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> cache = 0) {
   UniqueFrameInfoResponseBuilder builder_(_fbb);
-  builder_.add_value(value);
+  builder_.add_cache(cache);
+  builder_.add_path(path);
+  builder_.add_group(group);
   builder_.add_id(id);
   return builder_.Finish();
 }
@@ -473,13 +486,19 @@ inline ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoRespo
 inline ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoResponseDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
-    const char *value = nullptr) {
+    const char *group = nullptr,
+    const char *path = nullptr,
+    const char *cache = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
-  auto value__ = value ? _fbb.CreateString(value) : 0;
+  auto group__ = group ? _fbb.CreateString(group) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
+  auto cache__ = cache ? _fbb.CreateString(cache) : 0;
   return nil::xit::fbs::CreateUniqueFrameInfoResponse(
       _fbb,
       id__,
-      value__);
+      group__,
+      path__,
+      cache__);
 }
 
 ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoResponse(::flatbuffers::FlatBufferBuilder &_fbb, const UniqueFrameInfoResponseT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -488,7 +507,9 @@ struct TaggedFrameInfoResponseT : public ::flatbuffers::NativeTable {
   typedef TaggedFrameInfoResponse TableType;
   std::string id{};
   std::string tag{};
-  std::string value{};
+  std::string group{};
+  std::string path{};
+  std::string cache{};
 };
 
 struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -497,7 +518,9 @@ struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
     VT_TAG = 6,
-    VT_VALUE = 8
+    VT_GROUP = 8,
+    VT_PATH = 10,
+    VT_CACHE = 12
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
@@ -505,8 +528,14 @@ struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
   const ::flatbuffers::String *tag() const {
     return GetPointer<const ::flatbuffers::String *>(VT_TAG);
   }
-  const ::flatbuffers::String *value() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_VALUE);
+  const ::flatbuffers::String *group() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_GROUP);
+  }
+  const ::flatbuffers::String *path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PATH);
+  }
+  const ::flatbuffers::String *cache() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_CACHE);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -514,8 +543,12 @@ struct TaggedFrameInfoResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::
            verifier.VerifyString(id()) &&
            VerifyOffsetRequired(verifier, VT_TAG) &&
            verifier.VerifyString(tag()) &&
-           VerifyOffsetRequired(verifier, VT_VALUE) &&
-           verifier.VerifyString(value()) &&
+           VerifyOffsetRequired(verifier, VT_GROUP) &&
+           verifier.VerifyString(group()) &&
+           VerifyOffsetRequired(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
+           VerifyOffset(verifier, VT_CACHE) &&
+           verifier.VerifyString(cache()) &&
            verifier.EndTable();
   }
   TaggedFrameInfoResponseT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -533,8 +566,14 @@ struct TaggedFrameInfoResponseBuilder {
   void add_tag(::flatbuffers::Offset<::flatbuffers::String> tag) {
     fbb_.AddOffset(TaggedFrameInfoResponse::VT_TAG, tag);
   }
-  void add_value(::flatbuffers::Offset<::flatbuffers::String> value) {
-    fbb_.AddOffset(TaggedFrameInfoResponse::VT_VALUE, value);
+  void add_group(::flatbuffers::Offset<::flatbuffers::String> group) {
+    fbb_.AddOffset(TaggedFrameInfoResponse::VT_GROUP, group);
+  }
+  void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
+    fbb_.AddOffset(TaggedFrameInfoResponse::VT_PATH, path);
+  }
+  void add_cache(::flatbuffers::Offset<::flatbuffers::String> cache) {
+    fbb_.AddOffset(TaggedFrameInfoResponse::VT_CACHE, cache);
   }
   explicit TaggedFrameInfoResponseBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -545,7 +584,8 @@ struct TaggedFrameInfoResponseBuilder {
     auto o = ::flatbuffers::Offset<TaggedFrameInfoResponse>(end);
     fbb_.Required(o, TaggedFrameInfoResponse::VT_ID);
     fbb_.Required(o, TaggedFrameInfoResponse::VT_TAG);
-    fbb_.Required(o, TaggedFrameInfoResponse::VT_VALUE);
+    fbb_.Required(o, TaggedFrameInfoResponse::VT_GROUP);
+    fbb_.Required(o, TaggedFrameInfoResponse::VT_PATH);
     return o;
   }
 };
@@ -554,9 +594,13 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
     ::flatbuffers::Offset<::flatbuffers::String> tag = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> value = 0) {
+    ::flatbuffers::Offset<::flatbuffers::String> group = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> path = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> cache = 0) {
   TaggedFrameInfoResponseBuilder builder_(_fbb);
-  builder_.add_value(value);
+  builder_.add_cache(cache);
+  builder_.add_path(path);
+  builder_.add_group(group);
   builder_.add_tag(tag);
   builder_.add_id(id);
   return builder_.Finish();
@@ -566,37 +610,50 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
     const char *tag = nullptr,
-    const char *value = nullptr) {
+    const char *group = nullptr,
+    const char *path = nullptr,
+    const char *cache = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
   auto tag__ = tag ? _fbb.CreateString(tag) : 0;
-  auto value__ = value ? _fbb.CreateString(value) : 0;
+  auto group__ = group ? _fbb.CreateString(group) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
+  auto cache__ = cache ? _fbb.CreateString(cache) : 0;
   return nil::xit::fbs::CreateTaggedFrameInfoResponse(
       _fbb,
       id__,
       tag__,
-      value__);
+      group__,
+      path__,
+      cache__);
 }
 
 ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoResponse(::flatbuffers::FlatBufferBuilder &_fbb, const TaggedFrameInfoResponseT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct FileRequestT : public ::flatbuffers::NativeTable {
   typedef FileRequest TableType;
-  std::string target{};
+  std::string group{};
+  std::string path{};
 };
 
 struct FileRequest FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FileRequestT NativeTableType;
   typedef FileRequestBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TARGET = 4
+    VT_GROUP = 4,
+    VT_PATH = 6
   };
-  const ::flatbuffers::String *target() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_TARGET);
+  const ::flatbuffers::String *group() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_GROUP);
+  }
+  const ::flatbuffers::String *path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PATH);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_TARGET) &&
-           verifier.VerifyString(target()) &&
+           VerifyOffsetRequired(verifier, VT_GROUP) &&
+           verifier.VerifyString(group()) &&
+           VerifyOffsetRequired(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
            verifier.EndTable();
   }
   FileRequestT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -608,8 +665,11 @@ struct FileRequestBuilder {
   typedef FileRequest Table;
   ::flatbuffers::FlatBufferBuilder &fbb_;
   ::flatbuffers::uoffset_t start_;
-  void add_target(::flatbuffers::Offset<::flatbuffers::String> target) {
-    fbb_.AddOffset(FileRequest::VT_TARGET, target);
+  void add_group(::flatbuffers::Offset<::flatbuffers::String> group) {
+    fbb_.AddOffset(FileRequest::VT_GROUP, group);
+  }
+  void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
+    fbb_.AddOffset(FileRequest::VT_PATH, path);
   }
   explicit FileRequestBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -618,72 +678,40 @@ struct FileRequestBuilder {
   ::flatbuffers::Offset<FileRequest> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = ::flatbuffers::Offset<FileRequest>(end);
-    fbb_.Required(o, FileRequest::VT_TARGET);
+    fbb_.Required(o, FileRequest::VT_GROUP);
+    fbb_.Required(o, FileRequest::VT_PATH);
     return o;
   }
 };
 
 inline ::flatbuffers::Offset<FileRequest> CreateFileRequest(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::String> target = 0) {
+    ::flatbuffers::Offset<::flatbuffers::String> group = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> path = 0) {
   FileRequestBuilder builder_(_fbb);
-  builder_.add_target(target);
+  builder_.add_path(path);
+  builder_.add_group(group);
   return builder_.Finish();
 }
 
 inline ::flatbuffers::Offset<FileRequest> CreateFileRequestDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    const char *target = nullptr) {
-  auto target__ = target ? _fbb.CreateString(target) : 0;
+    const char *group = nullptr,
+    const char *path = nullptr) {
+  auto group__ = group ? _fbb.CreateString(group) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
   return nil::xit::fbs::CreateFileRequest(
       _fbb,
-      target__);
+      group__,
+      path__);
 }
 
 ::flatbuffers::Offset<FileRequest> CreateFileRequest(::flatbuffers::FlatBufferBuilder &_fbb, const FileRequestT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct FileAliasRequestT : public ::flatbuffers::NativeTable {
-  typedef FileAliasRequest TableType;
-};
-
-struct FileAliasRequest FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef FileAliasRequestT NativeTableType;
-  typedef FileAliasRequestBuilder Builder;
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           verifier.EndTable();
-  }
-  FileAliasRequestT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(FileAliasRequestT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<FileAliasRequest> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasRequestT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct FileAliasRequestBuilder {
-  typedef FileAliasRequest Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  explicit FileAliasRequestBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<FileAliasRequest> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<FileAliasRequest>(end);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<FileAliasRequest> CreateFileAliasRequest(
-    ::flatbuffers::FlatBufferBuilder &_fbb) {
-  FileAliasRequestBuilder builder_(_fbb);
-  return builder_.Finish();
-}
-
-::flatbuffers::Offset<FileAliasRequest> CreateFileAliasRequest(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasRequestT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
 struct FileInfoT : public ::flatbuffers::NativeTable {
   typedef FileInfo TableType;
-  std::string target{};
+  std::string group{};
+  std::string path{};
   std::vector<uint8_t> metadata{};
 };
 
@@ -691,19 +719,25 @@ struct FileInfo FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FileInfoT NativeTableType;
   typedef FileInfoBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TARGET = 4,
-    VT_METADATA = 6
+    VT_GROUP = 4,
+    VT_PATH = 6,
+    VT_METADATA = 8
   };
-  const ::flatbuffers::String *target() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_TARGET);
+  const ::flatbuffers::String *group() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_GROUP);
+  }
+  const ::flatbuffers::String *path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PATH);
   }
   const ::flatbuffers::Vector<uint8_t> *metadata() const {
     return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_METADATA);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_TARGET) &&
-           verifier.VerifyString(target()) &&
+           VerifyOffsetRequired(verifier, VT_GROUP) &&
+           verifier.VerifyString(group()) &&
+           VerifyOffsetRequired(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
            VerifyOffsetRequired(verifier, VT_METADATA) &&
            verifier.VerifyVector(metadata()) &&
            verifier.EndTable();
@@ -717,8 +751,11 @@ struct FileInfoBuilder {
   typedef FileInfo Table;
   ::flatbuffers::FlatBufferBuilder &fbb_;
   ::flatbuffers::uoffset_t start_;
-  void add_target(::flatbuffers::Offset<::flatbuffers::String> target) {
-    fbb_.AddOffset(FileInfo::VT_TARGET, target);
+  void add_group(::flatbuffers::Offset<::flatbuffers::String> group) {
+    fbb_.AddOffset(FileInfo::VT_GROUP, group);
+  }
+  void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
+    fbb_.AddOffset(FileInfo::VT_PATH, path);
   }
   void add_metadata(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> metadata) {
     fbb_.AddOffset(FileInfo::VT_METADATA, metadata);
@@ -730,7 +767,8 @@ struct FileInfoBuilder {
   ::flatbuffers::Offset<FileInfo> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = ::flatbuffers::Offset<FileInfo>(end);
-    fbb_.Required(o, FileInfo::VT_TARGET);
+    fbb_.Required(o, FileInfo::VT_GROUP);
+    fbb_.Required(o, FileInfo::VT_PATH);
     fbb_.Required(o, FileInfo::VT_METADATA);
     return o;
   }
@@ -738,23 +776,28 @@ struct FileInfoBuilder {
 
 inline ::flatbuffers::Offset<FileInfo> CreateFileInfo(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::String> target = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> group = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> path = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> metadata = 0) {
   FileInfoBuilder builder_(_fbb);
   builder_.add_metadata(metadata);
-  builder_.add_target(target);
+  builder_.add_path(path);
+  builder_.add_group(group);
   return builder_.Finish();
 }
 
 inline ::flatbuffers::Offset<FileInfo> CreateFileInfoDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    const char *target = nullptr,
+    const char *group = nullptr,
+    const char *path = nullptr,
     const std::vector<uint8_t> *metadata = nullptr) {
-  auto target__ = target ? _fbb.CreateString(target) : 0;
+  auto group__ = group ? _fbb.CreateString(group) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
   auto metadata__ = metadata ? _fbb.CreateVector<uint8_t>(*metadata) : 0;
   return nil::xit::fbs::CreateFileInfo(
       _fbb,
-      target__,
+      group__,
+      path__,
       metadata__);
 }
 
@@ -762,7 +805,8 @@ inline ::flatbuffers::Offset<FileInfo> CreateFileInfoDirect(
 
 struct FileResponseT : public ::flatbuffers::NativeTable {
   typedef FileResponse TableType;
-  std::string target{};
+  std::string group{};
+  std::string path{};
   std::string content{};
   std::vector<uint8_t> metadata{};
 };
@@ -771,12 +815,16 @@ struct FileResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FileResponseT NativeTableType;
   typedef FileResponseBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TARGET = 4,
-    VT_CONTENT = 6,
-    VT_METADATA = 8
+    VT_GROUP = 4,
+    VT_PATH = 6,
+    VT_CONTENT = 8,
+    VT_METADATA = 10
   };
-  const ::flatbuffers::String *target() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_TARGET);
+  const ::flatbuffers::String *group() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_GROUP);
+  }
+  const ::flatbuffers::String *path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PATH);
   }
   const ::flatbuffers::String *content() const {
     return GetPointer<const ::flatbuffers::String *>(VT_CONTENT);
@@ -786,8 +834,10 @@ struct FileResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_TARGET) &&
-           verifier.VerifyString(target()) &&
+           VerifyOffsetRequired(verifier, VT_GROUP) &&
+           verifier.VerifyString(group()) &&
+           VerifyOffsetRequired(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
            VerifyOffsetRequired(verifier, VT_CONTENT) &&
            verifier.VerifyString(content()) &&
            VerifyOffsetRequired(verifier, VT_METADATA) &&
@@ -803,8 +853,11 @@ struct FileResponseBuilder {
   typedef FileResponse Table;
   ::flatbuffers::FlatBufferBuilder &fbb_;
   ::flatbuffers::uoffset_t start_;
-  void add_target(::flatbuffers::Offset<::flatbuffers::String> target) {
-    fbb_.AddOffset(FileResponse::VT_TARGET, target);
+  void add_group(::flatbuffers::Offset<::flatbuffers::String> group) {
+    fbb_.AddOffset(FileResponse::VT_GROUP, group);
+  }
+  void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
+    fbb_.AddOffset(FileResponse::VT_PATH, path);
   }
   void add_content(::flatbuffers::Offset<::flatbuffers::String> content) {
     fbb_.AddOffset(FileResponse::VT_CONTENT, content);
@@ -819,7 +872,8 @@ struct FileResponseBuilder {
   ::flatbuffers::Offset<FileResponse> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = ::flatbuffers::Offset<FileResponse>(end);
-    fbb_.Required(o, FileResponse::VT_TARGET);
+    fbb_.Required(o, FileResponse::VT_GROUP);
+    fbb_.Required(o, FileResponse::VT_PATH);
     fbb_.Required(o, FileResponse::VT_CONTENT);
     fbb_.Required(o, FileResponse::VT_METADATA);
     return o;
@@ -828,187 +882,44 @@ struct FileResponseBuilder {
 
 inline ::flatbuffers::Offset<FileResponse> CreateFileResponse(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::String> target = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> group = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> path = 0,
     ::flatbuffers::Offset<::flatbuffers::String> content = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> metadata = 0) {
   FileResponseBuilder builder_(_fbb);
   builder_.add_metadata(metadata);
   builder_.add_content(content);
-  builder_.add_target(target);
+  builder_.add_path(path);
+  builder_.add_group(group);
   return builder_.Finish();
 }
 
 inline ::flatbuffers::Offset<FileResponse> CreateFileResponseDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
-    const char *target = nullptr,
+    const char *group = nullptr,
+    const char *path = nullptr,
     const char *content = nullptr,
     const std::vector<uint8_t> *metadata = nullptr) {
-  auto target__ = target ? _fbb.CreateString(target) : 0;
+  auto group__ = group ? _fbb.CreateString(group) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
   auto content__ = content ? _fbb.CreateString(content) : 0;
   auto metadata__ = metadata ? _fbb.CreateVector<uint8_t>(*metadata) : 0;
   return nil::xit::fbs::CreateFileResponse(
       _fbb,
-      target__,
+      group__,
+      path__,
       content__,
       metadata__);
 }
 
 ::flatbuffers::Offset<FileResponse> CreateFileResponse(::flatbuffers::FlatBufferBuilder &_fbb, const FileResponseT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct FileAliasT : public ::flatbuffers::NativeTable {
-  typedef FileAlias TableType;
-  std::string key{};
-  std::string value{};
-};
-
-struct FileAlias FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef FileAliasT NativeTableType;
-  typedef FileAliasBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_KEY = 4,
-    VT_VALUE = 6
-  };
-  const ::flatbuffers::String *key() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_KEY);
-  }
-  const ::flatbuffers::String *value() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_VALUE);
-  }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_KEY) &&
-           verifier.VerifyString(key()) &&
-           VerifyOffsetRequired(verifier, VT_VALUE) &&
-           verifier.VerifyString(value()) &&
-           verifier.EndTable();
-  }
-  FileAliasT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(FileAliasT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<FileAlias> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct FileAliasBuilder {
-  typedef FileAlias Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  void add_key(::flatbuffers::Offset<::flatbuffers::String> key) {
-    fbb_.AddOffset(FileAlias::VT_KEY, key);
-  }
-  void add_value(::flatbuffers::Offset<::flatbuffers::String> value) {
-    fbb_.AddOffset(FileAlias::VT_VALUE, value);
-  }
-  explicit FileAliasBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<FileAlias> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<FileAlias>(end);
-    fbb_.Required(o, FileAlias::VT_KEY);
-    fbb_.Required(o, FileAlias::VT_VALUE);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<FileAlias> CreateFileAlias(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::String> key = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> value = 0) {
-  FileAliasBuilder builder_(_fbb);
-  builder_.add_value(value);
-  builder_.add_key(key);
-  return builder_.Finish();
-}
-
-inline ::flatbuffers::Offset<FileAlias> CreateFileAliasDirect(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    const char *key = nullptr,
-    const char *value = nullptr) {
-  auto key__ = key ? _fbb.CreateString(key) : 0;
-  auto value__ = value ? _fbb.CreateString(value) : 0;
-  return nil::xit::fbs::CreateFileAlias(
-      _fbb,
-      key__,
-      value__);
-}
-
-::flatbuffers::Offset<FileAlias> CreateFileAlias(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct FileAliasResponseT : public ::flatbuffers::NativeTable {
-  typedef FileAliasResponse TableType;
-  std::vector<std::unique_ptr<nil::xit::fbs::FileAliasT>> aliases{};
-  FileAliasResponseT() = default;
-  FileAliasResponseT(const FileAliasResponseT &o);
-  FileAliasResponseT(FileAliasResponseT&&) FLATBUFFERS_NOEXCEPT = default;
-  FileAliasResponseT &operator=(FileAliasResponseT o) FLATBUFFERS_NOEXCEPT;
-};
-
-struct FileAliasResponse FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef FileAliasResponseT NativeTableType;
-  typedef FileAliasResponseBuilder Builder;
-  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_ALIASES = 4
-  };
-  const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileAlias>> *aliases() const {
-    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileAlias>> *>(VT_ALIASES);
-  }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_ALIASES) &&
-           verifier.VerifyVector(aliases()) &&
-           verifier.VerifyVectorOfTables(aliases()) &&
-           verifier.EndTable();
-  }
-  FileAliasResponseT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(FileAliasResponseT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static ::flatbuffers::Offset<FileAliasResponse> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasResponseT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-};
-
-struct FileAliasResponseBuilder {
-  typedef FileAliasResponse Table;
-  ::flatbuffers::FlatBufferBuilder &fbb_;
-  ::flatbuffers::uoffset_t start_;
-  void add_aliases(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileAlias>>> aliases) {
-    fbb_.AddOffset(FileAliasResponse::VT_ALIASES, aliases);
-  }
-  explicit FileAliasResponseBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ::flatbuffers::Offset<FileAliasResponse> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<FileAliasResponse>(end);
-    fbb_.Required(o, FileAliasResponse::VT_ALIASES);
-    return o;
-  }
-};
-
-inline ::flatbuffers::Offset<FileAliasResponse> CreateFileAliasResponse(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileAlias>>> aliases = 0) {
-  FileAliasResponseBuilder builder_(_fbb);
-  builder_.add_aliases(aliases);
-  return builder_.Finish();
-}
-
-inline ::flatbuffers::Offset<FileAliasResponse> CreateFileAliasResponseDirect(
-    ::flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<::flatbuffers::Offset<nil::xit::fbs::FileAlias>> *aliases = nullptr) {
-  auto aliases__ = aliases ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileAlias>>(*aliases) : 0;
-  return nil::xit::fbs::CreateFileAliasResponse(
-      _fbb,
-      aliases__);
-}
-
-::flatbuffers::Offset<FileAliasResponse> CreateFileAliasResponse(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasResponseT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
 struct FrameCacheT : public ::flatbuffers::NativeTable {
   typedef FrameCache TableType;
   std::string id{};
-  std::string target{};
-  std::string full_target{};
-  std::string content{};
   std::vector<std::unique_ptr<nil::xit::fbs::FileInfoT>> files{};
+  std::vector<std::string> groups{};
+  std::string content{};
   FrameCacheT() = default;
   FrameCacheT(const FrameCacheT &o);
   FrameCacheT(FrameCacheT&&) FLATBUFFERS_NOEXCEPT = default;
@@ -1020,39 +931,34 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FrameCacheBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
-    VT_TARGET = 6,
-    VT_FULL_TARGET = 8,
-    VT_CONTENT = 10,
-    VT_FILES = 12
+    VT_FILES = 6,
+    VT_GROUPS = 8,
+    VT_CONTENT = 10
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
   }
-  const ::flatbuffers::String *target() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_TARGET);
+  const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *>(VT_FILES);
   }
-  const ::flatbuffers::String *full_target() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_FULL_TARGET);
+  const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *groups() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_GROUPS);
   }
   const ::flatbuffers::String *content() const {
     return GetPointer<const ::flatbuffers::String *>(VT_CONTENT);
-  }
-  const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files() const {
-    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *>(VT_FILES);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_ID) &&
            verifier.VerifyString(id()) &&
-           VerifyOffsetRequired(verifier, VT_TARGET) &&
-           verifier.VerifyString(target()) &&
-           VerifyOffsetRequired(verifier, VT_FULL_TARGET) &&
-           verifier.VerifyString(full_target()) &&
-           VerifyOffsetRequired(verifier, VT_CONTENT) &&
-           verifier.VerifyString(content()) &&
            VerifyOffsetRequired(verifier, VT_FILES) &&
            verifier.VerifyVector(files()) &&
            verifier.VerifyVectorOfTables(files()) &&
+           VerifyOffsetRequired(verifier, VT_GROUPS) &&
+           verifier.VerifyVector(groups()) &&
+           verifier.VerifyVectorOfStrings(groups()) &&
+           VerifyOffsetRequired(verifier, VT_CONTENT) &&
+           verifier.VerifyString(content()) &&
            verifier.EndTable();
   }
   FrameCacheT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1067,17 +973,14 @@ struct FrameCacheBuilder {
   void add_id(::flatbuffers::Offset<::flatbuffers::String> id) {
     fbb_.AddOffset(FrameCache::VT_ID, id);
   }
-  void add_target(::flatbuffers::Offset<::flatbuffers::String> target) {
-    fbb_.AddOffset(FrameCache::VT_TARGET, target);
+  void add_files(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files) {
+    fbb_.AddOffset(FrameCache::VT_FILES, files);
   }
-  void add_full_target(::flatbuffers::Offset<::flatbuffers::String> full_target) {
-    fbb_.AddOffset(FrameCache::VT_FULL_TARGET, full_target);
+  void add_groups(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> groups) {
+    fbb_.AddOffset(FrameCache::VT_GROUPS, groups);
   }
   void add_content(::flatbuffers::Offset<::flatbuffers::String> content) {
     fbb_.AddOffset(FrameCache::VT_CONTENT, content);
-  }
-  void add_files(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files) {
-    fbb_.AddOffset(FrameCache::VT_FILES, files);
   }
   explicit FrameCacheBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1087,10 +990,9 @@ struct FrameCacheBuilder {
     const auto end = fbb_.EndTable(start_);
     auto o = ::flatbuffers::Offset<FrameCache>(end);
     fbb_.Required(o, FrameCache::VT_ID);
-    fbb_.Required(o, FrameCache::VT_TARGET);
-    fbb_.Required(o, FrameCache::VT_FULL_TARGET);
-    fbb_.Required(o, FrameCache::VT_CONTENT);
     fbb_.Required(o, FrameCache::VT_FILES);
+    fbb_.Required(o, FrameCache::VT_GROUPS);
+    fbb_.Required(o, FrameCache::VT_CONTENT);
     return o;
   }
 };
@@ -1098,15 +1000,13 @@ struct FrameCacheBuilder {
 inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> target = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> full_target = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> content = 0,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> groups = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> content = 0) {
   FrameCacheBuilder builder_(_fbb);
-  builder_.add_files(files);
   builder_.add_content(content);
-  builder_.add_full_target(full_target);
-  builder_.add_target(target);
+  builder_.add_groups(groups);
+  builder_.add_files(files);
   builder_.add_id(id);
   return builder_.Finish();
 }
@@ -1114,25 +1014,184 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
 inline ::flatbuffers::Offset<FrameCache> CreateFrameCacheDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
-    const char *target = nullptr,
-    const char *full_target = nullptr,
-    const char *content = nullptr,
-    const std::vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files = nullptr) {
+    const std::vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files = nullptr,
+    const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *groups = nullptr,
+    const char *content = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
-  auto target__ = target ? _fbb.CreateString(target) : 0;
-  auto full_target__ = full_target ? _fbb.CreateString(full_target) : 0;
-  auto content__ = content ? _fbb.CreateString(content) : 0;
   auto files__ = files ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>(*files) : 0;
+  auto groups__ = groups ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*groups) : 0;
+  auto content__ = content ? _fbb.CreateString(content) : 0;
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       id__,
-      target__,
-      full_target__,
-      content__,
-      files__);
+      files__,
+      groups__,
+      content__);
 }
 
 ::flatbuffers::Offset<FrameCache> CreateFrameCache(::flatbuffers::FlatBufferBuilder &_fbb, const FrameCacheT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct AliasT : public ::flatbuffers::NativeTable {
+  typedef Alias TableType;
+  std::string group{};
+  std::string path{};
+};
+
+struct Alias FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef AliasT NativeTableType;
+  typedef AliasBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_GROUP = 4,
+    VT_PATH = 6
+  };
+  const ::flatbuffers::String *group() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_GROUP);
+  }
+  const ::flatbuffers::String *path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PATH);
+  }
+  bool Verify(::flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_GROUP) &&
+           verifier.VerifyString(group()) &&
+           VerifyOffsetRequired(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
+           verifier.EndTable();
+  }
+  AliasT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(AliasT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<Alias> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const AliasT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct AliasBuilder {
+  typedef Alias Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_group(::flatbuffers::Offset<::flatbuffers::String> group) {
+    fbb_.AddOffset(Alias::VT_GROUP, group);
+  }
+  void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
+    fbb_.AddOffset(Alias::VT_PATH, path);
+  }
+  explicit AliasBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<Alias> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<Alias>(end);
+    fbb_.Required(o, Alias::VT_GROUP);
+    fbb_.Required(o, Alias::VT_PATH);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<Alias> CreateAlias(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> group = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> path = 0) {
+  AliasBuilder builder_(_fbb);
+  builder_.add_path(path);
+  builder_.add_group(group);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<Alias> CreateAliasDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *group = nullptr,
+    const char *path = nullptr) {
+  auto group__ = group ? _fbb.CreateString(group) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
+  return nil::xit::fbs::CreateAlias(
+      _fbb,
+      group__,
+      path__);
+}
+
+::flatbuffers::Offset<Alias> CreateAlias(::flatbuffers::FlatBufferBuilder &_fbb, const AliasT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct FrameCacheSaveT : public ::flatbuffers::NativeTable {
+  typedef FrameCacheSave TableType;
+  std::unique_ptr<nil::xit::fbs::FrameCacheT> cache{};
+  std::vector<std::unique_ptr<nil::xit::fbs::AliasT>> groups{};
+  FrameCacheSaveT() = default;
+  FrameCacheSaveT(const FrameCacheSaveT &o);
+  FrameCacheSaveT(FrameCacheSaveT&&) FLATBUFFERS_NOEXCEPT = default;
+  FrameCacheSaveT &operator=(FrameCacheSaveT o) FLATBUFFERS_NOEXCEPT;
+};
+
+struct FrameCacheSave FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef FrameCacheSaveT NativeTableType;
+  typedef FrameCacheSaveBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_CACHE = 4,
+    VT_GROUPS = 6
+  };
+  const nil::xit::fbs::FrameCache *cache() const {
+    return GetPointer<const nil::xit::fbs::FrameCache *>(VT_CACHE);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Alias>> *groups() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Alias>> *>(VT_GROUPS);
+  }
+  bool Verify(::flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_CACHE) &&
+           verifier.VerifyTable(cache()) &&
+           VerifyOffsetRequired(verifier, VT_GROUPS) &&
+           verifier.VerifyVector(groups()) &&
+           verifier.VerifyVectorOfTables(groups()) &&
+           verifier.EndTable();
+  }
+  FrameCacheSaveT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(FrameCacheSaveT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<FrameCacheSave> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FrameCacheSaveT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct FrameCacheSaveBuilder {
+  typedef FrameCacheSave Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_cache(::flatbuffers::Offset<nil::xit::fbs::FrameCache> cache) {
+    fbb_.AddOffset(FrameCacheSave::VT_CACHE, cache);
+  }
+  void add_groups(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Alias>>> groups) {
+    fbb_.AddOffset(FrameCacheSave::VT_GROUPS, groups);
+  }
+  explicit FrameCacheSaveBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<FrameCacheSave> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<FrameCacheSave>(end);
+    fbb_.Required(o, FrameCacheSave::VT_CACHE);
+    fbb_.Required(o, FrameCacheSave::VT_GROUPS);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<FrameCacheSave> CreateFrameCacheSave(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<nil::xit::fbs::FrameCache> cache = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Alias>>> groups = 0) {
+  FrameCacheSaveBuilder builder_(_fbb);
+  builder_.add_groups(groups);
+  builder_.add_cache(cache);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<FrameCacheSave> CreateFrameCacheSaveDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<nil::xit::fbs::FrameCache> cache = 0,
+    const std::vector<::flatbuffers::Offset<nil::xit::fbs::Alias>> *groups = nullptr) {
+  auto groups__ = groups ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Alias>>(*groups) : 0;
+  return nil::xit::fbs::CreateFrameCacheSave(
+      _fbb,
+      cache,
+      groups__);
+}
+
+::flatbuffers::Offset<FrameCacheSave> CreateFrameCacheSave(::flatbuffers::FlatBufferBuilder &_fbb, const FrameCacheSaveT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct UniqueFrameLoadedT : public ::flatbuffers::NativeTable {
   typedef UniqueFrameLoaded TableType;
@@ -2945,7 +3004,9 @@ inline void UniqueFrameInfoResponse::UnPackTo(UniqueFrameInfoResponseT *_o, cons
   (void)_o;
   (void)_resolver;
   { auto _e = id(); if (_e) _o->id = _e->str(); }
-  { auto _e = value(); if (_e) _o->value = _e->str(); }
+  { auto _e = group(); if (_e) _o->group = _e->str(); }
+  { auto _e = path(); if (_e) _o->path = _e->str(); }
+  { auto _e = cache(); if (_e) _o->cache = _e->str(); }
 }
 
 inline ::flatbuffers::Offset<UniqueFrameInfoResponse> UniqueFrameInfoResponse::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const UniqueFrameInfoResponseT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -2957,11 +3018,15 @@ inline ::flatbuffers::Offset<UniqueFrameInfoResponse> CreateUniqueFrameInfoRespo
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const UniqueFrameInfoResponseT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _fbb.CreateString(_o->id);
-  auto _value = _fbb.CreateString(_o->value);
+  auto _group = _fbb.CreateString(_o->group);
+  auto _path = _fbb.CreateString(_o->path);
+  auto _cache = _o->cache.empty() ? 0 : _fbb.CreateString(_o->cache);
   return nil::xit::fbs::CreateUniqueFrameInfoResponse(
       _fbb,
       _id,
-      _value);
+      _group,
+      _path,
+      _cache);
 }
 
 inline TaggedFrameInfoResponseT *TaggedFrameInfoResponse::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
@@ -2975,7 +3040,9 @@ inline void TaggedFrameInfoResponse::UnPackTo(TaggedFrameInfoResponseT *_o, cons
   (void)_resolver;
   { auto _e = id(); if (_e) _o->id = _e->str(); }
   { auto _e = tag(); if (_e) _o->tag = _e->str(); }
-  { auto _e = value(); if (_e) _o->value = _e->str(); }
+  { auto _e = group(); if (_e) _o->group = _e->str(); }
+  { auto _e = path(); if (_e) _o->path = _e->str(); }
+  { auto _e = cache(); if (_e) _o->cache = _e->str(); }
 }
 
 inline ::flatbuffers::Offset<TaggedFrameInfoResponse> TaggedFrameInfoResponse::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const TaggedFrameInfoResponseT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -2988,12 +3055,16 @@ inline ::flatbuffers::Offset<TaggedFrameInfoResponse> CreateTaggedFrameInfoRespo
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const TaggedFrameInfoResponseT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _fbb.CreateString(_o->id);
   auto _tag = _fbb.CreateString(_o->tag);
-  auto _value = _fbb.CreateString(_o->value);
+  auto _group = _fbb.CreateString(_o->group);
+  auto _path = _fbb.CreateString(_o->path);
+  auto _cache = _o->cache.empty() ? 0 : _fbb.CreateString(_o->cache);
   return nil::xit::fbs::CreateTaggedFrameInfoResponse(
       _fbb,
       _id,
       _tag,
-      _value);
+      _group,
+      _path,
+      _cache);
 }
 
 inline FileRequestT *FileRequest::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
@@ -3005,7 +3076,8 @@ inline FileRequestT *FileRequest::UnPack(const ::flatbuffers::resolver_function_
 inline void FileRequest::UnPackTo(FileRequestT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = target(); if (_e) _o->target = _e->str(); }
+  { auto _e = group(); if (_e) _o->group = _e->str(); }
+  { auto _e = path(); if (_e) _o->path = _e->str(); }
 }
 
 inline ::flatbuffers::Offset<FileRequest> FileRequest::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileRequestT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -3016,33 +3088,12 @@ inline ::flatbuffers::Offset<FileRequest> CreateFileRequest(::flatbuffers::FlatB
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FileRequestT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _target = _fbb.CreateString(_o->target);
+  auto _group = _fbb.CreateString(_o->group);
+  auto _path = _fbb.CreateString(_o->path);
   return nil::xit::fbs::CreateFileRequest(
       _fbb,
-      _target);
-}
-
-inline FileAliasRequestT *FileAliasRequest::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<FileAliasRequestT>(new FileAliasRequestT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void FileAliasRequest::UnPackTo(FileAliasRequestT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline ::flatbuffers::Offset<FileAliasRequest> FileAliasRequest::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasRequestT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFileAliasRequest(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<FileAliasRequest> CreateFileAliasRequest(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasRequestT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FileAliasRequestT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return nil::xit::fbs::CreateFileAliasRequest(
-      _fbb);
+      _group,
+      _path);
 }
 
 inline FileInfoT *FileInfo::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
@@ -3054,7 +3105,8 @@ inline FileInfoT *FileInfo::UnPack(const ::flatbuffers::resolver_function_t *_re
 inline void FileInfo::UnPackTo(FileInfoT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = target(); if (_e) _o->target = _e->str(); }
+  { auto _e = group(); if (_e) _o->group = _e->str(); }
+  { auto _e = path(); if (_e) _o->path = _e->str(); }
   { auto _e = metadata(); if (_e) { _o->metadata.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->metadata.begin()); } }
 }
 
@@ -3066,11 +3118,13 @@ inline ::flatbuffers::Offset<FileInfo> CreateFileInfo(::flatbuffers::FlatBufferB
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FileInfoT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _target = _fbb.CreateString(_o->target);
+  auto _group = _fbb.CreateString(_o->group);
+  auto _path = _fbb.CreateString(_o->path);
   auto _metadata = _fbb.CreateVector(_o->metadata);
   return nil::xit::fbs::CreateFileInfo(
       _fbb,
-      _target,
+      _group,
+      _path,
       _metadata);
 }
 
@@ -3083,7 +3137,8 @@ inline FileResponseT *FileResponse::UnPack(const ::flatbuffers::resolver_functio
 inline void FileResponse::UnPackTo(FileResponseT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = target(); if (_e) _o->target = _e->str(); }
+  { auto _e = group(); if (_e) _o->group = _e->str(); }
+  { auto _e = path(); if (_e) _o->path = _e->str(); }
   { auto _e = content(); if (_e) _o->content = _e->str(); }
   { auto _e = metadata(); if (_e) { _o->metadata.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->metadata.begin()); } }
 }
@@ -3096,85 +3151,21 @@ inline ::flatbuffers::Offset<FileResponse> CreateFileResponse(::flatbuffers::Fla
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FileResponseT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _target = _fbb.CreateString(_o->target);
+  auto _group = _fbb.CreateString(_o->group);
+  auto _path = _fbb.CreateString(_o->path);
   auto _content = _fbb.CreateString(_o->content);
   auto _metadata = _fbb.CreateVector(_o->metadata);
   return nil::xit::fbs::CreateFileResponse(
       _fbb,
-      _target,
+      _group,
+      _path,
       _content,
       _metadata);
 }
 
-inline FileAliasT *FileAlias::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<FileAliasT>(new FileAliasT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void FileAlias::UnPackTo(FileAliasT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = key(); if (_e) _o->key = _e->str(); }
-  { auto _e = value(); if (_e) _o->value = _e->str(); }
-}
-
-inline ::flatbuffers::Offset<FileAlias> FileAlias::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFileAlias(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<FileAlias> CreateFileAlias(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FileAliasT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _key = _fbb.CreateString(_o->key);
-  auto _value = _fbb.CreateString(_o->value);
-  return nil::xit::fbs::CreateFileAlias(
-      _fbb,
-      _key,
-      _value);
-}
-
-inline FileAliasResponseT::FileAliasResponseT(const FileAliasResponseT &o) {
-  aliases.reserve(o.aliases.size());
-  for (const auto &aliases_ : o.aliases) { aliases.emplace_back((aliases_) ? new nil::xit::fbs::FileAliasT(*aliases_) : nullptr); }
-}
-
-inline FileAliasResponseT &FileAliasResponseT::operator=(FileAliasResponseT o) FLATBUFFERS_NOEXCEPT {
-  std::swap(aliases, o.aliases);
-  return *this;
-}
-
-inline FileAliasResponseT *FileAliasResponse::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<FileAliasResponseT>(new FileAliasResponseT());
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void FileAliasResponse::UnPackTo(FileAliasResponseT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = aliases(); if (_e) { _o->aliases.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->aliases[_i]) { _e->Get(_i)->UnPackTo(_o->aliases[_i].get(), _resolver); } else { _o->aliases[_i] = std::unique_ptr<nil::xit::fbs::FileAliasT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->aliases.resize(0); } }
-}
-
-inline ::flatbuffers::Offset<FileAliasResponse> FileAliasResponse::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasResponseT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFileAliasResponse(_fbb, _o, _rehasher);
-}
-
-inline ::flatbuffers::Offset<FileAliasResponse> CreateFileAliasResponse(::flatbuffers::FlatBufferBuilder &_fbb, const FileAliasResponseT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FileAliasResponseT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _aliases = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileAlias>> (_o->aliases.size(), [](size_t i, _VectorArgs *__va) { return CreateFileAlias(*__va->__fbb, __va->__o->aliases[i].get(), __va->__rehasher); }, &_va );
-  return nil::xit::fbs::CreateFileAliasResponse(
-      _fbb,
-      _aliases);
-}
-
 inline FrameCacheT::FrameCacheT(const FrameCacheT &o)
       : id(o.id),
-        target(o.target),
-        full_target(o.full_target),
+        groups(o.groups),
         content(o.content) {
   files.reserve(o.files.size());
   for (const auto &files_ : o.files) { files.emplace_back((files_) ? new nil::xit::fbs::FileInfoT(*files_) : nullptr); }
@@ -3182,10 +3173,9 @@ inline FrameCacheT::FrameCacheT(const FrameCacheT &o)
 
 inline FrameCacheT &FrameCacheT::operator=(FrameCacheT o) FLATBUFFERS_NOEXCEPT {
   std::swap(id, o.id);
-  std::swap(target, o.target);
-  std::swap(full_target, o.full_target);
-  std::swap(content, o.content);
   std::swap(files, o.files);
+  std::swap(groups, o.groups);
+  std::swap(content, o.content);
   return *this;
 }
 
@@ -3199,10 +3189,9 @@ inline void FrameCache::UnPackTo(FrameCacheT *_o, const ::flatbuffers::resolver_
   (void)_o;
   (void)_resolver;
   { auto _e = id(); if (_e) _o->id = _e->str(); }
-  { auto _e = target(); if (_e) _o->target = _e->str(); }
-  { auto _e = full_target(); if (_e) _o->full_target = _e->str(); }
-  { auto _e = content(); if (_e) _o->content = _e->str(); }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->files[_i]) { _e->Get(_i)->UnPackTo(_o->files[_i].get(), _resolver); } else { _o->files[_i] = std::unique_ptr<nil::xit::fbs::FileInfoT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->files.resize(0); } }
+  { auto _e = groups(); if (_e) { _o->groups.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->groups[_i] = _e->Get(_i)->str(); } } else { _o->groups.resize(0); } }
+  { auto _e = content(); if (_e) _o->content = _e->str(); }
 }
 
 inline ::flatbuffers::Offset<FrameCache> FrameCache::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FrameCacheT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
@@ -3214,17 +3203,85 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(::flatbuffers::FlatBuf
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FrameCacheT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _fbb.CreateString(_o->id);
-  auto _target = _fbb.CreateString(_o->target);
-  auto _full_target = _fbb.CreateString(_o->full_target);
-  auto _content = _fbb.CreateString(_o->content);
   auto _files = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfo(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va );
+  auto _groups = _fbb.CreateVectorOfStrings(_o->groups);
+  auto _content = _fbb.CreateString(_o->content);
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       _id,
-      _target,
-      _full_target,
-      _content,
-      _files);
+      _files,
+      _groups,
+      _content);
+}
+
+inline AliasT *Alias::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<AliasT>(new AliasT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void Alias::UnPackTo(AliasT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = group(); if (_e) _o->group = _e->str(); }
+  { auto _e = path(); if (_e) _o->path = _e->str(); }
+}
+
+inline ::flatbuffers::Offset<Alias> Alias::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const AliasT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateAlias(_fbb, _o, _rehasher);
+}
+
+inline ::flatbuffers::Offset<Alias> CreateAlias(::flatbuffers::FlatBufferBuilder &_fbb, const AliasT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const AliasT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _group = _fbb.CreateString(_o->group);
+  auto _path = _fbb.CreateString(_o->path);
+  return nil::xit::fbs::CreateAlias(
+      _fbb,
+      _group,
+      _path);
+}
+
+inline FrameCacheSaveT::FrameCacheSaveT(const FrameCacheSaveT &o)
+      : cache((o.cache) ? new nil::xit::fbs::FrameCacheT(*o.cache) : nullptr) {
+  groups.reserve(o.groups.size());
+  for (const auto &groups_ : o.groups) { groups.emplace_back((groups_) ? new nil::xit::fbs::AliasT(*groups_) : nullptr); }
+}
+
+inline FrameCacheSaveT &FrameCacheSaveT::operator=(FrameCacheSaveT o) FLATBUFFERS_NOEXCEPT {
+  std::swap(cache, o.cache);
+  std::swap(groups, o.groups);
+  return *this;
+}
+
+inline FrameCacheSaveT *FrameCacheSave::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<FrameCacheSaveT>(new FrameCacheSaveT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void FrameCacheSave::UnPackTo(FrameCacheSaveT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = cache(); if (_e) { if(_o->cache) { _e->UnPackTo(_o->cache.get(), _resolver); } else { _o->cache = std::unique_ptr<nil::xit::fbs::FrameCacheT>(_e->UnPack(_resolver)); } } else if (_o->cache) { _o->cache.reset(); } }
+  { auto _e = groups(); if (_e) { _o->groups.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->groups[_i]) { _e->Get(_i)->UnPackTo(_o->groups[_i].get(), _resolver); } else { _o->groups[_i] = std::unique_ptr<nil::xit::fbs::AliasT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->groups.resize(0); } }
+}
+
+inline ::flatbuffers::Offset<FrameCacheSave> FrameCacheSave::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FrameCacheSaveT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateFrameCacheSave(_fbb, _o, _rehasher);
+}
+
+inline ::flatbuffers::Offset<FrameCacheSave> CreateFrameCacheSave(::flatbuffers::FlatBufferBuilder &_fbb, const FrameCacheSaveT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FrameCacheSaveT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _cache = _o->cache ? CreateFrameCache(_fbb, _o->cache.get(), _rehasher) : 0;
+  auto _groups = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Alias>> (_o->groups.size(), [](size_t i, _VectorArgs *__va) { return CreateAlias(*__va->__fbb, __va->__o->groups[i].get(), __va->__rehasher); }, &_va );
+  return nil::xit::fbs::CreateFrameCacheSave(
+      _fbb,
+      _cache,
+      _groups);
 }
 
 inline UniqueFrameLoadedT *UniqueFrameLoaded::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {

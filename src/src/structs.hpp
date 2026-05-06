@@ -16,7 +16,7 @@ namespace nil::xit
     {
         nil::service::IRunnableService* run_service;
         nil::service::IMessageService* msg_service;
-        std::filesystem::path cache_location;
+        std::optional<std::filesystem::path> cache_location;
         nil::xalt::transparent_umap<std::filesystem::path> groups;
         nil::xalt::transparent_umap<unique::Frame> unique_frames;
         nil::xalt::transparent_umap<tagged::Frame> tagged_frames;
