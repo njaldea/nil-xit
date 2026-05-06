@@ -14,6 +14,12 @@ ffi.cdef [[
         const char* path;
     } nil_xit_group_entry;
 
+    typedef struct nil_xit_file_info
+    {
+        const char* group;
+        const char* path;
+    } nil_xit_file_info;
+
     typedef struct nil_xit_unique_callback_info
     {
         void (*exec)(void*);
@@ -67,8 +73,8 @@ ffi.cdef [[
     void         nil_xit_set_groups(nil_xit_core, const nil_xit_group_entry* groups, uint64_t size);
     void         nil_xit_core_destroy(nil_xit_core);
 
-    nil_xit_unique_frame nil_xit_core_add_unique_frame(nil_xit_core, const char* id, const char* path);
-    nil_xit_tagged_frame nil_xit_core_add_tagged_frame(nil_xit_core, const char* id, const char* path);
+    nil_xit_unique_frame nil_xit_core_add_unique_frame(nil_xit_core, const char* id, const nil_xit_file_info* file_info);
+    nil_xit_tagged_frame nil_xit_core_add_tagged_frame(nil_xit_core, const char* id, const nil_xit_file_info* file_info);
 
     void nil_xit_unique_frame_on_load(nil_xit_unique_frame, nil_xit_unique_callback_info);
     void nil_xit_unique_frame_on_sub(nil_xit_unique_frame, nil_xit_unique_on_sub_info);
@@ -77,6 +83,9 @@ ffi.cdef [[
 
     nil_xit_unique_frame_value nil_xit_unique_frame_add_value(nil_xit_unique_frame, const char* id, nil_xit_unique_value_accessor);
     nil_xit_tagged_frame_value nil_xit_tagged_frame_add_value(nil_xit_tagged_frame, const char* id, nil_xit_tagged_value_accessor);
+
+    void nil_xit_unique_frame_add_option(nil_xit_unique_frame, const char* key, const char* value);
+    void nil_xit_tagged_frame_add_option(nil_xit_tagged_frame, const char* key, const char* value);
 
     void nil_xit_unique_frame_add_signal(nil_xit_unique_frame, const char* id, nil_xit_unique_callback_info);
     void nil_xit_tagged_frame_add_signal(nil_xit_tagged_frame, const char* id, nil_xit_tagged_callback_info);
@@ -121,19 +130,21 @@ end
 ---@field on_load    fun(self: nil_xit.UniqueFrame, fn: fun())
 ---@field on_sub     fun(self: nil_xit.UniqueFrame, fn: fun(count: number))
 ---@field add_value  fun(self: nil_xit.UniqueFrame, id: string, accessor: nil_xit.UniqueValueAccessor): nil_xit.UniqueValue
+---@field add_option fun(self: nil_xit.UniqueFrame, key: string, value: string)
 ---@field add_signal fun(self: nil_xit.UniqueFrame, id: string, fn: fun())
 
 ---@class nil_xit.TaggedFrame
 ---@field on_load    fun(self: nil_xit.TaggedFrame, fn: fun(tag: string))
 ---@field on_sub     fun(self: nil_xit.TaggedFrame, fn: fun(tag: string, count: number))
 ---@field add_value  fun(self: nil_xit.TaggedFrame, id: string, accessor: nil_xit.TaggedValueAccessor): nil_xit.TaggedValue
+---@field add_option fun(self: nil_xit.TaggedFrame, key: string, value: string)
 ---@field add_signal fun(self: nil_xit.TaggedFrame, id: string, fn: fun(tag: string))
 
 ---@class nil_xit.Core
 ---@field set_cache_directory fun(self: nil_xit.Core, path: string)
 ---@field set_groups          fun(self: nil_xit.Core, groups: table<string, string>)
----@field add_unique_frame    fun(self: nil_xit.Core, id: string, path: string|nil): nil_xit.UniqueFrame
----@field add_tagged_frame    fun(self: nil_xit.Core, id: string, path: string|nil): nil_xit.TaggedFrame
+---@field add_unique_frame    fun(self: nil_xit.Core, id: string, info: { group: string, path: string }|nil): nil_xit.UniqueFrame
+---@field add_tagged_frame    fun(self: nil_xit.Core, id: string, info: { group: string, path: string }|nil): nil_xit.TaggedFrame
 ---@field destroy             fun(self: nil_xit.Core)
 
 ---@class nil_xit.Module
@@ -187,6 +198,9 @@ local function create_unique_frame(refs, fns, lib, frame)
             local value = lib.nil_xit_unique_frame_add_value(self._frame, id, acc)
             return create_unique_value(refs, fns, lib, value)
         end,
+        add_option = function(self, key, value)
+            lib.nil_xit_unique_frame_add_option(self._frame, key, value)
+        end,
         add_signal = function(self, id, fn)
             local info = ffi.new("nil_xit_unique_callback_info")
             info.exec = fns.unique_exec
@@ -224,6 +238,9 @@ local function create_tagged_frame(refs, fns, lib, frame)
             local value = lib.nil_xit_tagged_frame_add_value(self._frame, id, acc)
             return create_tagged_value(refs, fns, lib, value)
         end,
+        add_option = function(self, key, value)
+            lib.nil_xit_tagged_frame_add_option(self._frame, key, value)
+        end,
         add_signal = function(self, id, fn)
             local info = ffi.new("nil_xit_tagged_callback_info")
             info.exec = fns.tagged_exec
@@ -252,12 +269,30 @@ local function create_core(refs, fns, lib, core)
             end
             lib.nil_xit_set_groups(self._core, entries, count)
         end,
-        add_unique_frame = function(self, id, path)
-            local frame = lib.nil_xit_core_add_unique_frame(self._core, id, path)
+        add_unique_frame = function(self, id, info)
+            local file_info = nil
+            if info ~= nil then
+                if type(info) ~= "table" or info.group == nil or info.path == nil then
+                    error("info must be a table with group and path")
+                end
+                file_info = ffi.new("nil_xit_file_info")
+                file_info.group = info.group
+                file_info.path = info.path
+            end
+            local frame = lib.nil_xit_core_add_unique_frame(self._core, id, file_info)
             return create_unique_frame(refs, fns, lib, frame)
         end,
-        add_tagged_frame = function(self, id, path)
-            local frame = lib.nil_xit_core_add_tagged_frame(self._core, id, path)
+        add_tagged_frame = function(self, id, info)
+            local file_info = nil
+            if info ~= nil then
+                if type(info) ~= "table" or info.group == nil or info.path == nil then
+                    error("info must be a table with group and path")
+                end
+                file_info = ffi.new("nil_xit_file_info")
+                file_info.group = info.group
+                file_info.path = info.path
+            end
+            local frame = lib.nil_xit_core_add_tagged_frame(self._core, id, file_info)
             return create_tagged_frame(refs, fns, lib, frame)
         end,
         destroy = function(self)

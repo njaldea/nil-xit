@@ -150,6 +150,16 @@ extern "C"
     } nil_xit_group_entry;
 
     /**
+     * @brief File info used when registering frames.
+     */
+    // NOLINTNEXTLINE(modernize-use-using)
+    typedef struct nil_xit_file_info
+    {
+        const char* group; ///< Group name.
+        const char* path;  ///< Path relative to group.
+    } nil_xit_file_info;
+
+    /**
      * @brief Creates a new nil-xit core instance.
      *
      * @param run_service Service runner callback.
@@ -220,13 +230,13 @@ extern "C"
      *
      * @param core Core handle.
      * @param id Frame identifier.
-     * @param path Path for the frame.
+     * @param file_info Optional file info with group and path (pass NULL when unused).
      * @return Handle to the created unique frame.
      */
     nil_xit_unique_frame nil_xit_core_add_unique_frame(
         nil_xit_core core,
         const char* id,
-        const char* path
+        const nil_xit_file_info* file_info
     );
 
     /**
@@ -234,13 +244,13 @@ extern "C"
      *
      * @param core Core handle.
      * @param id Frame identifier.
-     * @param path Path for the frame.
+     * @param file_info Optional file info with group and path (pass NULL when unused).
      * @return Handle to the created tagged frame.
      */
     nil_xit_tagged_frame nil_xit_core_add_tagged_frame(
         nil_xit_core core,
         const char* id,
-        const char* path
+        const nil_xit_file_info* file_info
     );
 
     /**
@@ -352,6 +362,32 @@ extern "C"
         nil_xit_tagged_frame frame,
         const char* id,
         nil_xit_tagged_value_accessor accessor
+    );
+
+    /**
+     * @brief Adds an option to a unique frame.
+     *
+     * @param frame Unique frame handle.
+     * @param key Option key.
+     * @param value Option value.
+     */
+    void nil_xit_unique_frame_add_option(
+        nil_xit_unique_frame frame,
+        const char* key,
+        const char* value
+    );
+
+    /**
+     * @brief Adds an option to a tagged frame.
+     *
+     * @param frame Tagged frame handle.
+     * @param key Option key.
+     * @param value Option value.
+     */
+    void nil_xit_tagged_frame_add_option(
+        nil_xit_tagged_frame frame,
+        const char* key,
+        const char* value
     );
 
     /**

@@ -87,12 +87,13 @@ core:set_groups({
 })
 
 -- Initialize all frames
-core:add_unique_frame("index", "$base/gui/Demo.svelte")
-local base_frame = core:add_unique_frame("base", "$base/gui/Base.svelte")
-core:add_unique_frame("group", "$base/gui/Group.svelte")
-core:add_unique_frame("json_editor", "$base/gui/JsonEditor.svelte")
-local tagged_frame = core:add_tagged_frame("tagged", "$base/gui/Tagged.svelte")
+local index_frame = core:add_unique_frame("index", { group = "base", path = "gui/Demo.svelte" })
+index_frame:add_option("hello", "--world-lua--")
 
+local base_frame = core:add_unique_frame("base", { group = "base", path = "gui/Base.svelte" })
+core:add_unique_frame("group", { group = "base", path = "gui/Group.svelte" })
+core:add_unique_frame("json_editor", { group = "base", path = "gui/JsonEditor.svelte" })
+local tagged_frame = core:add_tagged_frame("tagged", { group = "base", path = "gui/Tagged.svelte" })
 
 local str_value_g = ffi.new("uint8_t[?]", #"hello world")
 ffi.copy(str_value_g, "hello world", #"hello world")

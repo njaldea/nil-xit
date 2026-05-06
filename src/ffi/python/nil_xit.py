@@ -40,6 +40,19 @@ class NilXitGroupEntry(ctypes.Structure):
     ]
 
 
+class NilXitFileInfo(ctypes.Structure):
+    _fields_ = [
+        ("group", ctypes.c_char_p),
+        ("path", ctypes.c_char_p),
+    ]
+
+
+@dataclass
+class FileInfo:
+    group: str
+    path: str
+
+
 # ---------------------------------------------------------------------------
 # Callback function pointer types
 # ---------------------------------------------------------------------------
@@ -192,14 +205,14 @@ def _configure_signatures(lib: Any) -> None:
     lib.nil_xit_core_add_unique_frame.argtypes = [
         NilXitCore,
         ctypes.c_char_p,
-        ctypes.c_char_p,
+        ctypes.POINTER(NilXitFileInfo),
     ]
     lib.nil_xit_core_add_unique_frame.restype = NilXitUniqueFrame
 
     lib.nil_xit_core_add_tagged_frame.argtypes = [
         NilXitCore,
         ctypes.c_char_p,
-        ctypes.c_char_p,
+        ctypes.POINTER(NilXitFileInfo),
     ]
     lib.nil_xit_core_add_tagged_frame.restype = NilXitTaggedFrame
 
@@ -240,6 +253,20 @@ def _configure_signatures(lib: Any) -> None:
         NilXitTaggedValueAccessor,
     ]
     lib.nil_xit_tagged_frame_add_value.restype = NilXitTaggedFrameValue
+
+    lib.nil_xit_unique_frame_add_option.argtypes = [
+        NilXitUniqueFrame,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+    ]
+    lib.nil_xit_unique_frame_add_option.restype = None
+
+    lib.nil_xit_tagged_frame_add_option.argtypes = [
+        NilXitTaggedFrame,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+    ]
+    lib.nil_xit_tagged_frame_add_option.restype = None
 
     lib.nil_xit_unique_frame_add_signal.argtypes = [
         NilXitUniqueFrame,
@@ -483,6 +510,13 @@ class UniqueFrame:
         )
         self._lib.nil_xit_unique_frame_add_signal(self._frame, id.encode("utf-8"), info)
 
+    def add_option(self, key: str, value: str) -> None:
+        self._lib.nil_xit_unique_frame_add_option(
+            self._frame,
+            key.encode("utf-8"),
+            value.encode("utf-8"),
+        )
+
 
 class TaggedFrame:
     def __init__(self, frame: NilXitTaggedFrame, lib: Any, fns: dict) -> None:
@@ -532,6 +566,13 @@ class TaggedFrame:
         )
         self._lib.nil_xit_tagged_frame_add_signal(self._frame, id.encode("utf-8"), info)
 
+    def add_option(self, key: str, value: str) -> None:
+        self._lib.nil_xit_tagged_frame_add_option(
+            self._frame,
+            key.encode("utf-8"),
+            value.encode("utf-8"),
+        )
+
 
 class Core:
     def __init__(self, core: NilXitCore, lib: Any, fns: dict) -> None:
@@ -550,19 +591,31 @@ class Core:
             entries[i].path = path.encode("utf-8")
         self._lib.nil_xit_set_groups(self._core, entries, count)
 
-    def add_unique_frame(self, id: str, path: Optional[str] = None) -> UniqueFrame:
+    def add_unique_frame(self, id: str, info: Optional[FileInfo] = None) -> UniqueFrame:
+        file_info = None
+        if info is not None:
+            file_info = NilXitFileInfo(
+                group=info.group.encode("utf-8"),
+                path=info.path.encode("utf-8"),
+            )
         frame = self._lib.nil_xit_core_add_unique_frame(
             self._core,
             id.encode("utf-8"),
-            path.encode("utf-8") if path is not None else None,
+            ctypes.byref(file_info) if file_info is not None else None,
         )
         return UniqueFrame(frame, self._lib, self._fns)
 
-    def add_tagged_frame(self, id: str, path: Optional[str] = None) -> TaggedFrame:
+    def add_tagged_frame(self, id: str, info: Optional[FileInfo] = None) -> TaggedFrame:
+        file_info = None
+        if info is not None:
+            file_info = NilXitFileInfo(
+                group=info.group.encode("utf-8"),
+                path=info.path.encode("utf-8"),
+            )
         frame = self._lib.nil_xit_core_add_tagged_frame(
             self._core,
             id.encode("utf-8"),
-            path.encode("utf-8") if path is not None else None,
+            ctypes.byref(file_info) if file_info is not None else None,
         )
         return TaggedFrame(frame, self._lib, self._fns)
 
@@ -617,6 +670,7 @@ __all__ = [
     "create_core_from_standalone",
     "setup_server",
     "Core",
+    "FileInfo",
     "UniqueFrame",
     "TaggedFrame",
     "UniqueValue",

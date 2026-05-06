@@ -37,11 +37,13 @@ core.set_groups({
 })
 
 # Initialize frames
-core.add_unique_frame("index", "$base/gui/Demo.svelte")
-base_frame = core.add_unique_frame("base", "$base/gui/Base.svelte")
-core.add_unique_frame("group", "$base/gui/Group.svelte")
-core.add_unique_frame("json_editor", "$base/gui/JsonEditor.svelte")
-core.add_tagged_frame("tagged", "$base/gui/Tagged.svelte")
+index_frame = core.add_unique_frame("index", nil_xit.FileInfo(group="base", path="gui/Demo.svelte"))
+index_frame.add_option("hello", "--world-py--")
+
+base_frame = core.add_unique_frame("base", nil_xit.FileInfo(group="base", path="gui/Base.svelte"))
+core.add_unique_frame("group", nil_xit.FileInfo(group="base", path="gui/Group.svelte"))
+core.add_unique_frame("json_editor", nil_xit.FileInfo(group="base", path="gui/JsonEditor.svelte"))
+core.add_tagged_frame("tagged", nil_xit.FileInfo(group="base", path="gui/Tagged.svelte"))
 
 # Mutable state for the string value
 str_value_g = b"hello world"

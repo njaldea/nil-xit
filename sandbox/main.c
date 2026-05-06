@@ -209,10 +209,17 @@ int main(void)
         2
     );
 
-    nil_xit_core_add_unique_frame(core, "index", "$base/gui/Demo.svelte");
+    nil_xit_core_add_unique_frame(
+        core,
+        "index",
+        &(nil_xit_file_info){.group = "base", .path = "gui/Demo.svelte"}
+    );
 
-    nil_xit_unique_frame unique_frame
-        = nil_xit_core_add_unique_frame(core, "json_editor", "$base/gui/JsonEditor.svelte");
+    nil_xit_unique_frame unique_frame = nil_xit_core_add_unique_frame(
+        core,
+        "json_editor",
+        &(nil_xit_file_info){.group = "base", .path = "gui/JsonEditor.svelte"}
+    );
 
     static const char initial[] = "{ \"message\": \"hello from c\" }";
     char* buf = (char*)malloc(sizeof(initial) - 1U);
@@ -240,7 +247,7 @@ int main(void)
     nil_xit_tagged_frame tagged_frame = nil_xit_core_add_tagged_frame(
         core,
         "tagged",
-        "$base/gui/Tagged.svelte"
+        &(nil_xit_file_info){.group = "base", .path = "gui/Tagged.svelte"}
     );
 
     TaggedDataEntry* entry1 = (TaggedDataEntry*)malloc(sizeof(TaggedDataEntry));

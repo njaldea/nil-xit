@@ -22,6 +22,11 @@ namespace
         return static_cast<nil::xit::unique::Frame*>(frame.handle);
     }
 
+    nil::xit::tagged::Frame* from_c(nil_xit_tagged_frame frame)
+    {
+        return static_cast<nil::xit::tagged::Frame*>(frame.handle);
+    }
+
     nil::service::IWebService* from_c(nil_service_web service)
     {
         return static_cast<nil::service::IWebService*>(service.handle);
@@ -91,24 +96,19 @@ extern "C"
     nil_xit_unique_frame nil_xit_core_add_unique_frame(
         nil_xit_core core,
         const char* id,
-        const char* path
+        const nil_xit_file_info* file_info
     )
     {
-        if (path == nullptr)
+        if (file_info == nullptr || file_info->group == nullptr || file_info->path == nullptr)
         {
             return to_c(add_unique_frame(*from_c(core), id));
         }
 
-        return to_c(add_unique_frame(*from_c(core), id, path));
-    }
-
-    nil_xit_unique_frame nil_xit_core_add_unique_frame_with_path(
-        nil_xit_core core,
-        const char* id,
-        const char* path
-    )
-    {
-        return to_c(add_unique_frame(*from_c(core), id, path));
+        return to_c(add_unique_frame(
+            *from_c(core),
+            id,
+            nil::xit::FileInfo{file_info->group, std::filesystem::path(file_info->path)}
+        ));
     }
 
     void nil_xit_unique_frame_on_load(
@@ -150,6 +150,15 @@ extern "C"
         return {.handle = &value};
     }
 
+    void nil_xit_unique_frame_add_option(
+        nil_xit_unique_frame frame,
+        const char* key,
+        const char* value
+    )
+    {
+        add_option(*from_c(frame), std::string(key), std::string(value));
+    }
+
     void nil_xit_unique_value_post(
         nil_xit_unique_frame_value value,
         const void* new_data,
@@ -183,23 +192,20 @@ extern "C"
     nil_xit_tagged_frame nil_xit_core_add_tagged_frame(
         nil_xit_core core,
         const char* id,
-        const char* path
+        const nil_xit_file_info* file_info
     )
     {
-        if (path == nullptr)
+        if (file_info == nullptr || file_info->group == nullptr || file_info->path == nullptr)
         {
             return {.handle = &add_tagged_frame(*from_c(core), id)};
         }
-        return {.handle = &add_tagged_frame(*from_c(core), id, path)};
-    }
-
-    nil_xit_tagged_frame nil_xit_core_add_tagged_frame_with_path(
-        nil_xit_core core,
-        const char* id,
-        const char* path
-    )
-    {
-        return {.handle = &add_tagged_frame(*from_c(core), id, path)};
+        return {
+            .handle = &add_tagged_frame(
+                *from_c(core),
+                id,
+                nil::xit::FileInfo{file_info->group, std::filesystem::path(file_info->path)}
+            )
+        };
     }
 
     void nil_xit_tagged_frame_on_load(
@@ -240,6 +246,15 @@ extern "C"
             std::make_unique<nil::xit::c::TaggedAccessor>(accessor)
         );
         return {.handle = &value};
+    }
+
+    void nil_xit_tagged_frame_add_option(
+        nil_xit_tagged_frame frame,
+        const char* key,
+        const char* value
+    )
+    {
+        add_option(*from_c(frame), std::string(key), std::string(value));
     }
 
     void nil_xit_tagged_frame_add_signal(
