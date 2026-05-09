@@ -79,6 +79,19 @@ extern "C"
     } nil_xit_unique_callback_info;
 
     /**
+     * @brief Callback info for unique frame signal events with payload.
+     *
+     * Used for registering signal callbacks that receive a payload buffer.
+     */
+    // NOLINTNEXTLINE(modernize-use-using)
+    typedef struct nil_xit_unique_signal_callback_info
+    {
+        void (*exec)(const void* data, uint64_t size, void* context); ///< Payload callback.
+        void* context;                                                ///< User context pointer.
+        void (*cleanup)(void*); ///< Cleanup function for context.
+    } nil_xit_unique_signal_callback_info;
+
+    /**
      * @brief Callback info for unique frame subscription events.
      *
      * Used for on_sub event registration.
@@ -268,6 +281,19 @@ extern "C"
     } nil_xit_tagged_callback_info;
 
     /**
+     * @brief Callback info for tagged frame signal events with payload.
+     *
+     * Used for registering signal callbacks that receive tag + payload buffer.
+     */
+    // NOLINTNEXTLINE(modernize-use-using)
+    typedef struct nil_xit_tagged_signal_callback_info
+    {
+        void (*exec)(const char* tag, const void* data, uint64_t size, void* context);
+        void* context;
+        void (*cleanup)(void*);
+    } nil_xit_tagged_signal_callback_info;
+
+    /**
      * @brief Registers a callback for the frame load event.
      *
      * @param frame Unique frame handle.
@@ -391,38 +417,37 @@ extern "C"
     );
 
     /**
-     * @brief Adds a signal to a unique frame.
+     * @brief Adds a signal to a unique frame with a payload callback.
      *
-     * Signals are events without associated value payloads.
-     * Registers a callback to be invoked when the signal is triggered.
+     * Signals always invoke the payload callback. If no payload is provided by the sender,
+     * the payload size will be 0.
      *
      * @param frame Unique frame handle.
      * @param id Signal identifier.
-     * @param callback Callback info struct (exec, context, cleanup).
+     * @param callback Payload callback info struct (exec, context, cleanup).
      */
     // NOLINTNEXTLINE(modernize-use-using)
     void nil_xit_unique_frame_add_signal(
         nil_xit_unique_frame frame,
         const char* id,
-        nil_xit_unique_callback_info callback
+        nil_xit_unique_signal_callback_info callback
     );
 
     /**
-     * @brief Adds a signal to a tagged frame.
+     * @brief Adds a signal to a tagged frame with a payload callback.
      *
-     * Signals are events without associated value payloads.
-     * Registers a callback to be invoked when the signal is triggered. The callback receives
-     * the tag string as the first argument.
+     * Signals always invoke the payload callback. If no payload is provided by the sender,
+     * the payload size will be 0. The callback receives the tag string as the first argument.
      *
      * @param frame Tagged frame handle.
      * @param id Signal identifier.
-     * @param callback Callback info struct (exec, context, cleanup).
+     * @param callback Payload callback info struct (exec, context, cleanup).
      */
     // NOLINTNEXTLINE(modernize-use-using)
     void nil_xit_tagged_frame_add_signal(
         nil_xit_tagged_frame frame,
         const char* id,
-        nil_xit_tagged_callback_info callback
+        nil_xit_tagged_signal_callback_info callback
     );
 
     /**

@@ -9,7 +9,7 @@ Define frames, values, and signals in C++; interact with them from Python. The c
 - **Frames** – Group values and signals displayed by a UI component
 - **Two flavors** – Unique (one instance) and tagged (keyed by a tag)
 - **Values** – Bidirectional data binding with buffer types (bytes)
-- **Signals** – Events from UI to backend with optional byte payloads
+- **Signals** – Events from UI to backend with byte payloads
 - **Options** – Key/value preprocessing hints for the frontend
 
 ## Installation
@@ -52,9 +52,9 @@ def decode_value(data: bytes) -> None:
 
 value = frame.add_value("my_value", encode_value, decode_value)
 
-# Add a signal handler
-def on_button_click() -> None:
-    print("Button clicked!")
+# Add a signal handler (payload is bytes; you can ignore it if unused)
+def on_button_click(payload: bytes) -> None:
+    print(f"Button clicked! payload size: {len(payload)}")
     value.post(b"updated value")
 
 frame.add_signal("click", on_button_click)
@@ -74,8 +74,8 @@ For a complete example, see [sandbox/main.py](../../sandbox/main.py).
 The Python binding supports **buffer types** only:
 
 - `bytes` – Binary data passed as `buffer_type<T>` in C++
-  - Values use getter/setter functions that work with bytes
-  - Signals pass optional byte payloads
+    - Values use getter/setter functions that work with bytes
+    - Signals pass byte payloads (handlers may ignore the payload argument)
 
 ## Frames and FileInfo
 
@@ -96,7 +96,7 @@ The Python binding wraps the C API (`libnil-xit-c-api.so`) which provides access
 - **unique frames** – Single-instance UI components
 - **tagged frames** – Multi-instance UI components (keyed by tag)
 - **values** – Bidirectional data binding with buffer types
-- **signals** – Events from UI to backend with optional byte payloads
+- **signals** – Events from UI to backend with byte payloads
 
 ## Documentation
 

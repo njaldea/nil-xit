@@ -182,17 +182,16 @@ extern "C"
     void nil_xit_unique_frame_add_signal(
         nil_xit_unique_frame frame,
         const char* id,
-        nil_xit_unique_callback_info callback
+        nil_xit_unique_signal_callback_info callback
     )
     {
-        // Hold context and cleanup for the lifetime of the callback
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
 
-        // The callback signature for unique frames is void().
         add_signal(
             *from_c(frame),
             std::string(id),
-            [exec = callback.exec, holder]() { exec(holder->object); }
+            [exec = callback.exec, holder](std::span<const std::uint8_t> data)
+            { exec(data.data(), static_cast<uint64_t>(data.size()), holder->object); }
         );
     }
 
@@ -267,15 +266,15 @@ extern "C"
     void nil_xit_tagged_frame_add_signal(
         nil_xit_tagged_frame frame,
         const char* id,
-        nil_xit_tagged_callback_info callback
+        nil_xit_tagged_signal_callback_info callback
     )
     {
         auto holder = std::make_shared<nil::xalt::raii<void>>(callback.context, callback.cleanup);
         add_signal(
             *static_cast<nil::xit::tagged::Frame*>(frame.handle),
             std::string(id),
-            [exec = callback.exec, holder](std::string_view tag)
-            { exec(tag.data(), holder->object); }
+            [exec = callback.exec, holder](std::string_view tag, std::span<const std::uint8_t> data)
+            { exec(tag.data(), data.data(), static_cast<uint64_t>(data.size()), holder->object); }
         );
     }
 

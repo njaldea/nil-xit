@@ -95,8 +95,7 @@ core:add_unique_frame("group", { group = "base", path = "gui/Group.svelte" })
 core:add_unique_frame("json_editor", { group = "base", path = "gui/JsonEditor.svelte" })
 local tagged_frame = core:add_tagged_frame("tagged", { group = "base", path = "gui/Tagged.svelte" })
 
-local str_value_g = ffi.new("uint8_t[?]", #"hello world")
-ffi.copy(str_value_g, "hello world", #"hello world")
+local str_value_g = "hello world"
 
 -- Create a string value for input in the base frame
 local str_value = base_frame:add_value("value_0_1", {
@@ -104,7 +103,7 @@ local str_value = base_frame:add_value("value_0_1", {
         return str_value_g
     end,
     decode = function(buffer)
-        str_value_g = ffi.string(buffer, ffi.sizeof(buffer))
+        str_value_g = buffer
         io.write("value changed: " .. str_value_g .. "\n")
     end
 })
@@ -113,14 +112,13 @@ local str_value = base_frame:add_value("value_0_1", {
 base_frame:add_signal("signal-1", function()
     io.write("signal-1 is notified, forcing value_0_1 value\n")
     local new_str = "new stuff here"
-    local buffer = ffi.new("uint8_t[?]", #new_str)
-    ffi.copy(buffer, new_str, #new_str)
-    str_value:post(buffer)
+    str_value:post(new_str)
 end)
 
 -- Add signal-2: receives JSON
-base_frame:add_signal("signal-2", function()
-    io.write("signal-2 is notified\n")
+base_frame:add_signal("signal-2", function(data)
+    io.write(data)
+    io.write("\nsignal-2 is notified\n")
 end)
 
 -- Add signal-3: receives boolean
@@ -143,10 +141,8 @@ while true do
             if line == "quit" or line == "exit" then
                 break
             end
-            -- Convert string to buffer and post
-            local buffer = ffi.new("uint8_t[?]", #line)
-            ffi.copy(buffer, line, #line)
-            str_value:post(buffer)
+            -- Post the raw string payload
+            str_value:post(line)
             io.write("input here: ")
             io.flush()
         end

@@ -4,6 +4,7 @@ import ctypes
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+from inspect import signature
 
 import nil_service
 
@@ -58,8 +59,14 @@ class FileInfo:
 # ---------------------------------------------------------------------------
 
 NIL_XIT_UNIQUE_EXEC = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+NIL_XIT_UNIQUE_SIGNAL_EXEC = ctypes.CFUNCTYPE(
+    None, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p
+)
 NIL_XIT_UNIQUE_ON_SUB_EXEC = ctypes.CFUNCTYPE(None, ctypes.c_uint64, ctypes.c_void_p)
 NIL_XIT_TAGGED_EXEC = ctypes.CFUNCTYPE(None, ctypes.c_char_p, ctypes.c_void_p)
+NIL_XIT_TAGGED_SIGNAL_EXEC = ctypes.CFUNCTYPE(
+    None, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p
+)
 NIL_XIT_TAGGED_ON_SUB_EXEC = ctypes.CFUNCTYPE(
     None, ctypes.c_char_p, ctypes.c_uint64, ctypes.c_void_p
 )
@@ -101,6 +108,14 @@ class NilXitUniqueCallbackInfo(ctypes.Structure):
     ]
 
 
+class NilXitUniqueSignalCallbackInfo(ctypes.Structure):
+    _fields_ = [
+        ("exec", NIL_XIT_UNIQUE_SIGNAL_EXEC),
+        ("context", ctypes.c_void_p),
+        ("cleanup", NIL_XIT_CLEANUP),
+    ]
+
+
 class NilXitUniqueOnSubInfo(ctypes.Structure):
     _fields_ = [
         ("exec", NIL_XIT_UNIQUE_ON_SUB_EXEC),
@@ -112,6 +127,14 @@ class NilXitUniqueOnSubInfo(ctypes.Structure):
 class NilXitTaggedCallbackInfo(ctypes.Structure):
     _fields_ = [
         ("exec", NIL_XIT_TAGGED_EXEC),
+        ("context", ctypes.c_void_p),
+        ("cleanup", NIL_XIT_CLEANUP),
+    ]
+
+
+class NilXitTaggedSignalCallbackInfo(ctypes.Structure):
+    _fields_ = [
+        ("exec", NIL_XIT_TAGGED_SIGNAL_EXEC),
         ("context", ctypes.c_void_p),
         ("cleanup", NIL_XIT_CLEANUP),
     ]
@@ -271,14 +294,14 @@ def _configure_signatures(lib: Any) -> None:
     lib.nil_xit_unique_frame_add_signal.argtypes = [
         NilXitUniqueFrame,
         ctypes.c_char_p,
-        NilXitUniqueCallbackInfo,
+        NilXitUniqueSignalCallbackInfo,
     ]
     lib.nil_xit_unique_frame_add_signal.restype = None
 
     lib.nil_xit_tagged_frame_add_signal.argtypes = [
         NilXitTaggedFrame,
         ctypes.c_char_p,
-        NilXitTaggedCallbackInfo,
+        NilXitTaggedSignalCallbackInfo,
     ]
     lib.nil_xit_tagged_frame_add_signal.restype = None
 
@@ -317,6 +340,16 @@ def _create_lib_fns(refs: Dict[int, Any], lib: Any) -> dict:
             return
         refs[ref_id].fn()
 
+    @NIL_XIT_UNIQUE_SIGNAL_EXEC
+    def unique_signal_exec(data: Any, size: int, ctx_id: Any) -> None:
+        ref_id = _to_ref_id(ctx_id)
+        if ref_id not in refs:
+            return
+        payload = b""
+        if size:
+            payload = ctypes.string_at(data, int(size))
+        refs[ref_id].fn(payload)
+
     @NIL_XIT_UNIQUE_ON_SUB_EXEC
     def unique_on_sub_exec(count: int, ctx_id: Any) -> None:
         ref_id = _to_ref_id(ctx_id)
@@ -330,6 +363,17 @@ def _create_lib_fns(refs: Dict[int, Any], lib: Any) -> dict:
         if ref_id not in refs:
             return
         refs[ref_id].fn(tag.decode("utf-8") if tag else "")
+
+    @NIL_XIT_TAGGED_SIGNAL_EXEC
+    def tagged_signal_exec(tag: Any, data: Any, size: int, ctx_id: Any) -> None:
+        ref_id = _to_ref_id(ctx_id)
+        if ref_id not in refs:
+            return
+        tag_value = tag.decode("utf-8") if tag else ""
+        payload = b""
+        if size:
+            payload = ctypes.string_at(data, int(size))
+        refs[ref_id].fn(tag_value, payload)
 
     @NIL_XIT_TAGGED_ON_SUB_EXEC
     def tagged_on_sub_exec(tag: Any, count: int, ctx_id: Any) -> None:
@@ -422,8 +466,10 @@ def _create_lib_fns(refs: Dict[int, Any], lib: Any) -> dict:
 
     return {
         "unique_exec": unique_exec,
+        "unique_signal_exec": unique_signal_exec,
         "unique_on_sub_exec": unique_on_sub_exec,
         "tagged_exec": tagged_exec,
+        "tagged_signal_exec": tagged_signal_exec,
         "tagged_on_sub_exec": tagged_on_sub_exec,
         "unique_encode_size_exec": unique_encode_size_exec,
         "unique_encode_exec": unique_encode_exec,
@@ -502,13 +548,24 @@ class UniqueFrame:
         )
         return UniqueValue(value, self._lib)
 
-    def add_signal(self, id: str, fn: Callable[[], None]) -> None:
-        info = NilXitUniqueCallbackInfo(
-            exec=self._fns["unique_exec"],
-            context=self._fns["store_callback"](fn),
+    def add_signal(self, id: str, fn: Callable[[bytes], None]) -> None:
+        last_fn = fn
+        try:
+            param_count = len(signature(fn).parameters)
+        except (TypeError, ValueError):
+            param_count = 1
+        if param_count == 0:
+            def wfn(_: bytes) -> None:
+                fn()
+            last_fn = wfn
+        info = NilXitUniqueSignalCallbackInfo(
+            exec=self._fns["unique_signal_exec"],
+            context=self._fns["store_callback"](last_fn),
             cleanup=self._fns["cleanup"],
         )
-        self._lib.nil_xit_unique_frame_add_signal(self._frame, id.encode("utf-8"), info)
+        self._lib.nil_xit_unique_frame_add_signal(
+            self._frame, id.encode("utf-8"), info
+        )
 
     def add_option(self, key: str, value: str) -> None:
         self._lib.nil_xit_unique_frame_add_option(
@@ -558,13 +615,24 @@ class TaggedFrame:
         )
         return TaggedValue(value, self._lib)
 
-    def add_signal(self, id: str, fn: Callable[[str], None]) -> None:
-        info = NilXitTaggedCallbackInfo(
-            exec=self._fns["tagged_exec"],
-            context=self._fns["store_callback"](fn),
+    def add_signal(self, id: str, fn: Callable[[str, bytes], None]) -> None:
+        last_fn = fn
+        try:
+            param_count = len(signature(fn).parameters)
+        except (TypeError, ValueError):
+            param_count = 2
+        if param_count == 1:
+            def wfn(tag: str, _: bytes) -> None:
+                fn(tag)
+            last_fn = wfn
+        info = NilXitTaggedSignalCallbackInfo(
+            exec=self._fns["tagged_signal_exec"],
+            context=self._fns["store_callback"](last_fn),
             cleanup=self._fns["cleanup"],
         )
-        self._lib.nil_xit_tagged_frame_add_signal(self._frame, id.encode("utf-8"), info)
+        self._lib.nil_xit_tagged_frame_add_signal(
+            self._frame, id.encode("utf-8"), info
+        )
 
     def add_option(self, key: str, value: str) -> None:
         self._lib.nil_xit_tagged_frame_add_option(

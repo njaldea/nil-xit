@@ -69,8 +69,9 @@ def on_signal_1() -> None:
     str_value.post(b"new stuff here")
 
 
-def on_signal_2() -> None:
-    sys.stdout.write("signal-2 is notified\n")
+def on_signal_2(data) -> None:
+    sys.stdout.write(data.decode())
+    sys.stdout.write("\nsignal-2 is notified\n")
     sys.stdout.flush()
 
 

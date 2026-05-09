@@ -27,6 +27,13 @@ ffi.cdef [[
         void (*cleanup)(void*);
     } nil_xit_unique_callback_info;
 
+    typedef struct nil_xit_unique_signal_callback_info
+    {
+        void (*exec)(const void* data, uint64_t size, void* context);
+        void* context;
+        void (*cleanup)(void*);
+    } nil_xit_unique_signal_callback_info;
+
     typedef struct nil_xit_unique_on_sub_info
     {
         void (*exec)(uint64_t count, void*);
@@ -40,6 +47,13 @@ ffi.cdef [[
         void* context;
         void (*cleanup)(void*);
     } nil_xit_tagged_callback_info;
+
+    typedef struct nil_xit_tagged_signal_callback_info
+    {
+        void (*exec)(const char* tag, const void* data, uint64_t size, void* context);
+        void* context;
+        void (*cleanup)(void*);
+    } nil_xit_tagged_signal_callback_info;
 
     typedef struct nil_xit_tagged_on_sub_info
     {
@@ -87,8 +101,8 @@ ffi.cdef [[
     void nil_xit_unique_frame_add_option(nil_xit_unique_frame, const char* key, const char* value);
     void nil_xit_tagged_frame_add_option(nil_xit_tagged_frame, const char* key, const char* value);
 
-    void nil_xit_unique_frame_add_signal(nil_xit_unique_frame, const char* id, nil_xit_unique_callback_info);
-    void nil_xit_tagged_frame_add_signal(nil_xit_tagged_frame, const char* id, nil_xit_tagged_callback_info);
+    void nil_xit_unique_frame_add_signal(nil_xit_unique_frame, const char* id, nil_xit_unique_signal_callback_info);
+    void nil_xit_tagged_frame_add_signal(nil_xit_tagged_frame, const char* id, nil_xit_tagged_signal_callback_info);
 
     void nil_xit_unique_value_post(nil_xit_unique_frame_value, const void* data, uint64_t size);
     void nil_xit_tagged_value_post(nil_xit_tagged_frame_value, const char* tag, const void* data, uint64_t size);
@@ -113,32 +127,32 @@ local function current_file_dir()
 end
 
 ---@class nil_xit.UniqueValue
----@field post fun(self: nil_xit.UniqueValue, data: unknown)
+---@field post fun(self: nil_xit.UniqueValue, data: string)
 
 ---@class nil_xit.TaggedValue
----@field post fun(self: nil_xit.TaggedValue, tag: string, data: unknown)
+---@field post fun(self: nil_xit.TaggedValue, tag: string, data: string)
 
 ---@class nil_xit.UniqueValueAccessor
----@field encode fun(): unknown
----@field decode fun(data: unknown)
+---@field encode fun(): string
+---@field decode fun(data: string)
 
 ---@class nil_xit.TaggedValueAccessor
----@field encode fun(tag: string): unknown
----@field decode fun(tag: string, data: unknown)
+---@field encode fun(tag: string): string
+---@field decode fun(tag: string, data: string)
 
 ---@class nil_xit.UniqueFrame
 ---@field on_load    fun(self: nil_xit.UniqueFrame, fn: fun())
 ---@field on_sub     fun(self: nil_xit.UniqueFrame, fn: fun(count: number))
 ---@field add_value  fun(self: nil_xit.UniqueFrame, id: string, accessor: nil_xit.UniqueValueAccessor): nil_xit.UniqueValue
 ---@field add_option fun(self: nil_xit.UniqueFrame, key: string, value: string)
----@field add_signal fun(self: nil_xit.UniqueFrame, id: string, fn: fun())
+---@field add_signal fun(self: nil_xit.UniqueFrame, id: string, fn: fun(payload: string))
 
 ---@class nil_xit.TaggedFrame
 ---@field on_load    fun(self: nil_xit.TaggedFrame, fn: fun(tag: string))
 ---@field on_sub     fun(self: nil_xit.TaggedFrame, fn: fun(tag: string, count: number))
 ---@field add_value  fun(self: nil_xit.TaggedFrame, id: string, accessor: nil_xit.TaggedValueAccessor): nil_xit.TaggedValue
 ---@field add_option fun(self: nil_xit.TaggedFrame, key: string, value: string)
----@field add_signal fun(self: nil_xit.TaggedFrame, id: string, fn: fun(tag: string))
+---@field add_signal fun(self: nil_xit.TaggedFrame, id: string, fn: fun(tag: string, payload: string))
 
 ---@class nil_xit.Core
 ---@field set_cache_directory fun(self: nil_xit.Core, path: string|nil)
@@ -157,7 +171,7 @@ local function create_unique_value(refs, fns, lib, value)
     return {
         _value = value,
         post = function(self, data)
-            lib.nil_xit_unique_value_post(self._value, data, ffi.sizeof(data))
+            lib.nil_xit_unique_value_post(self._value, data, #data)
         end,
     }
 end
@@ -166,7 +180,7 @@ local function create_tagged_value(refs, fns, lib, value)
     return {
         _value = value,
         post = function(self, tag, data)
-            lib.nil_xit_tagged_value_post(self._value, tag, data, ffi.sizeof(data))
+            lib.nil_xit_tagged_value_post(self._value, tag, data, #data)
         end,
     }
 end
@@ -202,8 +216,8 @@ local function create_unique_frame(refs, fns, lib, frame)
             lib.nil_xit_unique_frame_add_option(self._frame, key, value)
         end,
         add_signal = function(self, id, fn)
-            local info = ffi.new("nil_xit_unique_callback_info")
-            info.exec = fns.unique_exec
+            local info = ffi.new("nil_xit_unique_signal_callback_info")
+            info.exec = fns.unique_signal_exec
             info.cleanup = fns.cleanup
             info.context = fns.store_callback(fn)
             lib.nil_xit_unique_frame_add_signal(self._frame, id, info)
@@ -242,8 +256,8 @@ local function create_tagged_frame(refs, fns, lib, frame)
             lib.nil_xit_tagged_frame_add_option(self._frame, key, value)
         end,
         add_signal = function(self, id, fn)
-            local info = ffi.new("nil_xit_tagged_callback_info")
-            info.exec = fns.tagged_exec
+            local info = ffi.new("nil_xit_tagged_signal_callback_info")
+            info.exec = fns.tagged_signal_exec
             info.cleanup = fns.cleanup
             info.context = fns.store_callback(fn)
             lib.nil_xit_tagged_frame_add_signal(self._frame, id, info)
@@ -317,6 +331,17 @@ local function create_lib_fns(refs, lib)
         end
     )
 
+    local unique_signal_exec = ffi.cast(
+        "void (*)(const void*, uint64_t, void*)",
+        function(data, size, ctx_id)
+            local cb = refs[to_ref_id(ctx_id)]
+            if not cb then return end
+            size = tonumber(size)
+            local payload = ffi.string(data, size)
+            cb(payload)
+        end
+    )
+
     local unique_on_sub_exec = ffi.cast(
         "void (*)(uint64_t, void*)",
         function(count, ctx_id)
@@ -333,6 +358,18 @@ local function create_lib_fns(refs, lib)
         end
     )
 
+    local tagged_signal_exec = ffi.cast(
+        "void (*)(const char*, const void*, uint64_t, void*)",
+        function(tag, data, size, ctx_id)
+            local cb = refs[to_ref_id(ctx_id)]
+            if not cb then return end
+            local tag_value = tag ~= nil and ffi.string(tag) or ""
+            size = tonumber(size)
+            local payload = ffi.string(data, size)
+            cb(tag_value, payload)
+        end
+    )
+
     local tagged_on_sub_exec = ffi.cast(
         "void (*)(const char*, uint64_t, void*)",
         function(tag, count, ctx_id)
@@ -346,8 +383,8 @@ local function create_lib_fns(refs, lib)
         function(ctx_id)
             local entry = refs[to_ref_id(ctx_id)]
             if entry then
-                entry._cached = entry.encode_fn()
-                return ffi.sizeof(entry._cached)
+                entry._cached = entry.encode_fn() or ""
+                return #entry._cached
             end
             return 0
         end
@@ -358,7 +395,7 @@ local function create_lib_fns(refs, lib)
         function(ctx_id, buffer)
             local entry = refs[to_ref_id(ctx_id)]
             if entry and entry._cached then
-                ffi.copy(buffer, entry._cached, ffi.sizeof(entry._cached))
+                ffi.copy(buffer, entry._cached, #entry._cached)
                 entry._cached = nil
             end
         end
@@ -370,9 +407,7 @@ local function create_lib_fns(refs, lib)
             local entry = refs[to_ref_id(ctx_id)]
             if entry then
                 size = tonumber(size)
-                local arr = ffi.new("uint8_t[?]", size)
-                ffi.copy(arr, buffer, size)
-                entry.decode_fn(arr)
+                entry.decode_fn(ffi.string(buffer, size))
             end
         end
     )
@@ -382,8 +417,8 @@ local function create_lib_fns(refs, lib)
         function(tag, ctx_id)
             local entry = refs[to_ref_id(ctx_id)]
             if entry then
-                entry._cached = entry.encode_fn(ffi.string(tag))
-                return ffi.sizeof(entry._cached)
+                entry._cached = entry.encode_fn(ffi.string(tag)) or ""
+                return #entry._cached
             end
             return 0
         end
@@ -394,7 +429,7 @@ local function create_lib_fns(refs, lib)
         function(tag, ctx_id, buffer)
             local entry = refs[to_ref_id(ctx_id)]
             if entry and entry._cached then
-                ffi.copy(buffer, entry._cached, ffi.sizeof(entry._cached))
+                ffi.copy(buffer, entry._cached, #entry._cached)
                 entry._cached = nil
             end
         end
@@ -406,9 +441,7 @@ local function create_lib_fns(refs, lib)
             local entry = refs[to_ref_id(ctx_id)]
             if entry then
                 size = tonumber(size)
-                local arr = ffi.new("uint8_t[?]", size)
-                ffi.copy(arr, buffer, size)
-                entry.decode_fn(ffi.string(tag), arr)
+                entry.decode_fn(ffi.string(tag), ffi.string(buffer, size))
             end
         end
     )
@@ -431,8 +464,10 @@ local function create_lib_fns(refs, lib)
 
     return {
         unique_exec              = unique_exec,
+        unique_signal_exec       = unique_signal_exec,
         unique_on_sub_exec       = unique_on_sub_exec,
         tagged_exec              = tagged_exec,
+        tagged_signal_exec       = tagged_signal_exec,
         tagged_on_sub_exec       = tagged_on_sub_exec,
         unique_encode_size_exec  = unique_encode_size_exec,
         unique_encode_exec       = unique_encode_exec,
