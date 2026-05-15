@@ -19,10 +19,7 @@ SOURCE_DIR = str(Path(__file__).resolve().parent) + "/"
 http = nil_service.create_http_server("127.0.0.1", 1101, 100 * 1024 * 1024)
 
 # Setup server with asset paths
-nil_xit.setup_server(http, [
-    "assets",
-    "assets/xit/assets",
-])
+nil_xit.setup_server(http)
 
 # Create websocket event service
 ws = http.use_ws("/ws")

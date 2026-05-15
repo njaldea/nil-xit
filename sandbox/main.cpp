@@ -37,8 +37,8 @@ int main()
     nil::xit::setup_server(
         *server,
         {
-            "assets",           // for dev testing (locally served @nil-/xit)
-            "assets/xit/assets" // for html/js/css + bundler
+            // "assets/sandbox",    // for dev testing (locally served @nil-/xit)
+            "assets/sandbox/assets" // for html/js/css + bundler
         }
     );
     auto core = nil::xit::make_core(*server, *server->use_ws("/ws"));

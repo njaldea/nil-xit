@@ -23,17 +23,17 @@ endif()
 
 include(ExternalProject)
 
-set(TARBALL_FILE "xit-0.4.27.tgz")
+set(TARBALL_FILE "xit-0.4.30.tgz")
 set(TARBALL_URL "https://registry.npmjs.org/@nil-/xit/-/${TARBALL_FILE}")
 set(TARBALL_PATH "${CMAKE_BINARY_DIR}/${TARBALL_FILE}")
-set(EXTRACT_DIR "${CMAKE_BINARY_DIR}/assets/xit")
+set(EXTRACT_DIR "${CMAKE_BINARY_DIR}/assets/sandbox")
 
 ExternalProject_Add(
-    xit_assets_download
-    PREFIX ${CMAKE_BINARY_DIR}/xit_dl
+    sandbox_xit_assets_download
+    PREFIX ${CMAKE_BINARY_DIR}/ext_proj_add/sandbox
     URL ${TARBALL_URL}
-    DOWNLOAD_DIR ${CMAKE_BINARY_DIR}
-    SOURCE_DIR ${CMAKE_BINARY_DIR}/assets/xit
+    DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/dl/sandbox
+    SOURCE_DIR ${EXTRACT_DIR}
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""

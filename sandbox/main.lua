@@ -56,8 +56,8 @@ local http = nil_service.create_http_server("127.0.0.1", 1101, 100 * 1024 * 1024
 
 -- Setup server with asset paths
 nil_xit.setup_server(http, {
-    "assets",
-    "assets/xit/assets"
+    -- "assets",
+    "assets/sandbox/assets" -- for html/js/css + bundler
 })
 
 -- Create websocket event service

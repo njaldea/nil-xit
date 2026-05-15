@@ -715,9 +715,14 @@ class Module:
         core = self._lib.nil_xit_core_create_from_standalone(standalone._standalone)
         return Core(core, self._lib, self._fns)
 
-    def setup_server(self, web: nil_service.Web, paths: List[str]) -> None:
-        count = len(paths)
-        arr = (ctypes.c_char_p * count)(*[p.encode("utf-8") for p in paths])
+    def setup_server(self, web: nil_service.Web, paths: Optional[List[str]] = None) -> None:
+        local_paths = list(paths or [])
+        assets_dir = str((Path(__file__).resolve().parent / "assets"))
+        if assets_dir not in local_paths:
+            local_paths.append(assets_dir)
+        print(local_paths)
+        count = len(local_paths)
+        arr = (ctypes.c_char_p * count)(*[p.encode("utf-8") for p in local_paths])
         self._lib.nil_xit_setup_server(web._web, arr, count)
 
 
@@ -732,7 +737,7 @@ def create_core_from_standalone(standalone: nil_service.Standalone) -> Core:
     return _XIT.create_core_from_standalone(standalone)
 
 
-def setup_server(web: nil_service.Web, paths: List[str]) -> None:
+def setup_server(web: nil_service.Web, paths: Optional[List[str]] = None) -> None:
     _XIT.setup_server(web, paths)
 
 
