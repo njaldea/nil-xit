@@ -720,7 +720,6 @@ class Module:
         assets_dir = str((Path(__file__).resolve().parent / "assets"))
         if assets_dir not in local_paths:
             local_paths.append(assets_dir)
-        print(local_paths)
         count = len(local_paths)
         arr = (ctypes.c_char_p * count)(*[p.encode("utf-8") for p in local_paths])
         self._lib.nil_xit_setup_server(web._web, arr, count)

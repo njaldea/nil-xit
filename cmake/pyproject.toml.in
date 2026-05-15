@@ -33,4 +33,4 @@ Documentation = "https://github.com/njaldea/@CMAKE_PROJECT_NAME@/blob/master/src
 packages = ["@PY_FFI_MODULE_NAME@"]
 
 [tool.setuptools.package-data]
-@PY_FFI_MODULE_NAME@ = [@PY_FFI_PACKAGE_DATA@]
+@PY_FFI_MODULE_NAME@ = [@PY_FFI_PACKAGE_DATA@, "assets/**"]
