@@ -1,7 +1,7 @@
 
 include(ExternalProject)
 
-set(TARBALL_FILE "xit-0.4.30.tgz")
+set(TARBALL_FILE "xit-0.4.32.tgz")
 set(TARBALL_URL "https://registry.npmjs.org/@nil-/xit/-/${TARBALL_FILE}")
 set(EXTRACT_DIR "${CMAKE_BINARY_DIR}/assets/ffi/py")
 set(ASSETS_SRC_DIR "${EXTRACT_DIR}/assets")

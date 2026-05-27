@@ -1,5 +1,5 @@
 <script>
-    import Container from "@nil-/xit/components/layouts/Container.svelte";
+    import Container from "@nil-/xit/layouts/Container.svelte";
     import { xit } from "@nil-/xit";
 
     /** @type {{ frame: string; tag?: string }[]} */
