@@ -18,7 +18,7 @@ Protocol note
 - Transport is provided by nil/service (commonly WebSocket), but any transport works if it delivers/receives the same bytes.
 - The Svelte example below is just one client; any client that implements the schema can participate.
 
-nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
+nil::xit::setup_svelte_server(*server);
 auto* ws = server->use_ws("/ws");
 auto core = nil::xit::make_core(*ws);
 auto& uframe = add_unique_frame(
@@ -31,7 +31,7 @@ auto& tframe = add_tagged_frame(
     "tagged",
     {.group = "base", .path = "gui/Tagged.svelte"}
 );
-nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
+nil::xit::setup_svelte_server(*server);
 
 ## Core
 
@@ -52,7 +52,7 @@ Example bootstrap (abbreviated, C++):
 
 ```cpp
 auto server = nil::service::http::server::create({/*...*/});
-nil::xit::setup_server(*server, {"node_modules/@nil-/xit/assets"});
+nil::xit::setup_svelte_server(*server);
 auto* ws = server->use_ws("/ws");
 auto core = nil::xit::make_core(*ws);
 

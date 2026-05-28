@@ -196,12 +196,9 @@ extern "C"
      * @brief Sets up a web server for the service.
      *
      * @param service Web service handle.
-     * @param asset_paths Array of paths to static assets.
-     * @param count Number of asset paths.
-     *
-     * This replaces the single path with a list of paths (to match the C++ vector<string>).
+     * Serves the built-in svelte index page at "/".
      */
-    void nil_xit_setup_server(nil_service_web service, const char** asset_paths, size_t count);
+    void nil_xit_setup_svelte_server(nil_service_web service);
 
     /**
      * @brief Sets the cache directory for the core.

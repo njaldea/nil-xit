@@ -54,11 +54,8 @@ local source_dir = get_script_dir()
 -- Create HTTP server on 127.0.0.1:1101
 local http = nil_service.create_http_server("127.0.0.1", 1101, 100 * 1024 * 1024)
 
--- Setup server with asset paths
-nil_xit.setup_server(http, {
-    -- "assets",
-    "assets/sandbox/assets" -- for html/js/css + bundler
-})
+-- Setup server with the built-in svelte page
+nil_xit.setup_svelte_server(http)
 
 -- Create websocket event service
 local ws = http:use_ws("/ws")

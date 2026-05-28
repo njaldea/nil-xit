@@ -34,13 +34,7 @@ int main()
         .buffer = 1024ul * 1024ul * 100ul //
     });
 
-    nil::xit::setup_server(
-        *server,
-        {
-            // "assets/sandbox",    // for dev testing (locally served @nil-/xit)
-            "assets/sandbox/assets" // for html/js/css + bundler
-        }
-    );
+    nil::xit::setup_svelte_server(*server);
     auto core = nil::xit::make_core(*server, *server->use_ws("/ws"));
     set_groups(*core, {{"base", source_path}, {"components", source_path / "gui/components"}});
 

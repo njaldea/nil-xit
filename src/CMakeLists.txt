@@ -59,6 +59,10 @@ add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "nil-${PROJECT_NAME}")
 target_link_libraries(${PROJECT_NAME} PRIVATE xit-fbs)
 target_link_libraries(${PROJECT_NAME} PUBLIC nil::service)
+target_compile_definitions(
+    ${PROJECT_NAME}
+    PRIVATE NIL_XIT_ASSET_VERSION="${NIL_XIT_ASSET_VERSION}"
+)
 
 nil_install_headers( ${PROJECT_NAME} PUBLIC)
 nil_install_targets(${PROJECT_NAME})

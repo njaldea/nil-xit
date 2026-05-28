@@ -62,15 +62,9 @@ extern "C"
         return to_c(nil::xit::create_core(*standalone));
     }
 
-    void nil_xit_setup_server(nil_service_web service, const char** asset_paths, size_t count)
+    void nil_xit_setup_svelte_server(nil_service_web service)
     {
-        std::vector<std::filesystem::path> paths;
-        paths.reserve(count);
-        for (size_t i = 0; i < count; ++i)
-        {
-            paths.emplace_back(asset_paths[i]);
-        }
-        nil::xit::setup_server(*from_c(service), paths);
+        nil::xit::setup_svelte_server(*from_c(service));
     }
 
     void nil_xit_set_cache_directory(nil_xit_core core, const char* tmp_path)

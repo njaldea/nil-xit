@@ -205,12 +205,8 @@ def _configure_signatures(lib: Any) -> None:
     lib.nil_xit_core_create_from_standalone.argtypes = [nil_service.NilServiceStandalone]
     lib.nil_xit_core_create_from_standalone.restype = NilXitCore
 
-    lib.nil_xit_setup_server.argtypes = [
-        nil_service.NilServiceWeb,
-        ctypes.POINTER(ctypes.c_char_p),
-        ctypes.c_size_t,
-    ]
-    lib.nil_xit_setup_server.restype = None
+    lib.nil_xit_setup_svelte_server.argtypes = [nil_service.NilServiceWeb]
+    lib.nil_xit_setup_svelte_server.restype = None
 
     lib.nil_xit_set_cache_directory.argtypes = [NilXitCore, ctypes.c_char_p]
     lib.nil_xit_set_cache_directory.restype = None
@@ -715,14 +711,8 @@ class Module:
         core = self._lib.nil_xit_core_create_from_standalone(standalone._standalone)
         return Core(core, self._lib, self._fns)
 
-    def setup_server(self, web: nil_service.Web, paths: Optional[List[str]] = None) -> None:
-        local_paths = list(paths or [])
-        assets_dir = str((Path(__file__).resolve().parent / "assets"))
-        if assets_dir not in local_paths:
-            local_paths.append(assets_dir)
-        count = len(local_paths)
-        arr = (ctypes.c_char_p * count)(*[p.encode("utf-8") for p in local_paths])
-        self._lib.nil_xit_setup_server(web._web, arr, count)
+    def setup_svelte_server(self, web: nil_service.Web) -> None:
+        self._lib.nil_xit_setup_svelte_server(web._web)
 
 
 _XIT = Module()
@@ -736,14 +726,14 @@ def create_core_from_standalone(standalone: nil_service.Standalone) -> Core:
     return _XIT.create_core_from_standalone(standalone)
 
 
-def setup_server(web: nil_service.Web, paths: Optional[List[str]] = None) -> None:
-    _XIT.setup_server(web, paths)
+def setup_svelte_server(web: nil_service.Web) -> None:
+    _XIT.setup_svelte_server(web)
 
 
 __all__ = [
     "create_core",
     "create_core_from_standalone",
-    "setup_server",
+    "setup_svelte_server",
     "Core",
     "FileInfo",
     "UniqueFrame",

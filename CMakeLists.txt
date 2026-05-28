@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 3.27.1)
 
 project(
     nil-xit
-    VERSION 0.3.18
+    VERSION 0.3.19
     LANGUAGES CXX
     DESCRIPTION "C++ bridge to frontend"
 )
+
+set(NIL_XIT_ASSET_VERSION "0.4.32" CACHE STRING "Version of @nil-/xit to use")
 
 find_package(nil-service CONFIG REQUIRED)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "nil-service-dev (>= ${nil-service_VERSION})")

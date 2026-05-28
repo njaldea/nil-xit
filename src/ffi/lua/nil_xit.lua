@@ -82,7 +82,7 @@ ffi.cdef [[
 
     nil_xit_core nil_xit_core_create(nil_service_runnable, nil_service_event);
     nil_xit_core nil_xit_core_create_from_standalone(nil_service_standalone);
-    void         nil_xit_setup_server(nil_service_web, const char** asset_paths, size_t count);
+    void         nil_xit_setup_svelte_server(nil_service_web);
     void         nil_xit_set_cache_directory(nil_xit_core, const char* tmp_path);
     void         nil_xit_set_groups(nil_xit_core, const nil_xit_group_entry* groups, uint64_t size);
     void         nil_xit_core_destroy(nil_xit_core);
@@ -164,7 +164,7 @@ end
 ---@class nil_xit.Module
 ---@field create_core               fun(runnable: unknown, event: unknown): nil_xit.Core
 ---@field create_core_from_standalone fun(standalone: unknown): nil_xit.Core
----@field setup_server              fun(web: unknown, paths: string[])
+---@field setup_svelte_server       fun(web: unknown)
 
 
 local function create_unique_value(refs, fns, lib, value)
@@ -503,14 +503,8 @@ local function create_xit_lib()
             return create_core(refs, fns, lib, core)
         end,
 
-        setup_server = function(http, paths)
-            -- Extract handle from nil_service wrapper object if needed
-            local count = #paths
-            local arr = ffi.new("const char*[?]", count)
-            for i, p in ipairs(paths) do
-                arr[i - 1] = p
-            end
-            lib.nil_xit_setup_server(http._web, arr, count)
+        setup_svelte_server = function(http)
+            lib.nil_xit_setup_svelte_server(http._web)
         end
     }
 end

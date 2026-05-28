@@ -23,8 +23,8 @@ The C API provides opaque handles and functions for creating and managing the ni
   - Set the cache directory for the core.
 - `nil_xit_set_groups(nil_xit_core core, const nil_xit_group_entry* groups, uint64_t size)`
   - Set the groups for the core.
-- `nil_xit_setup_server(nil_service_web service, const char** asset_paths, size_t count)`
-  - Set up a web server and register multiple asset paths (array of strings and count).
+- `nil_xit_setup_svelte_server(nil_service_web service)`
+  - Set up a web server that serves the built-in svelte index page at "/".
 
 ---
 
@@ -100,8 +100,7 @@ The C API provides opaque handles and functions for creating and managing the ni
 ```c
 // Example: Creating a core, setting up server, and adding a unique frame
 nil_xit_core core = nil_xit_core_create(run_service, event_service);
-const char* assets[] = { "/path/to/assets1", "/path/to/assets2" };
-nil_xit_setup_server(web_service, assets, 2);
+nil_xit_setup_svelte_server(web_service);
 
 nil_xit_group_entry groups[] = { {"base", "/path/to/assets1"} };
 nil_xit_set_groups(core, groups, 1);
