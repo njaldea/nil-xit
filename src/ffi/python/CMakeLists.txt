@@ -13,11 +13,14 @@ ExternalProject_Add(
     URL ${TARBALL_URL}
     DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/dl/ffi/py
     SOURCE_DIR ${EXTRACT_DIR}
+    BUILD_ALWAYS 1
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
+    BUILD_COMMAND ${CMAKE_COMMAND} -E rm -rf ${ASSETS_DST_DIR}
     INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ASSETS_SRC_DIR} ${ASSETS_DST_DIR}
     LOG_DOWNLOAD ON
     LOG_BUILD ON
 )
 
 setup_pypi("${CMAKE_SOURCE_DIR}/cmake/pyproject.toml.in")
+
+add_dependencies(ffi-python-stage ffi_xit_assets_download)
