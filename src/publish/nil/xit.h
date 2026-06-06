@@ -193,6 +193,14 @@ extern "C"
     nil_xit_core nil_xit_core_create_from_standalone(nil_service_standalone service);
 
     /**
+     * @brief Sets up a web server for static asset serving.
+     *
+     * @param service Web service handle.
+     * @param asset_path Path to static assets.
+     */
+    void nil_xit_setup_server(nil_service_web service, const char* asset_path);
+
+    /**
      * @brief Sets up a web server for the service.
      *
      * @param service Web service handle.

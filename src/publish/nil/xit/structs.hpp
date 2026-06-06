@@ -24,6 +24,14 @@ namespace nil::xit
 
     void destroy_core(Core*);
 
+    // setup the server to handle file requests
+    // currently supports the following file format:
+    //  -  .html
+    //  -  .js
+    //  -  .png
+    //  -  .svg
+    void setup_server(service::IWebService& server, std::filesystem::path asset_path);
+
     // setup the server to handle the svelte index page at "/"
     void setup_svelte_server(service::IWebService& server);
 

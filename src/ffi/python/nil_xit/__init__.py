@@ -205,6 +205,12 @@ def _configure_signatures(lib: Any) -> None:
     lib.nil_xit_core_create_from_standalone.argtypes = [nil_service.NilServiceStandalone]
     lib.nil_xit_core_create_from_standalone.restype = NilXitCore
 
+    lib.nil_xit_setup_server.argtypes = [
+        nil_service.NilServiceWeb,
+        ctypes.c_char_p,
+    ]
+    lib.nil_xit_setup_server.restype = None
+
     lib.nil_xit_setup_svelte_server.argtypes = [nil_service.NilServiceWeb]
     lib.nil_xit_setup_svelte_server.restype = None
 
@@ -711,6 +717,9 @@ class Module:
         core = self._lib.nil_xit_core_create_from_standalone(standalone._standalone)
         return Core(core, self._lib, self._fns)
 
+    def setup_server(self, web: nil_service.Web, path: str) -> None:
+        self._lib.nil_xit_setup_server(web._web, path.encode("utf-8"))
+
     def setup_svelte_server(self, web: nil_service.Web) -> None:
         self._lib.nil_xit_setup_svelte_server(web._web)
 
@@ -726,6 +735,10 @@ def create_core_from_standalone(standalone: nil_service.Standalone) -> Core:
     return _XIT.create_core_from_standalone(standalone)
 
 
+def setup_server(web: nil_service.Web, path: str) -> None:
+    _XIT.setup_server(web, path)
+
+
 def setup_svelte_server(web: nil_service.Web) -> None:
     _XIT.setup_svelte_server(web)
 
@@ -733,6 +746,7 @@ def setup_svelte_server(web: nil_service.Web) -> None:
 __all__ = [
     "create_core",
     "create_core_from_standalone",
+    "setup_server",
     "setup_svelte_server",
     "Core",
     "FileInfo",

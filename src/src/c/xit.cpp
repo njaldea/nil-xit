@@ -62,6 +62,17 @@ extern "C"
         return to_c(nil::xit::create_core(*standalone));
     }
 
+    void nil_xit_setup_server(nil_service_web service, const char* asset_path)
+    {
+        if (asset_path == nullptr)
+        {
+            nil::xit::setup_server(*from_c(service), std::filesystem::path{});
+            return;
+        }
+
+        nil::xit::setup_server(*from_c(service), std::filesystem::path(asset_path));
+    }
+
     void nil_xit_setup_svelte_server(nil_service_web service)
     {
         nil::xit::setup_svelte_server(*from_c(service));

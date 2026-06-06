@@ -82,6 +82,7 @@ ffi.cdef [[
 
     nil_xit_core nil_xit_core_create(nil_service_runnable, nil_service_event);
     nil_xit_core nil_xit_core_create_from_standalone(nil_service_standalone);
+    void         nil_xit_setup_server(nil_service_web, const char* asset_path);
     void         nil_xit_setup_svelte_server(nil_service_web);
     void         nil_xit_set_cache_directory(nil_xit_core, const char* tmp_path);
     void         nil_xit_set_groups(nil_xit_core, const nil_xit_group_entry* groups, uint64_t size);
@@ -164,6 +165,7 @@ end
 ---@class nil_xit.Module
 ---@field create_core               fun(runnable: unknown, event: unknown): nil_xit.Core
 ---@field create_core_from_standalone fun(standalone: unknown): nil_xit.Core
+---@field setup_server              fun(web: unknown, path: string)
 ---@field setup_svelte_server       fun(web: unknown)
 
 
@@ -501,6 +503,10 @@ local function create_xit_lib()
         create_core_from_standalone = function(standalone)
             local core = lib.nil_xit_core_create_from_standalone(standalone._standalone)
             return create_core(refs, fns, lib, core)
+        end,
+
+        setup_server = function(http, path)
+            lib.nil_xit_setup_server(http._web, path)
         end,
 
         setup_svelte_server = function(http)
