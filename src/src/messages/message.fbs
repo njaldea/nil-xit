@@ -80,6 +80,8 @@ table FileResponse {
 
 table FrameCache {
     id: string (required);
+    group: string (required);
+    path: string (required);
     files: [FileInfo] (required);
     groups: [string] (required);
     options: [Option] (required);

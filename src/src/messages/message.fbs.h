@@ -1042,6 +1042,8 @@ inline ::flatbuffers::Offset<FileResponse> CreateFileResponseDirect(
 struct FrameCacheT : public ::flatbuffers::NativeTable {
   typedef FrameCache TableType;
   std::string id{};
+  std::string group{};
+  std::string path{};
   std::vector<std::unique_ptr<nil::xit::fbs::FileInfoT>> files{};
   std::vector<std::string> groups{};
   std::vector<std::unique_ptr<nil::xit::fbs::OptionT>> options{};
@@ -1057,13 +1059,21 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FrameCacheBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ID = 4,
-    VT_FILES = 6,
-    VT_GROUPS = 8,
-    VT_OPTIONS = 10,
-    VT_CONTENT = 12
+    VT_GROUP = 6,
+    VT_PATH = 8,
+    VT_FILES = 10,
+    VT_GROUPS = 12,
+    VT_OPTIONS = 14,
+    VT_CONTENT = 16
   };
   const ::flatbuffers::String *id() const {
     return GetPointer<const ::flatbuffers::String *>(VT_ID);
+  }
+  const ::flatbuffers::String *group() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_GROUP);
+  }
+  const ::flatbuffers::String *path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PATH);
   }
   const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *>(VT_FILES);
@@ -1081,6 +1091,10 @@ struct FrameCache FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_ID) &&
            verifier.VerifyString(id()) &&
+           VerifyOffsetRequired(verifier, VT_GROUP) &&
+           verifier.VerifyString(group()) &&
+           VerifyOffsetRequired(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
            VerifyOffsetRequired(verifier, VT_FILES) &&
            verifier.VerifyVector(files()) &&
            verifier.VerifyVectorOfTables(files()) &&
@@ -1106,6 +1120,12 @@ struct FrameCacheBuilder {
   void add_id(::flatbuffers::Offset<::flatbuffers::String> id) {
     fbb_.AddOffset(FrameCache::VT_ID, id);
   }
+  void add_group(::flatbuffers::Offset<::flatbuffers::String> group) {
+    fbb_.AddOffset(FrameCache::VT_GROUP, group);
+  }
+  void add_path(::flatbuffers::Offset<::flatbuffers::String> path) {
+    fbb_.AddOffset(FrameCache::VT_PATH, path);
+  }
   void add_files(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files) {
     fbb_.AddOffset(FrameCache::VT_FILES, files);
   }
@@ -1126,6 +1146,8 @@ struct FrameCacheBuilder {
     const auto end = fbb_.EndTable(start_);
     auto o = ::flatbuffers::Offset<FrameCache>(end);
     fbb_.Required(o, FrameCache::VT_ID);
+    fbb_.Required(o, FrameCache::VT_GROUP);
+    fbb_.Required(o, FrameCache::VT_PATH);
     fbb_.Required(o, FrameCache::VT_FILES);
     fbb_.Required(o, FrameCache::VT_GROUPS);
     fbb_.Required(o, FrameCache::VT_OPTIONS);
@@ -1137,6 +1159,8 @@ struct FrameCacheBuilder {
 inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> id = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> group = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> path = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>> files = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> groups = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<nil::xit::fbs::Option>>> options = 0,
@@ -1146,6 +1170,8 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
   builder_.add_options(options);
   builder_.add_groups(groups);
   builder_.add_files(files);
+  builder_.add_path(path);
+  builder_.add_group(group);
   builder_.add_id(id);
   return builder_.Finish();
 }
@@ -1153,11 +1179,15 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(
 inline ::flatbuffers::Offset<FrameCache> CreateFrameCacheDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
+    const char *group = nullptr,
+    const char *path = nullptr,
     const std::vector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> *files = nullptr,
     const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *groups = nullptr,
     const std::vector<::flatbuffers::Offset<nil::xit::fbs::Option>> *options = nullptr,
     const char *content = nullptr) {
   auto id__ = id ? _fbb.CreateString(id) : 0;
+  auto group__ = group ? _fbb.CreateString(group) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
   auto files__ = files ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>>(*files) : 0;
   auto groups__ = groups ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*groups) : 0;
   auto options__ = options ? _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>>(*options) : 0;
@@ -1165,6 +1195,8 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCacheDirect(
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       id__,
+      group__,
+      path__,
       files__,
       groups__,
       options__,
@@ -3380,6 +3412,8 @@ inline ::flatbuffers::Offset<FileResponse> CreateFileResponse(::flatbuffers::Fla
 
 inline FrameCacheT::FrameCacheT(const FrameCacheT &o)
       : id(o.id),
+        group(o.group),
+        path(o.path),
         groups(o.groups),
         content(o.content) {
   files.reserve(o.files.size());
@@ -3390,6 +3424,8 @@ inline FrameCacheT::FrameCacheT(const FrameCacheT &o)
 
 inline FrameCacheT &FrameCacheT::operator=(FrameCacheT o) FLATBUFFERS_NOEXCEPT {
   std::swap(id, o.id);
+  std::swap(group, o.group);
+  std::swap(path, o.path);
   std::swap(files, o.files);
   std::swap(groups, o.groups);
   std::swap(options, o.options);
@@ -3407,6 +3443,8 @@ inline void FrameCache::UnPackTo(FrameCacheT *_o, const ::flatbuffers::resolver_
   (void)_o;
   (void)_resolver;
   { auto _e = id(); if (_e) _o->id = _e->str(); }
+  { auto _e = group(); if (_e) _o->group = _e->str(); }
+  { auto _e = path(); if (_e) _o->path = _e->str(); }
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->files[_i]) { _e->Get(_i)->UnPackTo(_o->files[_i].get(), _resolver); } else { _o->files[_i] = std::unique_ptr<nil::xit::fbs::FileInfoT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->files.resize(0); } }
   { auto _e = groups(); if (_e) { _o->groups.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->groups[_i] = _e->Get(_i)->str(); } } else { _o->groups.resize(0); } }
   { auto _e = options(); if (_e) { _o->options.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->options[_i]) { _e->Get(_i)->UnPackTo(_o->options[_i].get(), _resolver); } else { _o->options[_i] = std::unique_ptr<nil::xit::fbs::OptionT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->options.resize(0); } }
@@ -3422,6 +3460,8 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(::flatbuffers::FlatBuf
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FrameCacheT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _id = _fbb.CreateString(_o->id);
+  auto _group = _fbb.CreateString(_o->group);
+  auto _path = _fbb.CreateString(_o->path);
   auto _files = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::FileInfo>> (_o->files.size(), [](size_t i, _VectorArgs *__va) { return CreateFileInfo(*__va->__fbb, __va->__o->files[i].get(), __va->__rehasher); }, &_va );
   auto _groups = _fbb.CreateVectorOfStrings(_o->groups);
   auto _options = _fbb.CreateVector<::flatbuffers::Offset<nil::xit::fbs::Option>> (_o->options.size(), [](size_t i, _VectorArgs *__va) { return CreateOption(*__va->__fbb, __va->__o->options[i].get(), __va->__rehasher); }, &_va );
@@ -3429,6 +3469,8 @@ inline ::flatbuffers::Offset<FrameCache> CreateFrameCache(::flatbuffers::FlatBuf
   return nil::xit::fbs::CreateFrameCache(
       _fbb,
       _id,
+      _group,
+      _path,
       _files,
       _groups,
       _options,

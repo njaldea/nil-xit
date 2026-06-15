@@ -6,6 +6,10 @@
 #include <fstream>
 #include <string_view>
 
+#ifndef NIL_XIT_ASSET_VERSION
+static_assert(false, "requires NIL_XIT_ASSET_VERSION");
+#endif
+
 namespace
 {
     constexpr std::string_view index_html = R"HTML(<!doctype html>

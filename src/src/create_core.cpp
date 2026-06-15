@@ -1,9 +1,9 @@
+#include "cache_utils.hpp"
 #include "codec.hpp" // IWYU pragma: keep
 #include "structs.hpp"
 #include "tagged/utils.hpp" // IWYU pragma: keep
 #include "unique/utils.hpp" // IWYU pragma: keep
 
-#include <nil/xalt/literal.hpp>
 #include <nil/xalt/transparent_stl.hpp>
 
 #include <nil/service/codec.hpp>
@@ -15,210 +15,74 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 #include <flatbuffers/flatbuffers.h>
-#include <flatbuffers/verifier.h>
 
 #include <filesystem>
-#include <fstream>
-#include <ios>
 #include <optional>
-#include <type_traits>
+#include <system_error>
 
 namespace nil::xit::fbs
 {
-    std::vector<flatbuffers::Offset<Option>> build_option_offsets(
-        flatbuffers::FlatBufferBuilder& builder,
-        const nil::xalt::transparent_umap<std::string>& options
-    )
+    namespace
     {
-        std::vector<flatbuffers::Offset<Option>> option_offsets;
-        option_offsets.reserve(options.size());
-        for (const auto& [key, value] : options)
+        template <typename Frame, typename ValueGetter>
+        std::vector<flatbuffers::Offset<Value>> build_value_offsets(
+            flatbuffers::FlatBufferBuilder& builder,
+            const Frame& frame,
+            ValueGetter get_value
+        )
         {
-            option_offsets.emplace_back(
-                CreateOption(builder, builder.CreateString(key), builder.CreateString(value))
-            );
-        }
-        return option_offsets;
-    }
-
-    std::vector<flatbuffers::Offset<Option>> build_option_offsets(
-        flatbuffers::FlatBufferBuilder& builder,
-        const flatbuffers::Vector<flatbuffers::Offset<Option>>* options
-    )
-    {
-        std::vector<flatbuffers::Offset<Option>> option_offsets;
-        if (options == nullptr)
-        {
-            return option_offsets;
-        }
-
-        option_offsets.reserve(options->size());
-        for (const auto* option : *options)
-        {
-            option_offsets.emplace_back(CreateOption(
-                builder,
-                builder.CreateString(option->key()->string_view()),
-                builder.CreateString(option->value()->string_view())
-            ));
-        }
-        return option_offsets;
-    }
-
-    std::string load_file(const std::filesystem::path& path)
-    {
-        std::ifstream f(path, std::ios::binary | std::ios::in);
-        return {std::istream_iterator<char>{f >> std::noskipws}, std::istream_iterator<char>{}};
-    }
-
-    bool validate_cache(
-        Core& core,
-        const nil::service::ID& id,
-        const std::filesystem::path& cache_path,
-        const nil::xalt::transparent_umap<std::string>& options,
-        const nil::xit::FileInfo& file_info,
-        std::optional<std::string_view> tag = {}
-    )
-    {
-        if (!std::filesystem::exists(cache_path))
-        {
-            return false;
-        }
-
-        // Parse cached save payload.
-        const auto content = load_file(cache_path);
-        const auto* save = flatbuffers::GetRoot<FrameCacheSave>(content.data());
-        if (save == nullptr || save->cache() == nullptr)
-        {
-            return false;
-        }
-
-        // Validate saved alias groups against current core groups.
-        const auto* aliases = save->groups();
-        if (aliases == nullptr)
-        {
-            return false;
-        }
-
-        auto alias_path_for = [aliases](std::string_view g) -> std::optional<std::filesystem::path>
-        {
-            for (const auto* alias : *aliases)
+            std::vector<ValueT> values;
+            std::vector<flatbuffers::Offset<Value>> value_offsets;
+            values.reserve(frame.values.size());
+            value_offsets.reserve(frame.values.size());
+            for (const auto& [value_id, value] : frame.values)
             {
-                if (alias->group()->string_view() == g)
-                {
-                    return std::filesystem::path(alias->path()->string_view());
-                }
-            }
-            return std::nullopt;
-        };
-
-        for (const auto* alias : *aliases)
-        {
-            const auto group_sv = alias->group()->string_view();
-            const auto it = core.groups.find(group_sv);
-            if (it == core.groups.end())
-            {
-                return false;
-            }
-            if (it->second != std::filesystem::path(alias->path()->string_view()))
-            {
-                return false;
-            }
-        }
-
-        const auto* cache = save->cache();
-        const auto* cache_options = cache->options();
-        if (cache_options == nullptr)
-        {
-            return false;
-        }
-        if (cache_options->size() != options.size())
-        {
-            return false;
-        }
-        for (const auto* option : *cache_options)
-        {
-            const auto key = option->key()->string_view();
-            const auto it = options.find(key);
-            if (it == options.end())
-            {
-                return false;
-            }
-            if (it->second != option->value()->string_view())
-            {
-                return false;
-            }
-        }
-
-        // Validate file timestamps for cache contents.
-        for (const auto& ff : *cache->files())
-        {
-            const auto file_group = ff->group()->string_view();
-            const auto file_path = ff->path()->string_view();
-            const auto alias_path = alias_path_for(file_group);
-            if (!alias_path.has_value())
-            {
-                return false;
+                auto& new_value = values.emplace_back();
+                new_value.id = value_id;
+                new_value.value = get_value(value);
+                value_offsets.emplace_back(CreateValue(
+                    builder,
+                    builder.CreateString(new_value.id),
+                    builder.CreateVector(new_value.value)
+                ));
             }
 
-            const auto target = *alias_path / file_path;
-            if (!std::filesystem::exists(target))
-            {
-                return false;
-            }
-
-            const auto file_time
-                = std::filesystem::last_write_time(target).time_since_epoch().count();
-            using target_time_t = std::decay_t<decltype(file_time)>;
-            const auto* const metadata = ff->metadata();
-            const std::uint64_t size = metadata->size();
-            if (sizeof(target_time_t) != size)
-            {
-                return false;
-            }
-            const auto cached_target_time
-                = nil::service::codec<target_time_t>::deserialize(metadata->data(), size);
-            if (cached_target_time != file_time)
-            {
-                return false;
-            }
+            return value_offsets;
         }
 
-        if (tag.has_value())
+        template <typename Frame>
+        std::vector<flatbuffers::Offset<Signal>> build_signal_offsets(
+            flatbuffers::FlatBufferBuilder& builder,
+            const Frame& frame
+        )
         {
-            flatbuffers::FlatBufferBuilder builder;
-            auto option_offsets = build_option_offsets(builder, cache_options);
-            builder.Finish(CreateTaggedFrameInfoResponse(
-                builder,
-                builder.CreateString(cache->id()),
-                builder.CreateString(tag.value()),
-                builder.CreateString(file_info.group),
-                builder.CreateString(file_info.path.c_str()),
-                builder.CreateVector(option_offsets),
-                builder.CreateString(cache->content())
-            ));
+            std::vector<SignalT> signals;
+            std::vector<flatbuffers::Offset<Signal>> signal_offsets;
+            signals.reserve(frame.signals.size());
+            signal_offsets.reserve(frame.signals.size());
+            for (const auto& [signal_id, signal] : frame.signals)
+            {
+                auto& new_signal = signals.emplace_back();
+                new_signal.id = signal_id;
 
-            const auto header = MessageType_Server_Tagged_FrameInfo_Response;
+                signal_offsets.emplace_back(
+                    CreateSignal(builder, builder.CreateString(new_signal.id))
+                );
+            }
+
+            return signal_offsets;
+        }
+
+        void send_message(
+            Core& core,
+            const nil::service::ID& id,
+            MessageType header,
+            flatbuffers::FlatBufferBuilder& builder
+        )
+        {
             auto payload = nil::service::concat(header, builder);
             core.msg_service->send(id, std::move(payload));
         }
-        else
-        {
-            flatbuffers::FlatBufferBuilder builder;
-            auto option_offsets = build_option_offsets(builder, cache_options);
-            builder.Finish(CreateUniqueFrameInfoResponse(
-                builder,
-                builder.CreateString(cache->id()),
-                builder.CreateString(file_info.group),
-                builder.CreateString(file_info.path.c_str()),
-                builder.CreateVector(option_offsets),
-                builder.CreateString(cache->content())
-            ));
-
-            const auto header = MessageType_Server_Unique_FrameInfo_Response;
-            auto payload = nil::service::concat(header, builder);
-            core.msg_service->send(id, std::move(payload));
-        }
-        return true;
     }
 
     void handle(Core& core, const nil::service::ID& id, const UniqueFrameInfoRequest& message)
@@ -233,17 +97,35 @@ namespace nil::xit::fbs
                 return;
             }
 
-            if (core.cache_location.has_value())
+            if (auto cache_content = load_valid_cache_content(
+                    core,
+                    CacheType::unique,
+                    frame_id,
+                    frame.options,
+                    *frame.file_info
+                ))
             {
-                const auto dir = *core.cache_location / "unique" / frame_id;
-                if (validate_cache(core, id, dir.c_str(), frame.options, *frame.file_info))
-                {
-                    return;
-                }
+                const auto* save = flatbuffers::GetRoot<FrameCacheSave>(cache_content->data());
+                const auto* cache = save->cache();
+                const auto* cache_options = cache->options();
+                flatbuffers::FlatBufferBuilder builder;
+                auto option_offsets = build_option_offsets(builder, cache_options);
+                builder.Finish(CreateUniqueFrameInfoResponse(
+                    builder,
+                    builder.CreateString(cache->id()),
+                    builder.CreateString(frame.file_info->group.c_str()),
+                    builder.CreateString(frame.file_info->path.c_str()),
+                    builder.CreateVector(option_offsets),
+                    builder.CreateString(cache->content())
+                ));
+                send_message(core, id, MessageType_Server_Unique_FrameInfo_Response, builder);
+                return;
             }
 
             flatbuffers::FlatBufferBuilder builder;
+
             auto option_offsets = build_option_offsets(builder, frame.options);
+
             builder.Finish(CreateUniqueFrameInfoResponse(
                 builder,
                 builder.CreateString(frame_id),
@@ -252,9 +134,7 @@ namespace nil::xit::fbs
                 builder.CreateVector(option_offsets)
             ));
 
-            const auto header = MessageType_Server_Unique_FrameInfo_Response;
-            auto payload = nil::service::concat(header, builder);
-            core.msg_service->send(id, std::move(payload));
+            send_message(core, id, MessageType_Server_Unique_FrameInfo_Response, builder);
         }
     }
 
@@ -270,18 +150,37 @@ namespace nil::xit::fbs
                 return;
             }
 
-            if (core.cache_location.has_value())
+            if (auto cache_content = load_valid_cache_content(
+                    core,
+                    CacheType::tagged,
+                    frame_id,
+                    frame.options,
+                    *frame.file_info
+                ))
             {
-                const auto dir = *core.cache_location / "tagged" / frame_id;
                 const auto tag = message.tag()->string_view();
-                if (validate_cache(core, id, dir.c_str(), frame.options, *frame.file_info, tag))
-                {
-                    return;
-                }
+                const auto* save = flatbuffers::GetRoot<FrameCacheSave>(cache_content->data());
+                const auto* cache = save->cache();
+                const auto* cache_options = cache->options();
+                flatbuffers::FlatBufferBuilder builder;
+                auto option_offsets = build_option_offsets(builder, cache_options);
+                builder.Finish(CreateTaggedFrameInfoResponse(
+                    builder,
+                    builder.CreateString(cache->id()),
+                    builder.CreateString(tag),
+                    builder.CreateString(frame.file_info->group.c_str()),
+                    builder.CreateString(frame.file_info->path.c_str()),
+                    builder.CreateVector(option_offsets),
+                    builder.CreateString(cache->content())
+                ));
+                send_message(core, id, MessageType_Server_Tagged_FrameInfo_Response, builder);
+                return;
             }
 
             flatbuffers::FlatBufferBuilder builder;
+
             auto option_offsets = build_option_offsets(builder, frame.options);
+
             builder.Finish(CreateTaggedFrameInfoResponse(
                 builder,
                 builder.CreateString(frame_id),
@@ -291,9 +190,7 @@ namespace nil::xit::fbs
                 builder.CreateVector(option_offsets)
             ));
 
-            const auto header = MessageType_Server_Tagged_FrameInfo_Response;
-            auto payload = nil::service::concat(header, builder);
-            core.msg_service->send(id, std::move(payload));
+            send_message(core, id, MessageType_Server_Tagged_FrameInfo_Response, builder);
         }
     }
 
@@ -309,10 +206,20 @@ namespace nil::xit::fbs
         }
 
         const auto target = it->second / path;
-        const auto content = load_file(target);
+        std::error_code fs_error;
+        if (!std::filesystem::exists(target, fs_error) || fs_error)
+        {
+            return;
+        }
 
-        const auto target_time
-            = std::filesystem::last_write_time(target).time_since_epoch().count();
+        const auto target_time_point = std::filesystem::last_write_time(target, fs_error);
+        if (fs_error)
+        {
+            return;
+        }
+
+        const auto content = load_file(target);
+        const auto target_time = target_time_point.time_since_epoch().count();
         const auto metadata = nil::service::concat(target_time);
 
         flatbuffers::FlatBufferBuilder builder;
@@ -324,9 +231,7 @@ namespace nil::xit::fbs
             builder.CreateVector(metadata)
         ));
 
-        auto header = MessageType_Server_File_Response;
-        auto payload = nil::service::concat(header, builder);
-        core.msg_service->send(id, std::move(payload));
+        send_message(core, id, MessageType_Server_File_Response, builder);
     }
 
     void handle(Core& core, const nil::service::ID& /* id */, const UniqueFrameLoaded& msg)
@@ -390,23 +295,12 @@ namespace nil::xit::fbs
         {
             flatbuffers::FlatBufferBuilder builder;
 
-            std::vector<ValueT> values;
-            std::vector<flatbuffers::Offset<Value>> value_offsets;
-
-            auto& [frame_id, frame] = *it;
-            values.reserve(frame.values.size());
-            value_offsets.reserve(frame.values.size());
-            for (const auto& [value_id, value] : frame.values)
-            {
-                auto& new_value = values.emplace_back();
-                new_value.id = value_id;
-                new_value.value = value.accessor->get();
-                value_offsets.emplace_back(CreateValue(
-                    builder,
-                    builder.CreateString(new_value.id),
-                    builder.CreateVector(new_value.value)
-                ));
-            }
+            auto& frame = it->second;
+            auto value_offsets = build_value_offsets(
+                builder,
+                frame,
+                [](const auto& value) { return value.accessor->get(); }
+            );
 
             builder.Finish(CreateUniqueValueResponse(
                 builder,
@@ -414,9 +308,7 @@ namespace nil::xit::fbs
                 builder.CreateVector(value_offsets)
             ));
 
-            const auto header = MessageType_Server_Unique_Value_Response;
-            auto payload = nil::service::concat(header, builder);
-            core.msg_service->send(id, std::move(payload));
+            send_message(core, id, MessageType_Server_Unique_Value_Response, builder);
         }
     }
 
@@ -427,23 +319,13 @@ namespace nil::xit::fbs
         {
             flatbuffers::FlatBufferBuilder builder;
 
-            std::vector<ValueT> values;
-            std::vector<flatbuffers::Offset<Value>> value_offsets;
-
-            auto& [frame_id, frame] = *it;
-            values.reserve(frame.values.size());
-            value_offsets.reserve(frame.values.size());
-            for (const auto& [value_id, value] : frame.values)
-            {
-                auto& new_value = values.emplace_back();
-                new_value.id = value_id;
-                new_value.value = value.accessor->get(request.tag()->string_view());
-                value_offsets.emplace_back(CreateValue(
-                    builder,
-                    builder.CreateString(new_value.id),
-                    builder.CreateVector(new_value.value)
-                ));
-            }
+            auto& frame = it->second;
+            const auto tag = request.tag()->string_view();
+            auto value_offsets = build_value_offsets(
+                builder,
+                frame,
+                [tag](const auto& value) { return value.accessor->get(tag); }
+            );
 
             builder.Finish(CreateTaggedValueResponse(
                 builder,
@@ -452,9 +334,7 @@ namespace nil::xit::fbs
                 builder.CreateVector(value_offsets)
             ));
 
-            const auto header = MessageType_Server_Tagged_Value_Response;
-            auto payload = nil::service::concat(header, builder);
-            core.msg_service->send(id, std::move(payload));
+            send_message(core, id, MessageType_Server_Tagged_Value_Response, builder);
         }
     }
 
@@ -463,24 +343,10 @@ namespace nil::xit::fbs
         const auto it = core.unique_frames.find(request.id()->string_view());
         if (it != core.unique_frames.end())
         {
-            auto& [frame_id, frame] = *it;
+            auto& frame = it->second;
 
             flatbuffers::FlatBufferBuilder builder;
-
-            std::vector<SignalT> signals;
-            std::vector<flatbuffers::Offset<Signal>> signal_offsets;
-
-            signals.reserve(frame.signals.size());
-            signal_offsets.reserve(frame.signals.size());
-            for (const auto& [signal_id, signal] : frame.signals)
-            {
-                auto& new_signal = signals.emplace_back();
-                new_signal.id = signal_id;
-
-                signal_offsets.emplace_back(
-                    CreateSignal(builder, builder.CreateString(new_signal.id))
-                );
-            }
+            auto signal_offsets = build_signal_offsets(builder, frame);
 
             builder.Finish(CreateUniqueSignalResponse(
                 builder,
@@ -488,9 +354,7 @@ namespace nil::xit::fbs
                 builder.CreateVector(signal_offsets)
             ));
 
-            const auto header = MessageType_Server_Unique_Signal_Response;
-            auto payload = nil::service::concat(header, builder);
-            core.msg_service->send(id, std::move(payload));
+            send_message(core, id, MessageType_Server_Unique_Signal_Response, builder);
         }
     }
 
@@ -499,24 +363,10 @@ namespace nil::xit::fbs
         const auto it = core.tagged_frames.find(request.id()->string_view());
         if (it != core.tagged_frames.end())
         {
-            auto& [frame_id, frame] = *it;
+            auto& frame = it->second;
 
             flatbuffers::FlatBufferBuilder builder;
-
-            std::vector<SignalT> signals;
-            std::vector<flatbuffers::Offset<Signal>> signal_offsets;
-
-            signals.reserve(frame.signals.size());
-            signal_offsets.reserve(frame.signals.size());
-            for (const auto& [signal_id, signal] : frame.signals)
-            {
-                auto& new_signal = signals.emplace_back();
-                new_signal.id = signal_id;
-
-                signal_offsets.emplace_back(
-                    CreateSignal(builder, builder.CreateString(new_signal.id))
-                );
-            }
+            auto signal_offsets = build_signal_offsets(builder, frame);
 
             builder.Finish(CreateTaggedSignalResponse(
                 builder,
@@ -525,9 +375,7 @@ namespace nil::xit::fbs
                 builder.CreateVector(signal_offsets)
             ));
 
-            const auto header = MessageType_Server_Tagged_Signal_Response;
-            auto payload = nil::service::concat(header, builder);
-            core.msg_service->send(id, std::move(payload));
+            send_message(core, id, MessageType_Server_Tagged_Signal_Response, builder);
         }
     }
 
@@ -583,124 +431,11 @@ namespace nil::xit::fbs
         }
     }
 
-    template <xalt::literal type>
+    template <CacheType type>
     auto handle_frame_cache(Core* core)
     {
         return [core](const nil::service::ID& /* id */, const void* data, std::uint64_t size)
-        {
-            if (!core->cache_location.has_value())
-            {
-                return;
-            }
-
-            flatbuffers::Verifier verifier(static_cast<const std::uint8_t*>(data), size);
-            if (!verifier.VerifyBuffer<FrameCache>())
-            {
-                return;
-            }
-
-            const auto* message = flatbuffers::GetRoot<FrameCache>(data);
-            if (message == nullptr)
-            {
-                return;
-            }
-
-            const auto frame_id = message->id()->string_view();
-            flatbuffers::FlatBufferBuilder builder;
-
-            std::vector<flatbuffers::Offset<Alias>> alias_offsets;
-            const auto* groups = message->groups();
-            if (groups != nullptr)
-            {
-                alias_offsets.reserve(groups->size());
-                for (const auto* group_name : *groups)
-                {
-                    const auto group_sv = group_name->string_view();
-                    const auto it = core->groups.find(group_sv);
-                    if (it == core->groups.end())
-                    {
-                        return;
-                    }
-                    alias_offsets.emplace_back(CreateAlias(
-                        builder,
-                        builder.CreateString(group_sv),
-                        builder.CreateString(it->second.string())
-                    ));
-                }
-            }
-
-            auto file_info_offset_for
-                = [&builder](const FileInfo* info) -> flatbuffers::Offset<FileInfo>
-            {
-                const auto* metadata = info->metadata();
-                const auto metadata_offset
-                    = builder.CreateVector(metadata->data(), metadata->size());
-                return CreateFileInfo(
-                    builder,
-                    builder.CreateString(info->group()->string_view()),
-                    builder.CreateString(info->path()->string_view()),
-                    metadata_offset
-                );
-            };
-
-            std::vector<flatbuffers::Offset<FileInfo>> file_offsets;
-            const auto* files = message->files();
-            if (files != nullptr)
-            {
-                file_offsets.reserve(files->size());
-                for (const auto* info : *files)
-                {
-                    file_offsets.emplace_back(file_info_offset_for(info));
-                }
-            }
-
-            std::vector<flatbuffers::Offset<flatbuffers::String>> group_offsets;
-            const auto* groups_offset_source = message->groups();
-            if (groups_offset_source != nullptr)
-            {
-                group_offsets.reserve(groups_offset_source->size());
-                for (const auto* group_name : *groups_offset_source)
-                {
-                    group_offsets.emplace_back(builder.CreateString(group_name->string_view()));
-                }
-            }
-
-            std::vector<flatbuffers::Offset<Option>> option_offsets;
-            const auto* option_source = message->options();
-            if (option_source != nullptr)
-            {
-                option_offsets.reserve(option_source->size());
-                for (const auto* option : *option_source)
-                {
-                    option_offsets.emplace_back(CreateOption(
-                        builder,
-                        builder.CreateString(option->key()->string_view()),
-                        builder.CreateString(option->value()->string_view())
-                    ));
-                }
-            }
-
-            const auto cache_offset = CreateFrameCache(
-                builder,
-                builder.CreateString(message->id()->string_view()),
-                builder.CreateVector(file_offsets),
-                builder.CreateVector(group_offsets),
-                builder.CreateVector(option_offsets),
-                builder.CreateString(message->content()->string_view())
-            );
-            const auto groups_offset = builder.CreateVector(alias_offsets);
-            const auto save_offset = CreateFrameCacheSave(builder, cache_offset, groups_offset);
-            builder.Finish(save_offset);
-
-            std::ofstream f(
-                *core->cache_location / xalt::literal_sv<type> / frame_id,
-                std::ios::binary | std::ios::out
-            );
-            f.write(
-                reinterpret_cast<const char*>(builder.GetBufferPointer()), // NOLINT
-                std::int64_t(builder.GetSize())
-            );
-        };
+        { handle_frame_cache_message(*core, data, size, type); };
     }
 
     template <typename T>
@@ -735,8 +470,8 @@ namespace nil::xit::fbs
                 mapping(MessageType_Client_Tagged_Value_Request, handle<TaggedValueRequest>(ptr)),
                 mapping(MessageType_Client_Unique_Signal_Request, handle<UniqueSignalRequest>(ptr)),
                 mapping(MessageType_Client_Tagged_Signal_Request, handle<TaggedSignalRequest>(ptr)),
-                mapping(MessageType_Client_Unique_FrameCache, handle_frame_cache<"unique">(ptr)),
-                mapping(MessageType_Client_Tagged_FrameCache, handle_frame_cache<"tagged">(ptr)),
+                mapping(MessageType_Client_Unique_FrameCache, handle_frame_cache<CacheType::unique>(ptr)),
+                mapping(MessageType_Client_Tagged_FrameCache, handle_frame_cache<CacheType::tagged>(ptr)),
                 mapping(MessageType_Tagged_Value_Update, handle<TaggedValueUpdate>(ptr)),
                 mapping(MessageType_Unique_Value_Update, handle<UniqueValueUpdate>(ptr)),
                 mapping(MessageType_Client_Tagged_Signal_Notify, handle<TaggedSignalNotify>(ptr)),
@@ -796,11 +531,14 @@ namespace nil::xit
         event_service.on_ready(
             [ptr]()
             {
-                if (ptr->cache_location.has_value())
+                if (!ptr->cache_location.has_value())
                 {
-                    std::filesystem::create_directories(*ptr->cache_location / "unique");
-                    std::filesystem::create_directories(*ptr->cache_location / "tagged");
+                    return;
                 }
+
+                const auto& loc = *ptr->cache_location;
+                std::filesystem::create_directories(loc / fbs::cache_dir(fbs::CacheType::unique));
+                std::filesystem::create_directories(loc / fbs::cache_dir(fbs::CacheType::tagged));
             }
         );
         return ptr;
